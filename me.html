@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>README.md to HTML</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        /* CSS styles for the rendered HTML */
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 20px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            padding: 0 20px; /* Add padding for better readability */
+        }
+
+        /* Responsive styles */
+        @media only screen and (max-width: 600px) {
+            body {
+                max-width: 100%; /* Make the content full width on small screens */
+                padding: 0 10px; /* Adjust padding for small screens */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="markdown-content" style="max-width: 100vw;">
+        <!-- Markdown content will be rendered here -->
+    </div>
+
+    <script>
+        function convertRelativePathToGitHubRawURL(relativePath) {
+            // Construct the GitHub Raw URL pattern
+            var rawURLPattern = 'https://raw.githubusercontent.com/giofahreza/giofahreza/main/assets/';
+
+            // Replace occurrences of './' with the GitHub Raw URL pattern
+            // var absoluteURL = relativePath.replace(/\.\//g, rawURLPattern);
+
+            var absoluteURL = relativePath.replace(/(\.\/|\/?)assets\//g, rawURLPattern);
+
+            return absoluteURL;
+        }
+
+        // Function to fetch README.md file content
+        function fetchReadme() {
+            fetch('https://raw.githubusercontent.com/giofahreza/giofahreza/main/README.md')
+                .then(response => response.text())
+                .then(markdownContent => {
+                  markdownContent = convertRelativePathToGitHubRawURL(markdownContent);
+
+                    // Convert Markdown to HTML
+                    var htmlContent = marked.parse(markdownContent);
+
+                    // Display HTML content
+                    document.getElementById('markdown-content').innerHTML = htmlContent;
+                })
+                .catch(error => console.error('Error fetching README.md:', error));
+        }
+
+        // Call fetchReadme function when the page loads
+        window.onload = fetchReadme;
+    </script>
+</body>
+</html>
