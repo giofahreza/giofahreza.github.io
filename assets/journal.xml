@@ -1614,6 +1614,7 @@ line-height:$(blog.title.font.size);
 text-transform:uppercase
 }
 .widget.Header .header-widget p{
+margin-top:0;
 font:$(header.description.font);
 font-style:italic;
 color:$(header.description.color);
@@ -3338,11 +3339,11 @@ padding-right:$(sidebar.width)
               <!-- Blog name and header -->
               <div class='blog-name'>
                 <b:section id='header' name='Header' showaddelement='false'>
-                  <b:widget id='Header1' locked='true' title='Giofahreza&apos;s blog (Header)' type='Header' visible='true'>
+                  <b:widget id='Header1' locked='true' title='Giofahreza (Header)' type='Header' visible='true'>
                     <b:widget-settings>
                       <b:widget-setting name='displayUrl'/>
                       <b:widget-setting name='displayHeight'>0</b:widget-setting>
-                      <b:widget-setting name='sectionWidth'>-1</b:widget-setting>
+                      <b:widget-setting name='sectionWidth'>150</b:widget-setting>
                       <b:widget-setting name='useImage'>false</b:widget-setting>
                       <b:widget-setting name='shrinkToFit'>false</b:widget-setting>
                       <b:widget-setting name='imagePlacement'>BEHIND</b:widget-setting>
@@ -3794,10 +3795,10 @@ padding-right:$(sidebar.width)
                         <b:widget-setting name='showLabels'>true</b:widget-setting>
                         <b:widget-setting name='showLocation'>true</b:widget-setting>
                         <b:widget-setting name='showTimestamp'>true</b:widget-setting>
-                        <b:widget-setting name='postsPerAd'>2</b:widget-setting>
+                        <b:widget-setting name='postsPerAd'>1</b:widget-setting>
                         <b:widget-setting name='showBacklinks'>false</b:widget-setting>
                         <b:widget-setting name='style.bordercolor'>#ffffff</b:widget-setting>
-                        <b:widget-setting name='showInlineAds'>true</b:widget-setting>
+                        <b:widget-setting name='showInlineAds'>false</b:widget-setting>
                         <b:widget-setting name='showReactions'>false</b:widget-setting>
                       </b:widget-settings>
                       <b:includable id='main' var='this'>
@@ -4652,6 +4653,19 @@ padding-right:$(sidebar.width)
             <b:include data='{ button: true, iconClass: &quot;sidebar-back flat-icon-button ripple&quot; }' name='forwardArrowIcon'/>
           </div>
           <b:section class='sidebar' id='sidebar' name='Sidebar' preferred='yes'>
+            <b:widget id='HTML1' locked='false' title='' type='HTML' visible='true'>
+              <b:widget-settings>
+                <b:widget-setting name='content'><![CDATA[<p>
+<a href="https://giofahreza.com">Back to home</a>
+</p>]]></b:widget-setting>
+              </b:widget-settings>
+              <b:includable id='main'>
+  <b:include name='widget-title'/>
+  <div class='widget-content'>
+    <data:content/>
+  </div>
+</b:includable>
+            </b:widget>
             <b:widget id='Profile1' locked='false' title='About Me' type='Profile' visible='false'>
               <b:widget-settings>
                 <b:widget-setting name='showaboutme'>true</b:widget-setting>
@@ -4820,10 +4834,10 @@ padding-right:$(sidebar.width)
   </ul>
 </b:includable>
             </b:widget>
-            <b:widget id='Label1' locked='false' title='Labels' type='Label' visible='true'>
+            <b:widget id='Label1' locked='false' title='Category' type='Label' visible='true'>
               <b:widget-settings>
                 <b:widget-setting name='sorting'>ALPHA</b:widget-setting>
-                <b:widget-setting name='display'>LIST</b:widget-setting>
+                <b:widget-setting name='display'>CLOUD</b:widget-setting>
                 <b:widget-setting name='selectedLabelsList'/>
                 <b:widget-setting name='showType'>ALL</b:widget-setting>
                 <b:widget-setting name='showFreqNumbers'>false</b:widget-setting>
@@ -4853,44 +4867,32 @@ padding-right:$(sidebar.width)
           <b:include data='{                               buttonClass: &quot;flat-button&quot;,                               items: data:this.labels,                               itemSet: &quot;labels&quot;,                               itemsMarkup: &quot;super.list&quot;                             }' name='extendableItems'/>
         </b:includable>
             </b:widget>
-            <b:widget id='ReportAbuse1' locked='true' title='' type='ReportAbuse' visible='true'>
+            <b:widget id='Translate1' locked='false' title='' type='Translate' visible='true'>
+              <b:widget-settings>
+                <b:widget-setting name='displayMode'>SIMPLE</b:widget-setting>
+              </b:widget-settings>
+              <b:includable id='main'>
+  <b:include name='widget-title'/>
+  <b:include name='content'/>
+</b:includable>
+              <b:includable id='content'>
+  <div id='google_translate_element'/>
+  <script>
+    function googleTranslateElementInit() {
+      new google.translate.TranslateElement({
+        pageLanguage: &#39;<b:eval expr='data:blog.locale.language ?: &quot;auto&quot;'/>&#39;,
+        autoDisplay: &#39;true&#39;,
+        layout: google.translate.TranslateElement.InlineLayout.<data:layout/>
+      }, &#39;google_translate_element&#39;);
+    }
+  </script>
+  <script src='//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit'/>
+</b:includable>
+            </b:widget>
+            <b:widget id='ReportAbuse1' locked='true' title='' type='ReportAbuse' visible='false'>
               <b:includable id='main'>
   <b:include name='reportAbuse'/>
 </b:includable>
-            </b:widget>
-            <b:widget id='AdSense1' locked='false' title='' type='AdSense' visible='false'>
-              <b:includable id='main'>
-  <div class='widget-content'>
-    <b:if cond='data:adCode'>
-      <data:adCode/>
-    <b:else/>
-      <b:include name='defaultAdUnit'/>
-    </b:if>
-  </div>
-</b:includable>
-              <b:includable id='defaultAdUnit'>
-          <!-- Clear out style (need non-empty string) -->
-          <b:with value='&quot;/* Done in css. */&quot;' var='style'>
-            <b:include name='super.defaultAdUnit'/>
-          </b:with>
-        </b:includable>
-            </b:widget>
-            <b:widget id='AdSense2' locked='false' title='' type='AdSense' visible='false'>
-              <b:includable id='main'>
-  <div class='widget-content'>
-    <b:if cond='data:adCode'>
-      <data:adCode/>
-    <b:else/>
-      <b:include name='defaultAdUnit'/>
-    </b:if>
-  </div>
-</b:includable>
-              <b:includable id='defaultAdUnit'>
-          <!-- Clear out style (need non-empty string) -->
-          <b:with value='&quot;/* Done in css. */&quot;' var='style'>
-            <b:include name='super.defaultAdUnit'/>
-          </b:with>
-        </b:includable>
             </b:widget>
           </b:section>
         </aside>

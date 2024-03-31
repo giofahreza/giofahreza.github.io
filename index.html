@@ -3,81 +3,577 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Under Maintenance</title>
+
+    <!-- Title-->
+    <title>Giofahreza - Fullstack (Backend & Frontend) Developer</title>
+    <!-- Meta Section -->
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="Fullstack Backend & Frontend Developer. Golang, Node.JS, PHP, etc">
+    <meta name="keywords" content="giofahreza, backend, frontend, developer">
+    <meta name="author" content="Giofahreza">
+    <meta name="robots" content="index, follow" />
+    <meta name="googlebot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+    <meta name="bingbot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" >
+    <meta name="language" content="en-US">
+    <meta name="revisit-after" content="2 days">
+    <link rel="canonical" href="https://giofahreza.com" />
+
+    <!-- Schema.org markup for Google+ -->
+    <meta itemprop="name" content="Giofahreza - Fullstack Backend & Frontend Developer">
+    <meta itemprop="description" content="Fullstack Backend & Frontend Developer. Golang, Node.JS, PHP, etc">
+    <meta itemprop="image" content="./assets/logo.png">
+
+    <!-- Twitter Card data -->
+    <meta name="twitter:card" content="summary" /> <!-- summary_large_image -->
+    <meta name="twitter:site" content="@giofahrezax" />
+    <meta name="twitter:creator" content="@giofahrezax" />
+    <meta name="twitter:title" content="Giofahreza - Fullstack Backend & Frontend Developer" />
+    <meta name="twitter:description" content="Fullstack Backend & Frontend Developer. Golang, Node.JS, PHP, etc" /> <!-- Page description less than 200 characters -->
+    <meta name="twitter:image:src" content="./assets/logo.png" /> <!-- Twitter summary card with large image must be at least 280x150px -->
+	  <meta name="twitter:image:alt" content="Giofahreza Twitter">
+
+    <!-- Open Graph data -->
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:title" content="Giofahreza - Fullstack Backend & Frontend Developer" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://giofahreza.com" />
+    <meta property="og:description" content="Fullstack Backend & Frontend Developer. Golang, Node.JS, PHP, etc" />
+    <meta property="og:site_name" content="Giofahreza" />
+    <meta property="og:image" content="./assets/logo.png" />
+
+    <meta property="article:publisher" content="https://www.facebook.com/giofahrezax" />
+    <meta property="article:published_time" content="2020-05-31T05:59:00+07:00" />
+    <!-- <meta property="article:modified_time" content="<?=date('Y-m-d')?>T19:08:47+07:00" /> -->
+    <meta property="article:section" content="Fullstack Backend & Frontend Developer. Golang, Node.JS, PHP, etc" />
+    <meta property="article:tag" content="giofahreza, backend, frontend, developer" />
+    <meta property="fb:admins" content="101720901316996" /> <!-- Facebook numberic ID -->
+
+    <script type='application/ld+json'>{"@context":"http:\/\/schema.org","@type":"WebSite","@id":"#website","url":"https:\/\/www.giofahreza.com\/","name":"Giofahreza","potentialAction":{"@type":"SearchAction","target":"https:\/\/www.giofahreza.com\/?s={search_term_string}","query-input":"required name=search_term_string"}}</script>
+    <script type='application/ld+json'>{"@context":"http:\/\/schema.org","@type":"Organization","url":"https:\/\/www.giofahreza.com\/","sameAs":["https:\/\/www.facebook.com\/giofahrezax","https:\/\/instagram.com\/giofahrezax","https:\/\/www.linkedin.com\/in\/giofahrezax\/","https:\/\/www.youtube.com\/user\/giofahrezax","https:\/\/twitter.com\/giofahrezax"],"@id":"#organization","name":"Giofahreza","logo":"./assets/logo.png"}</script>
+    <!-- The above 4 meta tags *must* come first in the head; any other head content must come *after* these tags-->
+
+    <!-- Favicon -->
+    <!-- <link rel="apple-touch-icon" sizes="57x57" href="<?=BASE_URL?>application/assets/favicon/apple-icon-57x57.png">
+    <link rel="apple-touch-icon" sizes="60x60" href="<?=BASE_URL?>application/assets/favicon/apple-icon-60x60.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="<?=BASE_URL?>application/assets/favicon/apple-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="76x76" href="<?=BASE_URL?>application/assets/favicon/apple-icon-76x76.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="<?=BASE_URL?>application/assets/favicon/apple-icon-114x114.png">
+    <link rel="apple-touch-icon" sizes="120x120" href="<?=BASE_URL?>application/assets/favicon/apple-icon-120x120.png">
+    <link rel="apple-touch-icon" sizes="144x144" href="<?=BASE_URL?>application/assets/favicon/apple-icon-144x144.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="<?=BASE_URL?>application/assets/favicon/apple-icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="<?=BASE_URL?>application/assets/favicon/apple-icon-180x180.png">
+    <link rel="icon" type="image/png" sizes="192x192"  href="<?=BASE_URL?>application/assets/favicon/android-icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="<?=BASE_URL?>application/assets/favicon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="96x96" href="<?=BASE_URL?>application/assets/favicon/favicon-96x96.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="<?=BASE_URL?>application/assets/favicon/favicon-16x16.png">
+    <link rel="manifest" href="<?=BASE_URL?>application/assets/favicon/manifest.json"> -->
+
+    <link rel="icon" type="image/png" href="./assets/favicon.ico">
+    <meta name="msapplication-TileImage" content="./assets/logo.png">
+    <meta name="msapplication-TileColor" content="#ffffff">
+    <meta name="theme-color" content="#ffffff">
+
+
+
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto&display=swap">
     <style>
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f0f0f0;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            text-align: center;
+          /* font-family: 'Roboto', sans-serif; */
+          font-family: "DejaVu Sans Mono", monospace;
+          margin: 0;
+          padding: 0;
+          background-color: #1a1a1a;
+          color: #fff;
         }
+
+
+        .btn {
+          display: inline-block;
+          padding: 10px 20px;
+          border: 1px solid white;
+          color: #fff;
+          border-radius: 5px;
+          text-decoration: none;
+          font-size: 16px;
+          cursor: pointer;
+          margin: 0 5px;
+        }
+
+        .btn:hover {
+          background-color: #606060;
+        }
+
+        .menu {
+          text-align: center;
+          margin-bottom: 20px;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+        }
+
         .container {
-            background-color: #ffffff;
-            border-radius: 8px;
-            box-shadow: 0px 0px 10px 0px rgba(0,0,0,0.1);
-            padding: 30px;
-            max-width: 400px;
-            width: 90%;
+          max-width: 1000px;
+          margin: 0 auto;
+          padding: 20px;
         }
-        h1 {
-            color: #333333;
+
+        header {
+          margin-bottom: 80px;
         }
-        p {
-            color: #666666;
-            margin-top: 20px;
+
+        header h1 {
+          font-size: 36px;
+          text-align: center;
+          margin-bottom: 20px;
         }
-        .contact-link {
-            color: #007bff;
-            text-decoration: none;
+
+        .content section {
+          margin-top: 50px;
         }
-        .contact-link:hover {
-            text-decoration: underline;
+
+        .content h2 {
+          font-size: 24px;
+          border-bottom: 1px solid #fff;
+          padding-bottom: 5px;
+        }
+
+        ul {
+          list-style-type: none;
+          padding: 0;
+          display: inline-block;
+          margin: 15px;
+        }
+
+
+        table>td {
+          margin: 0;
+          padding: 0;
+        }
+        table>li {
+          margin: 0;
+          padding: 0;
+          display: flex;
+        }
+
+        table>li>i {
+          margin-right: 5px;
+        }
+
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          border-spacing: 0;
+        }
+        th, td {
+          width: auto;
+          padding: 8px;
+          /* border: 1px solid #ddd; */
+          text-align: left;
+          vertical-align: top;
+        }
+        td>p{
+          display: inline;
+          line-height: 1em;
+        }
+        thead {
+          background-color: #f2f2f2;
+        }
+        .scrollable-table-container {
+          overflow-x: auto;
+        }
+
+        footer {
+          text-align: center;
+          margin-top: 80px;
+        }
+
+        .menu .social-icon{
+          margin: 0 5px;
+        }
+        .social-icon{
+          border: 1px solid #fff;
+          border-radius: 50px;
+          height: 40px;
+          width: 40px;
+          display: grid; place-items: center;
+        }
+        .social-icon a{
+          color: #fff;
+          text-decoration: none;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Under Maintenance</h1>
-        <p id="datetime"></p>
-        <p>Sorry, the website is currently undergoing maintenance.</p>
-        <p>I'll be back soon!</p>
-        <p>In case of urgent matters, please contact me at <a href="https://instagram.com/giofahrezax" class="contact-link">instagram</a>.</p>
-    </div>
-
-    <script>
-        // Function to fetch data from the API and update date and time
-        function updateDateAndTime() {
-            fetch('https://worldtimeapi.org/api/timezone/Asia/Jakarta')
-                .then(response => response.json())
-                .then(data => {
-                    // Extract date and time from the API response
-                    const datetime = new Date(data.datetime);
-
-                    // Format date and time
-                    const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-                    const timeOptions = { hour: 'numeric', minute: 'numeric', second: 'numeric' };
-                    const formattedDate = datetime.toLocaleDateString('en-US', dateOptions);
-                    const formattedTime = datetime.toLocaleTimeString('en-US', timeOptions);
-
-                    // Display date and time on the webpage
-                    document.getElementById('datetime').textContent = `${formattedDate} | ${formattedTime}`;
-                })
-                .catch(error => {
-                    console.error('Error fetching data:', error);
-                    document.getElementById('date').textContent = 'Error fetching date';
-                });
-        }
-
-        // Call the function initially
-        updateDateAndTime();
-
-        // Auto-reload the date and time every second
-        setInterval(updateDateAndTime, 1000);
-    </script>
+        <br>
+        <header>
+            <!-- <img src="profile.jpg" alt="Profile Image" class="profile-image"> -->
+            <h1>GIOFAHREZA</h1>
+            <div class="menu">
+              <!-- <a href="https://blog.giofahreza.com/search/label/Portfolio" class="btn">My Portfolio</a> -->
+              <a href="https://blog.giofahreza.com" target="_blank" class="btn">Daily Journals</a>
+              <a href="./assets/GIOFAHREZACV_V4.pdf" target="_blank" class="btn">Download CV</a>
+            </div>
+        </header>
+        <div class="content">
+            <section id="profile-summary">
+                <h2>Profile Summary</h2>
+                <!-- <p>Has the main expertise in Software Engineer. Especially in Backend Developer. And has interest in all matters related to information technology since the age of 7 years. Also love espresso.</p> -->
+                <p>
+                  I’m Backend Engineer, creative code craftsman and appasionate for tecnologies topics.
+                  <ul>
+                    <li>🔭 I’m currently working on Finance Technology Company as Backend Developer.</li>
+                    <li>🌱 I’m currently learn to mastering Go Language</li>
+                    <li>👯 I’m looking to collaborate on open source projects related to Go and Python languages</li>
+                    <li>🤔 I’m looking for help with Go or Python projects to improve skills</li>
+                    <li>⚡ Fun fact: I love nature so much!! (Especially mountain)</li>
+                  </ul>
+                </p>
+            </section>
+            <section id="language">
+                <h2>Language</h2>
+                <!-- <ul>
+                    <li>Indonesian: Mothertongue</li>
+                    <li>English: Conversational</li>
+                    <li>Javanese: Fluent</li>
+                    <li>Maduranese: Fluent</li>
+                </ul> -->
+                <table style="width: auto;">
+                  <tr>
+                    <td>Indonesian</td>
+                    <td>: Mothertongue</td>
+                  </tr>
+                  <tr>
+                    <td>English</td>
+                    <td>: Conversational</td>
+                  </tr>
+                  <tr>
+                    <td>Javanese</td>
+                    <td>: Fluent</td>
+                  </tr>
+                  <tr>
+                    <td>Maduranese</td>
+                    <td>: Fluent</td>
+                  </tr>
+                </table>
+            </section>
+            <section id="skills">
+                <h2>Skills</h2>
+                <div class="scrollable-table-container">
+                  <table style="width: 100%; border-collapse: collapse;" border="1">
+                    <tr>
+                      <th>Necessary</th>
+                      <th>Database</th>
+                      <th>Backend</th>
+                      <th>Frontend</th>
+                      <th>Soft Skills</th>
+                    </tr>
+                    <tr>
+                      <td>
+                        <table>
+                          <tr>
+                            <td><i class="fas fa-globe"></i></td>
+                            <td>RESTfulAPI</td>
+                          </tr>
+                          <tr>
+                            <td><i class="fas fa-share-alt"></i></td>
+                            <td>gRPC</td>
+                          </tr>
+                          <tr>
+                            <td><i class="fa-brands fa-git-alt"></i></td>
+                            <td>Git</td>
+                          </tr>
+                          <tr>
+                            <td><i class="fas fa-tools"></i></td>
+                            <td>CI/CD</td>
+                          </tr>
+                          <tr>
+                            <td><i class="fa-brands fa-docker"></i></td>
+                            <td>Docker</td>
+                          </tr>
+                          <tr>
+                            <td><i class="fa-brands fa-aws"></i></td>
+                            <td>AWS</td>
+                          </tr>
+                          <tr>
+                            <td><i class="fa-brands fa-google"></i></td>
+                            <td>Google Cloud</td>
+                          </tr>
+                          <tr>
+                            <td><i class="fa-brands fa-microsoft"></i></td>
+                            <td>Azure</td>
+                          </tr>
+                          <tr>
+                            <td><i class="fa-brands fa-linux"></i></td>
+                            <td>Linux</td>
+                          </tr>
+                        </table>
+                      </td>
+                      <td>
+                        <table>
+                          <tr>
+                            <td><i class="fas fa-database"></i></td>
+                            <td>MySQL</td>
+                          </tr>
+                          <tr>
+                            <td><i class="fas fa-database"></i></td>
+                            <td>PostgreSQL</td>
+                          </tr>
+                          <tr>
+                            <td><i class="fas fa-database"></i></td>
+                            <td>SQLite</td>
+                          </tr>
+                          <tr>
+                            <td><i class="fas fa-database"></i></td>
+                            <td>SQL Server</td>
+                          </tr>
+                          <tr>
+                            <td><i class="fas fa-database"></i></td>
+                            <td>Redis</td>
+                          </tr>
+                          <tr>
+                            <td><i class="fa fa-message"></i></td>
+                            <td>Kafka</td>
+                          </tr>
+                          <tr>
+                            <td><i class="fas fa-infinity"></i></td>
+                            <td>SQS</td>
+                          </tr>
+                        </table>
+                      </td>
+                      <td>
+                        <table>
+                          <tr>
+                            <td><i class="fa-brands fa-golang"></i></td>
+                            <td>Golang</td>
+                          </tr>
+                          <tr>
+                            <td><i class="fa-brands fa-java"></i></td>
+                            <td>Java</td>
+                          </tr>
+                          <tr>
+                            <td><i class="fa-brands fa-node-js"></i></td>
+                            <td>Node.JS</td>
+                          </tr>
+                          <tr>
+                            <td><i class="fa-brands fa-php"></i></td>
+                            <td>PHP</td>
+                          </tr>
+                          <tr>
+                            <td><i class="fa-brands fa-python"></i></td>
+                            <td>Python</td>
+                          </tr>
+                          <tr>
+                            <td><i class="fa-brands fa-r-project"></i></td>
+                            <td>R</td>
+                          </tr>
+                          <tr>
+                            <td><i class="fa-brands fa-js"></i></td>
+                            <td>Typescript</td>
+                          </tr>
+                          <tr>
+                            <td><i class="fas fa-file-code"></i></td>
+                            <td>JSON</td>
+                          </tr>
+                          <tr>
+                            <td><i class="fas fa-dice-d20"></i></td>
+                            <td>OOP</td>
+                          </tr>
+                          <tr>
+                            <td><i class="fas fa-code-branch"></i></td>
+                            <td>MVC</td>
+                          </tr>
+                        </table>
+                      </td>
+                      <td>
+                        <table>
+                          <tr>
+                            <td><i class="fa-brands fa-android"></i></td>
+                            <td>Flutter</td>
+                          </tr>
+                          <tr>
+                            <td><i class="fa-brands fa-react"></i></td>
+                            <td>React Native / JS</td>
+                          </tr>
+                          <tr>
+                            <td><i class="fa-brands fa-html5"></i></td>
+                            <td>HTML 5</td>
+                          </tr>
+                          <tr>
+                            <td><i class="fa-brands fa-css3-alt"></i></td>
+                            <td>CSS 3</td>
+                          </tr>
+                          <tr>
+                            <td><i class="fa-brands fa-js"></i></td>
+                            <td>Javascript</td>
+                          </tr>
+                          <tr>
+                            <td><i class="fa-brands fa-bootstrap"></i></td>
+                            <td>Bootstrap</td>
+                          </tr>
+                        </table>
+                      </td>
+                      <td>
+                        <table>
+                          <tr>
+                            <td><i class="fas fa-rocket"></i></td>
+                            <td>Fast Learner</td>
+                          </tr>
+                          <tr>
+                            <td><i class="fas fa-brain"></i></td>
+                            <td>Problem Solving</td>
+                          </tr>
+                          <tr>
+                            <td><i class="fas fa-clipboard-list"></i></td>
+                            <td>Organized</td>
+                          </tr>
+                          <tr>
+                            <td><i class="far fa-clock"></i></td>
+                            <td>Time Management</td>
+                          </tr>
+                          <tr>
+                            <td><i class="fas fa-users"></i></td>
+                            <td>Teamwork</td>
+                          </tr>
+                          <tr>
+                            <td><i class="fas fa-comments"></i></td>
+                            <td>Communication</td>
+                          </tr>
+                          <tr>
+                            <td><i class="fas fa-chalkboard-teacher"></i></td>
+                            <td>Mentoring</td>
+                          </tr>
+                          <tr>
+                            <td><i class="fas fa-people-carry"></i></td>
+                            <td>Empathy</td>
+                          </tr>
+                          <tr>
+                            <td><i class="fas fa-handshake"></i></td>
+                            <td>Collaboration</td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                  </table>
+                </div>
+            </section>
+            <section id="experience">
+                <h2>Work Experience</h2>
+              <ul>
+                <li>
+                  <h3 style="margin-top: 0;">PT.Lunaria Annua Teknologi / Koinworks</h3>
+                  <blockquote>
+                    <p>
+                      <strong>Backend Engineer, Fullstack Engineer</strong>
+                      <br>
+                      <em>March 2022 - Present</em>
+                    </p>
+                    <ol style="list-style: disc;">
+                      <li>Maintain, manage, oversee transaction process including Top Up / Money In, QRIS, Interbank, even foreign exchange transaction.</li>
+                    </ol>
+                  </blockquote>
+                </li>
+                <li>
+                  <h3>Rezayo Technology</h3>
+                  <blockquote>
+                    <p>
+                      <strong>Freelance Web & Mobile Developer</strong>
+                      <br>
+                      <em>April 2017 - March 2022</em>
+                    </p>
+                    <p>
+                      <ol style="list-style: disc;">
+                        <li>Convert client design assets using React Native for mobile apps or HTML, CSS and JavaScript for web application / website.</li>
+                        <li>Create web applications and components using PHP programming language with MySQL as database.</li>
+                        <li>Create mobile applications with React Native for frontend, PHP for backend, and MySQL for databases</li>
+                        <li>Developed and implemented SEO and AB testing strategies to improve the effectiveness of marketing efforts.</li>
+                      </ol>
+                    </p>
+                  </blockquote>
+                </li>
+                <li>
+                  <h3>PT.Quantum HRM Internasional</h3>
+                  <blockquote>
+                    <p>
+                      <strong>Senior Web Developer</strong>
+                      <br>
+                      <em>April 2019 - February 2021</em>
+                    </p>
+                    <p>
+                      <ol style="list-style: disc;">
+                        <li>Research fresh and new technology to support company needs</li>
+                        <li>Create monolith or microservice web applications as company needs using PHP programming language with MySQL as database.</li>
+                        <li>Create and maintain professor certification and re-certification web application</li>
+                        <li>Create and maintain psychological test web application</li>
+                        <li>Developed and implemented SEO and AB testing strategies to improve web company engangement• Research fresh and new technology to support company needs • Create monolith or microservice web applications as company needs using PHP programming language with MySQL as database. • Create and maintain professor certification and re-certification web application • Create and maintain psychological test web application • Developed and implemented SEO and AB testing strategies to improve web company engangement</li>
+                      </ol>
+                    </p>
+                  </blockquote>
+                </li>
+                <li>
+                  <h3>PT.Transcon Indonesia</h3>
+                  <blockquote>
+                    <p>
+                      <strong>Web Programmer</strong>
+                      <br>
+                      <em>January 2019 - April 2019</em>
+                    </p>
+                    <p>
+                      <ol style="list-style: disc;">
+                        <li>Create & maintain HR web application for employee registration, attendance, annual leave, bonus, permission, or reimbursement.</li>
+                        <li>Maintain PLB & TPP web application for client registration, manage, book, & etc.• Create & maintain HR web application for employee registration, attendance, annual leave, bonus, permission, or reimbursement. • Maintain PLB & TPP web application for client registration, manage, book, & etc.</li>
+                      </ol>
+                    </p>
+                  </blockquote>
+                </li>
+                <li>
+                  <h3>Fortis Central</h3>
+                  <blockquote>
+                    <p>
+                      <strong>VB.NET Programmer</strong>
+                      <br>
+                      <em>September 2018 - January 2019</em>
+                    </p>
+                    <p>
+                      <ol style="list-style: disc;">
+                        <li>Convert client needs into desktop pc application</li>
+                        <li>Create desktop pc applications and components using VB.NET programming language with SQL Server as database.</li>
+                        <li>Manage, update and maintain pc desktop application for cloth factory</li>
+                        <li>Create and maintain pc desktop application for beauty clinic</li>
+                      </ol>
+                    </p>
+                  </blockquote>
+                </li>
+              </ul>
+          </section>
+      </div>
+      <footer>
+          <p>
+            <div class="menu">
+              <span class="social-icon">
+                <a href="https://facebook.com/giofahrezax"><i class="fa-brands fa-facebook"></i></a>
+              </span>
+              <span class="social-icon">
+                <a href="https://instagram.com/giofahrezax"><i class="fa-brands fa-instagram"></i></a>
+              </span>
+              <span class="social-icon">
+                <a href="https://twitter.com/giofahrezax"><i class="fa-brands fa-twitter"></i></a>
+              </span>
+              <span class="social-icon">
+                <a href="https://linkedin.com/in/giofahreza"><i class="fa-brands fa-linkedin"></i></a>
+              </span>
+              <span class="social-icon">
+                <a href="https://github.com/giofahreza"><i class="fa-brands fa-github"></i></a>
+              </span>
+            </div>
+              &copy;2024 Giofahreza. All rights reserved.
+          </p>
+      </footer>
+  </div>
 </body>
 </html>
