@@ -76,137 +76,9 @@
     <meta name="msapplication-TileColor" content="#ffffff">
     <meta name="theme-color" content="#ffffff">
 
-
-
-
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto&display=swap">
-    <style>
-        body {
-          /* font-family: 'Roboto', sans-serif; */
-          font-family: "DejaVu Sans Mono", monospace;
-          margin: 0;
-          padding: 0;
-          background-color: #1a1a1a;
-          color: #fff;
-        }
-
-
-        .btn {
-          display: inline-block;
-          padding: 10px 20px;
-          border: 1px solid white;
-          color: #fff;
-          border-radius: 5px;
-          text-decoration: none;
-          font-size: 16px;
-          cursor: pointer;
-          margin: 0 5px;
-        }
-
-        .btn:hover {
-          background-color: #606060;
-        }
-
-        .menu {
-          text-align: center;
-          margin-bottom: 20px;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-        }
-
-        .container {
-          max-width: 1000px;
-          margin: 0 auto;
-          padding: 20px;
-        }
-
-        header {
-          margin-bottom: 80px;
-        }
-
-        header h1 {
-          font-size: 36px;
-          text-align: center;
-          margin-bottom: 20px;
-        }
-
-        .content section {
-          margin-top: 50px;
-        }
-
-        .content h2 {
-          font-size: 24px;
-          border-bottom: 1px solid #fff;
-          padding-bottom: 5px;
-        }
-
-        ul {
-          list-style-type: none;
-          padding: 0;
-          display: inline-block;
-          margin: 15px;
-        }
-
-
-        table>td {
-          margin: 0;
-          padding: 0;
-        }
-        table>li {
-          margin: 0;
-          padding: 0;
-          display: flex;
-        }
-
-        table>li>i {
-          margin-right: 5px;
-        }
-
-        table {
-          width: 100%;
-          border-collapse: collapse;
-          border-spacing: 0;
-        }
-        th, td {
-          width: auto;
-          padding: 8px;
-          /* border: 1px solid #ddd; */
-          text-align: left;
-          vertical-align: top;
-        }
-        td>p{
-          display: inline;
-          line-height: 1em;
-        }
-        thead {
-          background-color: #f2f2f2;
-        }
-        .scrollable-table-container {
-          overflow-x: auto;
-        }
-
-        footer {
-          text-align: center;
-          margin-top: 80px;
-        }
-
-        .menu .social-icon{
-          margin: 0 5px;
-        }
-        .social-icon{
-          border: 1px solid #fff;
-          border-radius: 50px;
-          height: 40px;
-          width: 40px;
-          display: grid; place-items: center;
-        }
-        .social-icon a{
-          color: #fff;
-          text-decoration: none;
-        }
-    </style>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
@@ -215,14 +87,28 @@
             <!-- <img src="profile.jpg" alt="Profile Image" class="profile-image"> -->
             <h1>GIOFAHREZA</h1>
             <div class="menu">
-              <!-- <a href="https://blog.giofahreza.com/search/label/Portfolio" class="btn">My Portfolio</a> -->
-              <a href="https://blog.giofahreza.com" target="_blank" class="btn">Daily Journals</a>
-              <a href="./assets/GIOFAHREZACV_V4.pdf" target="_blank" class="btn">Download CV</a>
+
+              <div class="dropdown">
+                <button class="btn">Social <i class="fa fa-caret-down"></i></button>
+                <div class="dropdown-content">
+                  <a href="https://github.com/giofahreza" target="_blank" class="btn"><i class="fa-brands fa-github"></i> Github</a>
+                  <a href="https://linkedin.com/in/giofahreza" target="_blank" class="btn"><i class="fa-brands fa-linkedin"></i> Linkedin</a>
+                  <a href="https://medium.com/@giofahreza" target="_blank" class="btn"><i class="fa fa-pencil"></i> Memoir</a>
+                </div>
+              </div>
+              <div class="dropdown">
+                <button class="btn">Download <i class="fa fa-caret-down"></i></button>
+                <div class="dropdown-content">
+                  <a href="./assets/GIOFAHREZA-RESUME.pdf" target="_blank" class="btn"><i class="fa fa-file"></i> Resume</a>
+                  <a href="./assets/GIOFAHREZA-CV.pdf" target="_blank" class="btn"><i class="fa fa-file"></i> CV</a>
+                </div>
+              </div>
+
             </div>
         </header>
         <div class="content">
             <section id="profile-summary">
-                <h2>Profile Summary</h2>
+                <h2>Summary</h2>
                 <!-- <p>Has the main expertise in Software Engineer. Especially in Backend Developer. And has interest in all matters related to information technology since the age of 7 years. Also love espresso.</p> -->
                 <p>
                   I’m Backend Engineer, creative code craftsman and appasionate for tecnologies topics.
@@ -463,82 +349,94 @@
                 </div>
             </section>
             <section id="experience">
-                <h2>Work Experience</h2>
+                <h2>Experience</h2>
               <ul>
                 <li>
-                  <h3 style="margin-top: 0;">PT.Lunaria Annua Teknologi / Koinworks</h3>
-                  <blockquote>
-                    <p>
-                      <strong>Backend Engineer, Fullstack Engineer</strong>
-                      <br>
-                      <em>March 2022 - Present</em>
-                    </p>
+                  <h3 style="margin-top: 0;">KOINWORKS (PT.Lunaria Annua Teknologi)</h3>
+                  <p>
+                    <em>Fullstack Engineer</em>
+                    <em style="float: right;">2023 - Present</em>
+                  </p>
+                    <span style="margin-left: 25px;">Develop P2P Lending application : </span>
                     <ol style="list-style: disc;">
-                      <li>Maintain, manage, oversee transaction process including Top Up / Money In, QRIS, Interbank, even foreign exchange transaction.</li>
+                      <li>Spearheaded the development of a robust P2P Lending application, ensuring seamless borrower backend functionality and rigorous KYC (Know Your Customer) verification protocols.</li>                    
                     </ol>
-                  </blockquote>
+                    <br>
+                    <span style="margin-left: 25px;">Develop banking application : </span>
+                    <ol style="list-style: disc;">
+                      <li>Led the creation and refinement of a sophisticated banking application, overseeing critical processes such as transaction management, Top Up/Money In, QRIS, Interbank transfers, and foreign exchange transactions.</li>
+                      <li>Proactively addressed technical issues within banking processes, offering swift resolution and continuous support to optimize system performance.</li>
+                      <li>Implemented comprehensive monitoring and investigation protocols to detect and mitigate abuse transactions, identifying anomalies and potential fraud profiles, and taking decisive action to safeguard the integrity of the platform.</li>
+                    </ol>
+                  <p>
+                    <em>TechOps Engineer</em>
+                    <em style="float: right;">2022-2023</em>
+                  </p>
+                    <span style="margin-left: 25px;">Develop automation for Transaction Risk Management System : </span>
+                    <ol style="list-style: disc;">
+                      <li>Engineered automation solutions for the Transaction Risk Management System, enhancing efficiency and accuracy in monitoring critical applications.</li>
+                      <li>Served as the primary point of contact during system incidents, demonstrating expert problem-solving skills to ensure minimal disruption and rapid resolution.</li>
+                    </ol>
                 </li>
+                <br>
                 <li>
-                  <h3>Rezayo Technology</h3>
-                  <blockquote>
-                    <p>
-                      <strong>Freelance Web & Mobile Developer</strong>
-                      <br>
-                      <em>April 2017 - March 2022</em>
-                    </p>
-                    <p>
-                      <ol style="list-style: disc;">
-                        <li>Convert client design assets using React Native for mobile apps or HTML, CSS and JavaScript for web application / website.</li>
-                        <li>Create web applications and components using PHP programming language with MySQL as database.</li>
-                        <li>Create mobile applications with React Native for frontend, PHP for backend, and MySQL for databases</li>
-                        <li>Developed and implemented SEO and AB testing strategies to improve the effectiveness of marketing efforts.</li>
-                      </ol>
-                    </p>
-                  </blockquote>
+                  <h3>REZAYOTECH</h3>
+                  <p>
+                    <em>Tech Lead</em>
+                    <em style="float: right;">2020-2022</em>
+                  </p>
+                    <ol style="list-style: disc;">
+                      <li>Championed dynamic project teams, harnessing their collective expertise to deliver groundbreaking solutions that pushed the boundaries of innovation.</li>
+                      <li>Orchestrated and inspired high-performing teams, driving collaboration and creativity to achieve ambitious project goals and exceed expectations.</li>
+                      <li>Spearheaded the execution of visionary projects, guiding each team member to unlock their full potential and unleash their creativity in pursuit of excellence.</li>
+                      <li>Led with passion and determination, transforming challenges into opportunities and cultivating an environment where success was not just achieved but celebrated.</li>
+                    </ol>
+                  <p>
+                    <em>Fullstack Developer</em>
+                    <em style="float: right;">2017-2019</em>
+                  </p>
+                    <ol style="list-style: disc;">
+                      <li>Transformed client design assets into captivating mobile applications using React Native, ensuring seamless functionality and stunning user experiences.</li>
+                      <li>Crafted responsive web applications and websites from client specifications, utilizing the latest HTML, CSS, and JavaScript techniques to deliver visually compelling and highly interactive experiences.</li>
+                      <li>Engineered robust web applications and components using the PHP programming language and MySQL database, blending creativity with technical prowess to create dynamic and efficient solutions.</li>
+                      <li>Delivered cutting-edge mobile applications with React Native frontend, seamlessly integrated with PHP backend and MySQL databases, combining innovation with reliability for optimal user engagement and satisfaction.</li>
+                      <li>Spearheaded the development and implementation of advanced SEO and AB testing strategies, driving significant improvements in marketing effectiveness and enhancing brand visibility and engagement.</li>
+                    </ol>
                 </li>
+                <br>
                 <li>
-                  <h3>PT.Quantum HRM Internasional</h3>
-                  <blockquote>
-                    <p>
-                      <strong>Senior Web Developer</strong>
-                      <br>
-                      <em>April 2019 - February 2021</em>
-                    </p>
-                    <p>
-                      <ol style="list-style: disc;">
-                        <li>Research fresh and new technology to support company needs</li>
-                        <li>Create monolith or microservice web applications as company needs using PHP programming language with MySQL as database.</li>
-                        <li>Create and maintain professor certification and re-certification web application</li>
-                        <li>Create and maintain psychological test web application</li>
-                        <li>Developed and implemented SEO and AB testing strategies to improve web company engangement• Research fresh and new technology to support company needs • Create monolith or microservice web applications as company needs using PHP programming language with MySQL as database. • Create and maintain professor certification and re-certification web application • Create and maintain psychological test web application • Developed and implemented SEO and AB testing strategies to improve web company engangement</li>
-                      </ol>
-                    </p>
-                  </blockquote>
+                  <h3>QUANTUM (PT.Quantum HRM Internasional)</h3>
+                  <p>
+                    <em>Senior Web Developer</em>
+                    <em style="float: right;">2019-2021</em>
+                  </p>
+                    <ol style="list-style: disc;">
+                      <li>Pioneered cutting-edge technology research initiatives to drive innovation and meet evolving company requirements, ensuring a competitive edge in the market.</li>
+                      <li>Engineered robust monolithic and microservice web applications tailored to the specific needs of the company, leveraging the versatility of PHP programming language and the reliability of MySQL database.</li>
+                      <li>Spearheaded the development and maintenance of dynamic web applications for professor certification and recertification, ensuring seamless processes and compliance with industry standards.</li>
+                      <li>Orchestrated the creation and upkeep of sophisticated psychological test web applications, delivering invaluable tools for assessment and analysis in the field.</li>
+                      <li>Implemented proactive SEO and AB testing strategies, strategically enhancing web company engagement and optimizing performance to maximize impact and visibility.</li>
+                    </ol>
                 </li>
+                <br>
                 <li>
                   <h3>PT.Transcon Indonesia</h3>
-                  <blockquote>
-                    <p>
-                      <strong>Web Programmer</strong>
-                      <br>
-                      <em>January 2019 - April 2019</em>
-                    </p>
-                    <p>
-                      <ol style="list-style: disc;">
-                        <li>Create & maintain HR web application for employee registration, attendance, annual leave, bonus, permission, or reimbursement.</li>
-                        <li>Maintain PLB & TPP web application for client registration, manage, book, & etc.• Create & maintain HR web application for employee registration, attendance, annual leave, bonus, permission, or reimbursement. • Maintain PLB & TPP web application for client registration, manage, book, & etc.</li>
-                      </ol>
-                    </p>
-                  </blockquote>
+                  <p>
+                    <em>Web Programmer</em>
+                    <em style="float: right;">2018-2019</em>
+                  </p>
+                    <ol style="list-style: disc;">
+                      <li>Develop and oversee a comprehensive HR web application, facilitating seamless employee registration, attendance tracking, annual leave management, bonus distribution, permissions, and reimbursements with precision and efficiency.</li>
+                      <li>Ensure the seamless operation of PLB & TPP web applications, overseeing client registration, management, booking, and other crucial functions, guaranteeing a smooth and hassle-free experience for clients and stakeholders alike.</li>
+                    </ol>
                 </li>
+                <br>
                 <li>
                   <h3>Fortis Central</h3>
-                  <blockquote>
-                    <p>
-                      <strong>VB.NET Programmer</strong>
-                      <br>
-                      <em>September 2018 - January 2019</em>
-                    </p>
+                  <p>
+                    <em>.NET Developer</em>
+                    <em style="float: right;">2018</em>
+                  </p>
                     <p>
                       <ol style="list-style: disc;">
                         <li>Convert client needs into desktop pc application</li>
@@ -547,7 +445,6 @@
                         <li>Create and maintain pc desktop application for beauty clinic</li>
                       </ol>
                     </p>
-                  </blockquote>
                 </li>
               </ul>
           </section>
@@ -555,21 +452,12 @@
       <footer>
           <p>
             <div class="menu">
-              <span class="social-icon">
-                <a href="https://facebook.com/giofahrezax"><i class="fa-brands fa-facebook"></i></a>
-              </span>
-              <span class="social-icon">
-                <a href="https://instagram.com/giofahrezax"><i class="fa-brands fa-instagram"></i></a>
-              </span>
-              <span class="social-icon">
-                <a href="https://twitter.com/giofahrezax"><i class="fa-brands fa-twitter"></i></a>
-              </span>
-              <span class="social-icon">
-                <a href="https://linkedin.com/in/giofahreza"><i class="fa-brands fa-linkedin"></i></a>
-              </span>
-              <span class="social-icon">
-                <a href="https://github.com/giofahreza"><i class="fa-brands fa-github"></i></a>
-              </span>
+                <a href="https://facebook.com/giofahrezax" target="_blank" class="social-icon"><i class="fa-brands fa-facebook"></i></a>
+                <a href="https://instagram.com/giofahrezax" target="_blank" class="social-icon"><i class="fa-brands fa-instagram"></i></a>
+                <a href="https://twitter.com/giofahrezax" target="_blank" class="social-icon"><i class="fa-brands fa-twitter"></i></a>
+                <a href="https://medium.com/@giofahreza" target="_blank" class="social-icon"><i class="fa-brands fa-medium"></i></a>
+                <a href="https://linkedin.com/in/giofahreza" target="_blank" class="social-icon"><i class="fa-brands fa-linkedin"></i></a>
+                <a href="https://github.com/giofahreza" target="_blank" class="social-icon"><i class="fa-brands fa-github"></i></a>
             </div>
               &copy;2024 Giofahreza. All rights reserved.
           </p>
