@@ -1,152 +1,103 @@
-body {
-  /* font-family: 'Roboto', sans-serif; */
-  font-family: "DejaVu Sans Mono", monospace;
+/* Basic CSS Reset */
+* {
   margin: 0;
   padding: 0;
-  background-color: #1a1a1a;
-  color: #fff;
+  box-sizing: border-box;
 }
 
-.btn {
-  display: inline-block;
-  padding: 10px 15px;
-  border: 1px solid white;
-  color: #fff;
-  border-radius: 5px;
-  text-decoration: none;
-  font-size: 16px;
-  cursor: pointer;
-  margin: 0 5px;
-  background: none;
-  text-align: left;
-}
-
-.btn:hover {
-  background-color: #606060;
-}
-
-.menu {
-  text-align: center;
-  margin-bottom: 20px;
-  display: flex;
-  /* display: flow; */
-  justify-content: center;
-  align-items: center;
-}
-
-.container {
-  max-width: 1000px;
-  margin: 0 auto;
-  padding: 20px;
-}
-
-header {
-  margin-bottom: 60px;
-}
-
-header h1 {
-  font-size: 36px;
-  text-align: center;
-  margin-bottom: 20px;
-}
-
-.content section {
-  margin-top: 50px;
-}
-
-.content h2 {
-  font-size: 24px;
-  border-bottom: 1px solid #fff;
-  padding-bottom: 5px;
-}
-
-ul {
-  list-style-type: none;
-  padding: 0;
-  display: inline-block;
-  margin: 15px;
-}
-
-table>td {
-  margin: 0;
-  padding: 0;
-}
-table>li {
-  margin: 0;
-  padding: 0;
-  display: flex;
-}
-
-table>li>i {
+.mr-5 {
   margin-right: 5px;
 }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-  border-spacing: 0;
-}
-th, td {
-  width: auto;
-  padding: 8px;
-  /* border: 1px solid #ddd; */
-  text-align: left;
-  vertical-align: top;
-}
-td>p{
-  display: inline;
-  line-height: 1em;
-}
-thead {
-  background-color: #f2f2f2;
-}
-.scrollable-table-container {
-  overflow-x: auto;
+body {
+  font-family: Arial, sans-serif;
+  background-color: #1a1a1a;
+  background-image: url('assets/bg.jpg');
+  background-size: cover;
+  min-height: 100vh;
 }
 
-footer {
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  /* padding: 20px; */
+}
+
+.header {
   text-align: center;
-  margin-top: 80px;
 }
 
-.menu .social-icon{
-  margin: 0 5px;
+.header h1 {
+  color: #fff;
+  font-size: 40px;
+  margin-top: 10px;
 }
-.social-icon{
-  border: 1px solid #fff;
-  border-radius: 50px;
-  height: 40px;
-  width: 40px;
-  display: grid; place-items: center;
+
+.header p {
+  color: #fff;
+  font-size: 20px;
+  margin-bottom: 15px;
+}
+
+.banner-img{
+  width: 100%;
+}
+
+.profile-img {
+  border-radius: 50%;
+  border: 4px solid #fff;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+  width: 150px;
+  height: 150px;
+  margin-top: 70px;
+}
+
+.content {
+  padding: 20px 0;
+}
+
+.social-links {
+  text-align: center;
+}
+
+.social-links a {
+  display: inline-block;
+  margin: 0 10px;
+}
+
+.social-links img {
+  width: 50px; /* Adjust size as needed */
+  height: 50px; /* Adjust size as needed */
+  border-radius: 50%;
+  background: white;
+  border: 4px solid white;
+}
+
+.button-links {
+  text-align: center;
+  margin-top: 60px;
+}
+
+.button {
+  display: block;
+  background-color: #141020;
+  border: 0.5px solid #6B687C;
   color: #fff;
   text-decoration: none;
+  padding: 10px 20px;
+  margin: 10px auto;
+  border-radius: 5px;
+  transition: background-color 0.3s ease;
 }
 
-.dropdown {
-  position: relative; /* Needed to position the dropdown content */
-  display: inline-block; /* Optional: keeps the button inline with surrounding content */
+.button:hover {
+  background-color: #6B687C;
+  color: black;
 }
 
-.dropdown-content {
-  display: none; /* Initially hide the dropdown content */
-  position: absolute; /* Positions the content relative to the button */
-  /* background-color: #f1f1f1; */
-  min-width: 160px; /* Defines minimum width for the dropdown menu */
-  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-  z-index: 1; /* Ensures the dropdown menu appears above other elements */
-  right: 0;
-}
-
-.dropdown-content a {
-  /* color: black; */
-  width: 100%;
-  background: #101010;
-  margin: 10px 0;
-  padding: 12px 16px;
-  text-decoration: none;
-  display: block; /* Makes the links behave like block elements for better styling */
-}
-
-.dropdown:hover .dropdown-content { /* Show the dropdown content on hover */
-  display: block;
+.copyright {
+  text-align: center;
+  margin-top: 50px;
+  /* color: #777; */
+  color: white;
 }
