@@ -211,9 +211,13 @@
                 <a href="https://t.me/giofahreza" target="_blank" class="button"><i class="fab fa-telegram mr-5"></i> Get in touch</a>
             </div>
             <div class="copyright">
-                &copy;2024 Giofahreza. All rights reserved.
+                &copy;<span class="year_now"></span> Giofahreza. All rights reserved.
             </div>
         </div>
     </div>
+    <script>
+        let currentYear = new Date().getFullYear();
+        document.querySelector('.year_now').textContent = currentYear;
+    </script>
 </body>
 </html>
