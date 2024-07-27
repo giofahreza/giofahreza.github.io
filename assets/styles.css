@@ -1,3 +1,24 @@
+@import url('fa6-pro/css/all.css');
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #1a1a1a;
+  color: #fff;
+}
+
+.text-left {
+  text-align: left;
+}
+.text-center {
+  text-align: center;
+}
+.text-right {
+  text-align: right;
+}
+.text-justify {
+  text-align: justify;
+}
 
 .mr-5 {
   margin-right: 5px;
@@ -6,6 +27,11 @@
 a {
   color: white;
   text-decoration: none;
+}
+
+header h1 {
+  margin-bottom: 20px;
+  text-align: center;
 }
 
 .container {
@@ -21,11 +47,14 @@ a {
   color: #fff;
   font-size: 40px;
   text-align: center;
+  margin-top: 10px;
+  margin-bottom: 0;
 }
 
 .header p {
   color: #fff;
   font-size: 20px;
+  margin-top: 10px;
   margin-bottom: 15px;
 }
 
@@ -249,4 +278,62 @@ thead {
 
 #certificate > ul > li > button:hover {
   background-color: #606060;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+footer {
+  text-align: center;
+  margin-top: 80px;
+  color: white;
+}
+
+footer #footer2 {
+  margin-top: 50px;
+}
+
+.menu {
+  text-align: center;
+  margin-bottom: 20px;
+  display: flex;
+  /* display: flow; */
+  justify-content: center;
+  align-items: center;
+}
+
+.menu .social-icon{
+  margin: 0 5px;
+}
+.social-icon{
+  border: 1px solid #fff;
+  border-radius: 50px;
+  height: 40px;
+  width: 40px;
+  display: grid; place-items: center;
+  color: #fff;
+  text-decoration: none;
 }
