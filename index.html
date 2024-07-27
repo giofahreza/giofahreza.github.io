@@ -187,6 +187,16 @@
         color: white;
         }
     </style>
+    <script>
+        function loadFooter(type) {
+            fetch('footer.html')
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('footer').innerHTML = data;
+                    document.getElementById('footer2').style.display = 'block';
+                });
+        }
+    </script>
 </head>
 <body>
     <div class="container">
@@ -209,14 +219,8 @@
                 <a href="https://instagram.com/giofahrezax" target="_blank" class="button"><i class="fab fa-instagram mr-5"></i> Instagram</a>
                 <a href="https://t.me/giofahreza" target="_blank" class="button"><i class="fab fa-telegram mr-5"></i> Get in touch</a>
             </div>
-            <div class="copyright">
-                &copy;<span class="year_now"></span> Giofahreza. All rights reserved.
-            </div>
+            <div id="footer"></div>
         </div>
     </div>
-    <script>
-        let currentYear = new Date().getFullYear();
-        document.querySelector('.year_now').textContent = currentYear;
-    </script>
 </body>
 </html>
