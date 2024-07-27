@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terms and Conditions Index</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #E0E0E0;
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        header h1 {
+            font-size: 2.5em;
+            color: #BB86FC;
+        }
+        
+        section {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        section h2 {
+            font-size: 1.5em;
+            color: #03DAC6;
+            border-bottom: 2px solid #03DAC6;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .link-container {
+            margin: 0 auto;
+            padding: 20px;
+            max-width: 400px;
+        }
+        
+        .link-container a {
+            display: block;
+            background-color: #333;
+            color: #E0E0E0;
+            padding: 15px;
+            margin: 10px 0;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 1.2em;
+            transition: background-color 0.3s;
+        }
+        
+        .link-container a:hover {
+            background-color: #444;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            font-size: 0.9em;
+            color: #BB86FC;
+        }
+        
+        a {
+            color: #BB86FC;
+            text-decoration: none;
+        }
+        
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', (event) => {
+            fetch('../footer.html')
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('footer').innerHTML = data;
+                    document.getElementById('footer1').style.display = 'block';
+                });
+        });
+    </script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Terms and Conditions</h1>
+        </header>
+        
+        <section>
+            <!-- <h2>Select the Terms and Conditions</h2> -->
+            <div class="link-container">
+                <a href="course-tos.html">Course Terms of Service</a>
+                <a href="project-tos.html">Project-Based Application Development Terms of Service</a>
+            </div>
+        </section>
+        
+        <div id="footer"></div>
+    </div>
+</body>
+</html>

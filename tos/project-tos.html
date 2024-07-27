@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terms and Conditions</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #E0E0E0;
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        header h1 {
+            font-size: 2.5em;
+            color: #BB86FC;
+        }
+        
+        section {
+            margin-bottom: 20px;
+        }
+        
+        section h2 {
+            font-size: 1.5em;
+            color: #03DAC6;
+            border-bottom: 2px solid #03DAC6;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+        }
+        
+        section p, section ol {
+            font-size: 1em;
+            line-height: 1.6em;
+        }
+        
+        section ol {
+            padding-left: 20px;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            font-size: 0.9em;
+            color: #BB86FC;
+        }
+        
+        a {
+            color: #BB86FC;
+            text-decoration: none;
+        }
+        
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', (event) => {
+            fetch('../footer.html')
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('footer').innerHTML = data;
+                    document.getElementById('footer1').style.display = 'block';
+                });
+        });
+    </script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Terms and Conditions</h1>
+        </header>
+        
+        <!-- Job Giver Section -->
+        <section>
+            <h2>For Job Givers</h2>
+            
+            <h3>Payment</h3>
+            <ol>
+                <li>The rate for project-based application development is determined based on the scope and complexity of the project. A detailed quote will be provided upon request.</li>
+                <li>Payments should be made to (BCA) 1210527156 under the name GIOFAHREZA ASADY F. Please confirm your payment via WhatsApp for verification.</li>
+                <li>A deposit of 50% of the total project cost is required before the commencement of the project. The remaining balance is due upon project completion.</li>
+                <li>For projects covering fewer than the agreed milestones, the final price will be adjusted as per the agreed terms.</li>
+                <li>Payments must be completed according to the project schedule. Delays in payment may result in project delays or cancellation.</li>
+                <li>All payment transactions are final. No refunds will be issued for work already completed or canceled projects.</li>
+                <li>Any additional costs or fees incurred due to changes in project scope or payment methods will be borne by the client.</li>
+                <li>Projects can be scheduled only after the initial deposit has been received. The earliest available start date is negotiable based on availability.</li>
+            </ol>
+            
+            <h3>Cancellation</h3>
+            <ol>
+                <li>To cancel a project, please submit a written notice. A 5-star rating and a positive review on the platform are appreciated but not required for cancellation.</li>
+                <li>Cancellations are permitted with a refund of 50% of the total value of the remaining work if the project is canceled before the start date.</li>
+                <li>The provider reserves the right to cancel a project with prior notice, providing a full refund for any uncompleted work.</li>
+                <li>In case of cancellation by the provider, rescheduling options or refunds will be discussed and offered as per mutual agreement.</li>
+            </ol>
+
+            <h3>Maintenance & Guarantee</h3>
+            <ol>
+                <li>The provider will offer support for any issues related to the delivered project for a period of 30 days post-completion. This includes fixing any bugs or issues identified.</li>
+                <li>Any additional support or maintenance beyond the initial 30-day period will be billed separately as per the provider's rates.</li>
+                <li>The provider guarantees that the delivered project will meet the agreed-upon specifications. Any deviation from the specifications must be reported within 7 days of project delivery.</li>
+                <li>For projects requiring long-term maintenance, a separate agreement outlining the terms will be drafted and agreed upon by both parties.</li>
+            </ol>
+            
+            <h3>Rights & Obligations</h3>
+            <ol>
+                <li>The provider retains the intellectual property rights of the project until full payment is received. Upon receipt of full payment, the intellectual property rights will be transferred to the client.</li>
+                <li>The client is obligated to provide necessary access and resources required for the successful completion of the project.</li>
+                <li>Both parties agree to communicate openly and promptly regarding any issues or changes in the project scope.</li>
+                <li>The client must adhere to the agreed project timeline and provide timely feedback to ensure project success.</li>
+            </ol>
+        </section>
+        
+        <!-- Job Seeker Section -->
+        <section>
+            <h2>For Job Seekers</h2>
+            
+            <h3>Payment</h3>
+            <ol>
+                <li>The rate for project-based application development is negotiated based on the scope and complexity of the project.</li>
+                <li>Payments should be received as specified in the project agreement. A deposit is required before the project starts, with the remaining balance due upon completion.</li>
+                <li>All payment terms will be outlined in the project agreement. Failure to meet payment deadlines may result in project delays or cancellation.</li>
+                <li>Any additional costs or changes requested by the client will be communicated and agreed upon before being billed.</li>
+                <li>Payments must be confirmed for scheduling the project. The earliest start date will be based on availability and mutual agreement.</li>
+            </ol>
+            
+            <h3>Cancellation</h3>
+            <ol>
+                <li>If the job seeker needs to cancel a project, they must provide written notice to the client. Any work completed up to that point will be billed accordingly.</li>
+                <li>The job seeker is entitled to a partial refund based on the amount of work completed if the project is canceled by the client.</li>
+                <li>The job seeker reserves the right to cancel a project if the client fails to meet payment deadlines or exhibits inappropriate behavior.</li>
+                <li>In case of cancellation by the job seeker, the client will be notified promptly and any applicable refunds or adjustments will be made.</li>
+            </ol>
+            
+            <h3>Maintenance & Guarantee</h3>
+            <ol>
+                <li>The job seeker will provide support for any issues related to the project for 30 days post-completion. Additional support or maintenance beyond this period will be billed separately.</li>
+                <li>Guarantees related to project deliverables will be provided as per the agreed specifications. Any deviations must be reported within 7 days of delivery.</li>
+                <li>Long-term maintenance requirements will be discussed and agreed upon in a separate agreement if necessary.</li>
+            </ol>
+            
+            <h3>Rights & Obligations</h3>
+           
+            <ol>
+              <li>The job seeker retains ownership of the intellectual property rights until full payment is received. Upon full payment, the rights will transfer to the client.</li>
+              <li>The client is obligated to provide timely feedback and necessary resources for the project.</li>
+              <li>Both parties must communicate openly and promptly regarding any issues or changes in project scope.</li>
+              <li>The client must adhere to the agreed timeline and provide any requested information or feedback promptly.</li>
+          </ol>
+      </section>
+      <div id="footer"></div>
+    </div>
+
+</body>
+</html>    

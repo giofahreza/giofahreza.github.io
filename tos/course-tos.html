@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terms and Conditions</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #E0E0E0;
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        header h1 {
+            font-size: 2.5em;
+            color: #BB86FC;
+        }
+        
+        section {
+            margin-bottom: 20px;
+        }
+        
+        section h2 {
+            font-size: 1.5em;
+            color: #03DAC6;
+            border-bottom: 2px solid #03DAC6;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+        }
+        
+        section p, section ol {
+            font-size: 1em;
+            line-height: 1.6em;
+        }
+        
+        section ol {
+            padding-left: 20px;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            font-size: 0.9em;
+            color: #BB86FC;
+        }
+        
+        a {
+            color: #BB86FC;
+            text-decoration: none;
+        }
+        
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', (event) => {
+            fetch('../footer.html')
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('footer').innerHTML = data;
+                    document.getElementById('footer1').style.display = 'block';
+                });
+        });
+    </script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Terms and Conditions</h1>
+        </header>
+        <section>
+            <h2>Payment</h2>
+            <ol>
+                <li>The rate is calculated on a per hour, per mentee basis.</li>
+                <li>Payments should be transferred to (BCA) 1210527156 under the name GIOFAHREZA ASADY F. <em>(Please confirm your payment via WhatsApp)</em></li>
+                <li>For payments covering fewer than five course sessions, the price will be multiplied by 1.5. For instance, if you pay for three private course sessions, the total price will be calculated as follows: (3 sessions x 2 hours x 200.000) x 1.5 = 1.800.000.</li>
+                <li>For sessions shorter than two hours, the price will also be multiplied by 1.5. For example, if you schedule one-hour private sessions for five meetings, the price will be: (5 sessions x 1 hour x 200.000) x 1.5 = 1.500.000.</li>
+                <li>Payments must be completed before the first session. Failure to make the payment on time may result in cancellation of the session.</li>
+                <li>All payment transactions are final. No refunds will be issued for sessions already conducted or missed.</li>
+                <li>Any additional costs or fees incurred due to changes in payment methods will be borne by the mentee.</li>
+                <li>Courses can be scheduled only after payment has been received. The fastest available scheduling is H-1 <em>(negotiable based on availability)</em></li>
+            </ol>
+        </section>
+        <section>
+            <h2>Cancellation</h2>
+            <ol>
+                <li>To cancel a course, please submit a 5-star rating along with a positive review on the platform.</li>
+                <li>Cancellations are permitted with a refund of 50% of the total value of the remaining sessions.</li>
+                <li>The mentor reserves the right to cancel a session or course with prior notice, providing a full refund if applicable.</li>
+                <li>In case of cancellation by the mentor, rescheduling options or refunds will be offered as per mutual agreement.</li>
+            </ol>
+        </section>
+        <section>
+            <h2>Rescheduling</h2>
+            <ol>
+                <li>Each course session may be rescheduled once. Additional rescheduling by the mentee will result in the session being considered completed.</li>
+                <li>If the mentor needs to reschedule a session more than once without prior notice to the mentee, the mentee will be granted one additional free session.</li>
+                <li>Rescheduling requests must be made at least 24 hours before the scheduled session time. Requests made within 24 hours of the session will not be accepted.</li>
+                <li>If the mentee is late by more than 30 minutes without prior notice, the session will be considered completed.</li>
+                <li>In cases where rescheduling is not possible due to unforeseen circumstances, both parties will make reasonable efforts to find a suitable alternative.</li>
+            </ol>
+        </section>
+        <section>
+            <h2>Usage Terms</h2>
+            <ol>
+                <li>Payments are valid for two months from the date of payment. If the sessions are not utilized within this period, the payment will be considered expired.</li>
+                <li>The mentor reserves the right to terminate the course if the mentee exhibits inappropriate behavior or violates any of the terms. In such cases, a refund will not be issued.</li>
+                <li>The mentor is not responsible for any technical issues experienced by the mentee during online sessions. It is recommended to ensure a stable internet connection and functioning equipment before each session.</li>
+                <li>The mentee is expected to provide feedback and participate actively during sessions to maximize the learning experience.</li>
+                <li>The mentor reserves the right to update these Terms of Service at any time. It is the mentee's responsibility to review the terms periodically.</li>
+                <li>Any disputes arising from these Terms of Service shall be resolved through mutual discussion. If unresolved, the dispute will be handled according to the local jurisdiction.</li>
+                <li>It is assumed that all mentees have read and agreed to the Terms of Service.</li>
+            </ol>
+        </section>
+        <div id="footer"></div>
+    </div>
+</body>
+</html>
