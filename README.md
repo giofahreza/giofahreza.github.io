@@ -2,7 +2,7 @@
 
 Welcome to the repository for [giofahreza.com](https://giofahreza.com), the personal website of Giofahreza. This website showcases my projects, and professional profile.
 
-![Website Screenshot](https://giofahreza.com/ss_index072024.png)
+![Website Screenshot](https://giofahreza.com/assets/img/ss_index072024.png)
 
 
 ## Table of Contents
