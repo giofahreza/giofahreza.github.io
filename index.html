@@ -188,14 +188,14 @@
         }
     </style>
     <script>
-        function loadFooter(type) {
+        document.addEventListener('DOMContentLoaded', (event) => {
             fetch('footer.html')
                 .then(response => response.text())
                 .then(data => {
                     document.getElementById('footer').innerHTML = data;
                     document.getElementById('footer2').style.display = 'block';
                 });
-        }
+        });
     </script>
 </head>
 <body>

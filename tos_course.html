@@ -65,12 +65,13 @@
     </style>
     <script>
         document.addEventListener('DOMContentLoaded', (event) => {
-            fetch('./footer.html')
+            fetch('footer.html')
                 .then(response => response.text())
                 .then(data => {
-                    document.getElementById('footer-placeholder').innerHTML = data;
+                    document.getElementById('footer').innerHTML = data;
+                    document.getElementById('footer1').style.display = 'block';
                 });
-        });
+          });
     </script>
 </head>
 <body>
@@ -111,8 +112,7 @@
         <footer>
             <p>&copy; 2024 Your Company. All rights reserved.</p>
         </footer>
-        <!-- Placeholder for the footer -->
-        <div id="footer-placeholder"></div>
+        <div id="footer"></div>
     </div>
 </body>
 </html>

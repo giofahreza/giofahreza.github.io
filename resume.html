@@ -271,6 +271,16 @@
         background-color: #606060;
       }
     </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', (event) => {
+            fetch('footer.html')
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('footer').innerHTML = data;
+                    document.getElementById('footer1').style.display = 'block';
+                });
+        });
+    </script>
 </head>
 <body>
     <div class="container">
@@ -669,19 +679,7 @@
               </table>
           </section>
       </div>
-      <footer>
-          <p>
-            <div class="menu">
-                <a href="https://facebook.com/giofahrezax" target="_blank" class="social-icon"><i class="fa-brands fa-facebook"></i></a>
-                <a href="https://instagram.com/giofahrezax" target="_blank" class="social-icon"><i class="fa-brands fa-instagram"></i></a>
-                <a href="https://twitter.com/giofahrezax" target="_blank" class="social-icon"><i class="fa-brands fa-twitter"></i></a>
-                <a href="https://medium.com/@giofahreza" target="_blank" class="social-icon"><i class="fa-brands fa-medium"></i></a>
-                <a href="https://linkedin.com/in/giofahreza" target="_blank" class="social-icon"><i class="fa-brands fa-linkedin"></i></a>
-                <a href="https://github.com/giofahreza" target="_blank" class="social-icon"><i class="fa-brands fa-github"></i></a>
-            </div>
-              &copy;2024 Giofahreza. All rights reserved.
-          </p>
-      </footer>
+      <div id="footer"></div>
   </div>
 </body>
 </html>
