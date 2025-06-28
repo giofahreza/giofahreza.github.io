@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Title-->
+    <title>Portfolio | Giofahreza - Fullstack (Backend & Frontend) Developer</title>
+    <!-- Meta Section -->
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="Portfolio of Giofahreza - Fullstack Backend & Frontend Developer. Projects in Golang, Node.JS, PHP, etc">
+    <meta name="keywords" content="giofahreza, backend, frontend, developer, portfolio, projects">
+    <meta name="author" content="Giofahreza">
+    <meta name="robots" content="index, follow" />
+    <meta name="googlebot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+    <meta name="bingbot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" >
+    <meta name="language" content="en-US">
+    <meta name="revisit-after" content="2 days">
+    <link rel="canonical" href="https://giofahreza.com/portfolio" />
+
+    <!-- Schema.org markup for Google+ -->
+    <meta itemprop="name" content="Portfolio | Giofahreza - Fullstack Backend & Frontend Developer">
+    <meta itemprop="description" content="Portfolio of Giofahreza - Fullstack Backend & Frontend Developer. Projects in Golang, Node.JS, PHP, etc">
+    <meta itemprop="image" content="./assets/img/logo.png">
+
+    <!-- Twitter Card data -->
+    <meta name="twitter:card" content="summary" /> <!-- summary_large_image -->
+    <meta name="twitter:site" content="@giofahrezax" />
+    <meta name="twitter:creator" content="@giofahrezax" />
+    <meta name="twitter:title" content="Portfolio | Giofahreza - Fullstack Backend & Frontend Developer" />
+    <meta name="twitter:description" content="Portfolio of Giofahreza - Fullstack Backend & Frontend Developer. Projects in Golang, Node.JS, PHP, etc" /> <!-- Page description less than 200 characters -->
+    <meta name="twitter:image:src" content="./assets/img/logo.png" /> <!-- Twitter summary card with large image must be at least 280x150px -->
+	  <meta name="twitter:image:alt" content="Giofahreza Twitter">
+
+    <!-- Open Graph data -->
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:title" content="Portfolio | Giofahreza - Fullstack Backend & Frontend Developer" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://giofahreza.com/portfolio" />
+    <meta property="og:description" content="Portfolio of Giofahreza - Fullstack Backend & Frontend Developer. Projects in Golang, Node.JS, PHP, etc" />
+    <meta property="og:site_name" content="Giofahreza" />
+    <meta property="og:image" content="./assets/img/logo.png" />
+
+    <meta property="article:publisher" content="https://www.facebook.com/giofahrezax" />
+    <meta property="article:published_time" content="2020-05-31T05:59:00+07:00" />
+    <!-- <meta property="article:modified_time" content="<?=date('Y-m-d')?>T19:08:47+07:00" /> -->
+    <meta property="article:section" content="Portfolio of Giofahreza - Fullstack Backend & Frontend Developer. Projects in Golang, Node.JS, PHP, etc" />
+    <meta property="article:tag" content="giofahreza, backend, frontend, developer, portfolio, projects" />
+    <meta property="fb:admins" content="101720901316996" /> <!-- Facebook numberic ID -->
+
+    <script type='application/ld+json'>{"@context":"http:\/\/schema.org","@type":"WebSite","@id":"#website","url":"https:\/\/www.giofahreza.com\/","name":"Giofahreza","potentialAction":{"@type":"SearchAction","target":"https:\/\/www.giofahreza.com\/?s={search_term_string}","query-input":"required name=search_term_string"}}</script>
+    <script type='application/ld+json'>{"@context":"http:\/\/schema.org","@type":"Organization","url":"https:\/\/www.giofahreza.com\/","sameAs":["https:\/\/www.facebook.com\/giofahrezax","https:\/\/instagram.com\/giofahrezax","https:\/\/www.linkedin.com\/in\/giofahrezax\/","https:\/\/www.youtube.com\/user\/giofahrezax","https:\/\/twitter.com\/giofahrezax"],"@id":"#organization","name":"Giofahreza","logo":"./assets/img/logo.png"}</script>
+    <!-- The above 4 meta tags *must* come first in the head; any other head content must come *after* these tags-->
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="./assets/img/favicon.ico">
+    <meta name="msapplication-TileImage" content="./assets/img/logo.png">
+    <meta name="msapplication-TileColor" content="#ffffff">
+    <meta name="theme-color" content="#ffffff">
+
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto&display=swap">
+    <link rel="stylesheet" href="assets/styles.css">
+    <style>
+      body {
+        /* font-family: 'Roboto', sans-serif; */
+        font-family: "DejaVu Sans Mono", monospace;
+      }
+
+      .container {
+        max-width: 1000px;
+        padding: 20px;
+      }
+
+      .portfolio-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+        margin-top: 30px;
+      }
+
+      .project-card {
+        background-color: #2a2a2a;
+        border-radius: 10px;
+        padding: 20px;
+        border: 1px solid #404040;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+      }
+
+      .project-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(107, 104, 124, 0.3);
+      }
+
+      .project-title {
+        color: #fff;
+        font-size: 18px;
+        font-weight: bold;
+        margin-bottom: 10px;
+      }
+
+      .project-description {
+        color: #ccc;
+        font-size: 14px;
+        line-height: 1.5;
+        margin-bottom: 15px;
+      }
+
+      .project-tech {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 15px;
+      }
+
+      .tech-tag {
+        background-color: #6B687C;
+        color: #fff;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+      }
+
+      .project-links {
+        display: flex;
+        gap: 10px;
+      }
+
+      .project-link {
+        display: inline-block;
+        padding: 8px 15px;
+        background-color: #141020;
+        color: #fff;
+        text-decoration: none;
+        border-radius: 5px;
+        font-size: 14px;
+        border: 0.5px solid #6B687C;
+        transition: background-color 0.3s ease;
+      }
+
+      .project-link:hover {
+        background-color: #6B687C;
+        color: black;
+      }
+
+      .category-section {
+        margin-bottom: 40px;
+      }
+
+      .category-title {
+        color: #BB86FC;
+        font-size: 24px;
+        border-bottom: 2px solid #6B687C;
+        padding-bottom: 10px;
+        margin-bottom: 20px;
+      }
+    </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', (event) => {
+            fetch('components/footer.html')
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('footer').innerHTML = data;
+                    document.getElementById('footer1').style.display = 'block';
+                });
+        });
+    </script>
+</head>
+<body>
+    <div class="container">
+        <br>
+        <header>
+            <h1>PORTFOLIO</h1>
+            <div class="menu">
+              <button class="btn" onclick="window.location.href='../';"><i class="fa fa-arrow-left mr-5"></i> Back</button>
+              <button class="btn" onclick="window.open('https://t.me/giofahreza', '_blank')"><i class="fa-brands fa-telegram mr-5"></i> Get in touch</button>
+            </div>
+        </header>
+        
+        <div class="content">
+            <section id="portfolio-intro">
+                <h2>My Projects</h2>
+                <p>
+                  Welcome to my portfolio! Here you'll find a collection of projects that showcase my skills in fullstack engineering, 
+                  from web development to AI applications and corporate solutions. Each project demonstrates my expertise in different 
+                  technologies and problem-solving approaches.
+                </p>
+            </section>
+
+            <div class="category-section">
+                <h2 class="category-title">Featured Projects</h2>
+                <div class="portfolio-grid">
+                    <div class="project-card">
+                        <div class="project-title">Personal Website - Giofahreza</div>
+                        <div class="project-description">
+                            Developed and maintain a personal website that showcases my skills, projects, and professional experience as a full-stack engineer. 
+                            The website serves as a comprehensive digital portfolio, reflecting my capabilities in fullstack engineering.
+                        </div>
+                        <div class="project-tech">
+                            <span class="tech-tag">HTML5</span>
+                            <span class="tech-tag">CSS3</span>
+                            <span class="tech-tag">JavaScript</span>
+                            <span class="tech-tag">Responsive Design</span>
+                            <span class="tech-tag">SEO</span>
+                        </div>
+                        <div class="project-links">
+                            <a href="https://giofahreza.com" target="_blank" class="project-link"><i class="fa fa-external-link mr-5"></i>Visit Website</a>
+                            <a href="https://github.com/giofahreza/giofahreza.github.io" target="_blank" class="project-link"><i class="fa-brands fa-github mr-5"></i>View Code</a>
+                        </div>
+                    </div>
+
+                    <div class="project-card">
+                        <div class="project-title">Go Developer Portfolio</div>
+                        <div class="project-description">
+                            A curated collection of my hands-on projects and explorations in Go (Golang), covering a wide range of topics including web development, 
+                            concurrency, microservices, clean architecture, testing, and performance optimization. This repository demonstrates my deep understanding 
+                            of Go fundamentals and best practices.
+                        </div>
+                        <div class="project-tech">
+                            <span class="tech-tag">Golang</span>
+                            <span class="tech-tag">Microservices</span>
+                            <span class="tech-tag">Clean Architecture</span>
+                            <span class="tech-tag">Testing</span>
+                            <span class="tech-tag">Performance Optimization</span>
+                            <span class="tech-tag">Concurrency</span>
+                        </div>
+                        <div class="project-links">
+                            <a href="https://github.com/giofahreza/all-about-go" target="_blank" class="project-link"><i class="fa-brands fa-github mr-5"></i>View Repository</a>
+                        </div>
+                    </div>
+
+                    <div class="project-card">
+                        <div class="project-title">Customer Service AI Assistant</div>
+                        <div class="project-description">
+                            An AI-powered customer service assistant built for Indonesian businesses, leveraging natural language processing to handle customer inquiries 
+                            efficiently. This project includes integration with vector databases, embedding models, and chat interfaces tailored to support Bahasa Indonesia. 
+                            Designed for deployment on edge devices (e.g., Armbian-based).
+                        </div>
+                        <div class="project-tech">
+                            <span class="tech-tag">AI/ML</span>
+                            <span class="tech-tag">Natural Language Processing</span>
+                            <span class="tech-tag">Vector Databases</span>
+                            <span class="tech-tag">Bahasa Indonesia</span>
+                            <span class="tech-tag">Edge Computing</span>
+                            <span class="tech-tag">Chat Interface</span>
+                        </div>
+                        <div class="project-links">
+                            <a href="https://github.com/giofahreza/cs-ai-indonesia" target="_blank" class="project-link"><i class="fa-brands fa-github mr-5"></i>View Repository</a>
+                        </div>
+                    </div>
+
+                    <div class="project-card">
+                        <div class="project-title">Indonesian Pawnbrokers Association Website</div>
+                        <div class="project-description">
+                            Designed and developed the official website for the Indonesian Pawnbrokers Association, serving as a central hub for members, stakeholders, and the public. 
+                            Features include a searchable member directory, news & updates section, comprehensive resource center, and user-friendly interface designed for industry organizations.
+                        </div>
+                        <div class="project-tech">
+                            <span class="tech-tag">Web Development</span>
+                            <span class="tech-tag">Member Directory</span>
+                            <span class="tech-tag">Content Management</span>
+                            <span class="tech-tag">Search Functionality</span>
+                            <span class="tech-tag">Responsive Design</span>
+                            <span class="tech-tag">Industry Focus</span>
+                        </div>
+                        <div class="project-links">
+                            <a href="https://perkumpulan-perusahaan-gadai.com/" target="_blank" class="project-link"><i class="fa fa-external-link mr-5"></i>Visit Website</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <section id="project-highlights">
+                <h2>Project Highlights</h2>
+                <div style="background-color: #2a2a2a; border-radius: 10px; padding: 25px; margin: 20px 0; border: 1px solid #404040;">
+                    <h3 style="color: #BB86FC; margin-top: 0;">Indonesian Pawnbrokers Association Features</h3>
+                    <ul style="color: #ccc; line-height: 1.6;">
+                        <li><strong>Member Directory:</strong> A searchable directory of all registered pawnbroker companies in Indonesia, allowing users to easily find and connect with reputable services.</li>
+                        <li><strong>News & Updates:</strong> Regularly updated sections featuring the latest news, industry developments, and regulatory updates relevant to pawnbrokers.</li>
+                        <li><strong>Resource Center:</strong> A comprehensive library of resources, including legal guidelines, industry reports, and educational materials to support members.</li>
+                        <li><strong>User-Friendly Interface:</strong> Focused on creating an intuitive and accessible user experience, ensuring that visitors can easily navigate and find relevant information.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <section id="contact-cta">
+                <h2>Let's Build Something Amazing Together</h2>
+                <p>
+                    These projects demonstrate my ability to deliver high-quality, user-centric solutions tailored to specific needs across different domains - 
+                    from AI applications to industry-specific websites. I'm passionate about solving complex technical challenges and building scalable applications. 
+                    Whether you need a robust backend system, AI-powered solution, or comprehensive web platform, let's discuss how I can help bring your vision to life.
+                </p>
+                <div style="text-align: center; margin-top: 30px;">
+                    <a href="https://t.me/giofahreza" target="_blank" class="button"><i class="fa-brands fa-telegram mr-5"></i>Get in touch</a>
+                    <a href="https://github.com/giofahreza" target="_blank" class="button"><i class="fa-brands fa-github mr-5"></i>View GitHub</a>
+                    <a href="./resume" class="button"><i class="fa fa-file mr-5"></i>View Resume</a>
+                    <a href="https://linkedin.com/in/giofahreza" target="_blank" class="button"><i class="fa-brands fa-linkedin mr-5"></i>LinkedIn</a>
+                </div>
+            </section>
+        </div>
+        <div id="footer"></div>
+    </div>
+</body>
+</html>
