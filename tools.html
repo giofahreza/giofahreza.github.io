@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Developer Tools - Giofahreza</title>
+    <meta name="description" content="Free browser-based developer tools by Giofahreza. JSON, JWT, Base64, regex, cron, hash, 2FA, QR, CSS, web, and text utilities.">
+    <meta name="keywords" content="developer tools, json formatter, jwt decoder, base64, regex tester, 2fa generator, timestamp converter">
+    <meta name="author" content="Giofahreza">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://giofahreza.com/tools">
+    <link rel="icon" type="image/png" href="./assets/img/favicon.ico">
+    <meta name="theme-color" content="#111318">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto&display=swap">
+    <link rel="stylesheet" href="assets/styles.css">
+    <link rel="stylesheet" href="assets/tools.css">
+</head>
+<body class="tools-body">
+    <main class="tools-shell">
+        <header class="tools-topbar">
+            <a class="tools-back" href="./"><i class="fa fa-arrow-left"></i><span>Home</span></a>
+            <div>
+                <h1>Developer Tools</h1>
+                <p>Fast browser tools for daily engineering work.</p>
+            </div>
+            <div class="tools-count"><span id="toolCount">0</span> tools</div>
+        </header>
+
+        <section class="tools-layout">
+            <aside class="tools-sidebar" aria-label="Developer tools">
+                <label class="tools-search">
+                    <i class="fa fa-magnifying-glass"></i>
+                    <input id="toolSearch" type="search" placeholder="Search tools" autocomplete="off">
+                </label>
+                <div class="tool-select-wrap">
+                    <label for="toolSelect">Select tool</label>
+                    <select id="toolSelect"></select>
+                </div>
+                <div id="toolNav" class="tools-nav"></div>
+            </aside>
+
+            <section class="tool-workspace">
+                <div class="workspace-header">
+                    <div>
+                        <p id="toolCategory" class="tool-category">Tool</p>
+                        <h2 id="toolTitle">Developer Tool</h2>
+                    </div>
+                    <button id="copyOutput" class="icon-button" type="button" title="Copy output" aria-label="Copy output">
+                        <i class="fa fa-copy"></i>
+                    </button>
+                </div>
+
+                <div id="toolPanel" class="tool-panel"></div>
+            </section>
+        </section>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+    <script src="assets/tools.js"></script>
+</body>
+</html>
