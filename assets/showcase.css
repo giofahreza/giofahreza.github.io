@@ -567,13 +567,13 @@
   bottom: -20%;
   width: 30%;
   aspect-ratio: 1;
-  border: 1px solid rgba(255, 246, 204, 0.46);
+  border: 1px solid rgba(245, 245, 245, 0.24);
   border-radius: 50%;
   background:
-    radial-gradient(circle at 48% 50%, rgba(255, 253, 225, 0.92), rgba(255, 224, 136, 0.45) 24%, rgba(32, 33, 35, 0.92) 55%, #050506 72%),
-    #080808;
+    radial-gradient(circle at 34% 28%, rgba(245, 245, 245, 0.2), transparent 34%),
+    linear-gradient(135deg, #3b414a, #343942 56%, #252b33);
   box-shadow:
-    0 0 28px rgba(255, 239, 170, 0.24),
+    inset 0 1px 0 rgba(245, 245, 245, 0.16),
     0 10px 28px rgba(0, 0, 0, 0.5);
   transform: translateX(-50%);
 }
