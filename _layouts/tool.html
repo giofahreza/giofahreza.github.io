@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="{{ site.lang | default: 'en-US' }}">
+  {% include head.html %}
+  <body class="{{ page.body_class | default: 'tools-body' }}">
+    {% include site-header.html %}
+    {{ content }}
+    {% for script in page.scripts %}
+      {% if script contains '://' %}
+        <script src="{{ script }}"></script>
+      {% else %}
+        <script src="{{ script | relative_url }}"></script>
+      {% endif %}
+    {% endfor %}
+  </body>
+</html>

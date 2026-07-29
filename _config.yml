@@ -1,0 +1,63 @@
+title: Giofahreza
+description: Fullstack Software Engineer writing about software engineering, backend systems, frontend work, and browser-first developer tools.
+url: https://giofahreza.com
+baseurl: ""
+timezone: Asia/Jakarta
+lang: en-US
+permalink: /blog/:year/:month/:day/:title/
+nav_asset_version: 20260728f
+
+author:
+  name: Giofahreza
+  url: https://giofahreza.com
+
+defaults:
+  - scope:
+      path: ""
+      type: posts
+    values:
+      layout: post
+      body_class: site-body
+      stylesheets:
+        - /assets/blog.css
+  - scope:
+      path: "blog"
+    values:
+      layout: blog
+      body_class: site-body
+      stylesheets:
+        - /assets/blog.css
+  - scope:
+      path: "tool-pages"
+    values:
+      layout: tool
+      nav_active: /tools/
+      body_class: tools-body
+      theme_color: "#111111"
+      stylesheets:
+        - /assets/tools.css?v=20260729c
+      scripts:
+        - https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js
+        - /assets/tools.js?v=20260729c
+
+exclude:
+  - .git
+  - .DS_Store
+  - .bundle
+  - .jekyll-cache
+  - .jekyll-metadata
+  - .playwright-mcp
+  - .sass-cache
+  - Gemfile
+  - Gemfile.lock
+  - README.md
+  - reference-current.png
+  - reference-mobile-current.png
+  - scripts
+  - stage-desktop-mid-before.png
+  - stage-desktop-settled-before.png
+  - stage-desktop-start-before.png
+  - stage-mobile-mid-before.png
+  - stage-mobile-settled-before.png
+  - stage-mobile-start-before.png
+  - vendor

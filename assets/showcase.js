@@ -1,0 +1,647 @@
+(() => {
+  const clamp = (value, min = 0, max = 1) => Math.min(max, Math.max(min, value));
+  const lerp = (start, end, progress) => start + (end - start) * progress;
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  const splitText = () => {
+    document.querySelectorAll("[data-split-text]").forEach((element) => {
+      if (element.dataset.splitReady === "true") {
+        return;
+      }
+
+      const text = element.dataset.splitText || element.textContent.trim();
+      element.dataset.splitReady = "true";
+      element.setAttribute("aria-label", text);
+      element.textContent = "";
+
+      Array.from(text).forEach((character, index) => {
+        const span = document.createElement("span");
+        span.className = "split-letter";
+        span.setAttribute("aria-hidden", "true");
+        span.dataset.letterIndex = String(index);
+        span.textContent = character === " " ? "\u00a0" : character;
+        element.appendChild(span);
+      });
+    });
+  };
+
+  splitText();
+
+  const revealItems = document.querySelectorAll("[data-reveal]");
+
+  if (revealItems.length && "IntersectionObserver" in window) {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("is-visible");
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { rootMargin: "0px 0px -12% 0px", threshold: 0.18 });
+
+    revealItems.forEach((item) => observer.observe(item));
+  } else {
+    revealItems.forEach((item) => item.classList.add("is-visible"));
+  }
+
+  document.querySelectorAll(".showcase-item").forEach((item) => {
+    const media = item.querySelector(".showcase-media");
+
+    if (!media) {
+      return;
+    }
+
+    item.addEventListener("pointermove", (event) => {
+      const rect = item.getBoundingClientRect();
+      const x = ((event.clientX - rect.left) / rect.width - 0.5) * 14;
+      const y = ((event.clientY - rect.top) / rect.height - 0.5) * 14;
+
+      media.style.setProperty("--pointer-x", `${x.toFixed(2)}px`);
+      media.style.setProperty("--pointer-y", `${y.toFixed(2)}px`);
+    });
+
+    item.addEventListener("pointerleave", () => {
+      media.style.setProperty("--pointer-x", "0px");
+      media.style.setProperty("--pointer-y", "0px");
+    });
+  });
+
+  const hero = document.querySelector("[data-editorial-hero]");
+  const heroLetters = hero ? Array.from(hero.querySelectorAll(".split-letter")) : [];
+  const stage = document.querySelector("[data-showcase-stage]");
+  const progressBar = document.querySelector(".portfolio-progress__bar");
+  const workPicker = stage?.querySelector(".work-picker");
+  const projectLinks = stage ? Array.from(stage.querySelectorAll("[data-project]")) : [];
+  const stageLetters = stage ? Array.from(stage.querySelectorAll(".recent-stage__heading .split-letter")) : [];
+  const stageWorld = stage?.querySelector(".stage-world");
+  const stageScreen = stage?.querySelector(".stage-screen");
+  const stageScreenImage = stageScreen?.querySelector("img");
+  const stageScreenIndex = stageScreen?.querySelector(".stage-screen__index");
+  const stageScreenTitle = stageScreen?.querySelector(".stage-screen__title");
+  const stageScreenMeta = stageScreen?.querySelector(".stage-screen__meta");
+  const stageCaseLink = stage?.querySelector(".stage-case-link");
+  const canvas = stage?.querySelector(".showcase-canvas");
+  const context = canvas?.getContext("2d");
+  let activeProject = -1;
+  let manualProjectUntil = 0;
+  let latestStageProgress = 0;
+  let animationFrame = 0;
+  let railFrame = 0;
+  let railSettleTimer = 0;
+  let isSyncingRail = false;
+  let railUserInteracted = false;
+
+  const centerProjectInRail = (link) => {
+    if (!workPicker || !link) {
+      return;
+    }
+
+    const left = link.offsetLeft - (workPicker.clientWidth - link.clientWidth) / 2;
+    isSyncingRail = true;
+    workPicker.scrollTo({
+      left,
+      behavior: "auto",
+    });
+    window.setTimeout(() => {
+      isSyncingRail = false;
+    }, 160);
+  };
+
+  const setProject = (link, manual = false, syncRail = true) => {
+    if (!link || !stageScreen) {
+      return;
+    }
+
+    const nextProject = Number(link.dataset.project || 0);
+
+    if (activeProject === nextProject && !manual) {
+      return;
+    }
+
+    activeProject = nextProject;
+    if (manual) {
+      manualProjectUntil = Date.now() + 1800;
+    }
+
+    projectLinks.forEach((item) => {
+      item.classList.toggle("is-active", item === link);
+      item.setAttribute("aria-current", item === link ? "true" : "false");
+    });
+
+    stageScreen.dataset.preview = link.dataset.preview || "terminal";
+    stageScreen.classList.toggle("has-image", Boolean(link.dataset.image));
+
+    if (stageScreenImage && link.dataset.image) {
+      stageScreenImage.src = link.dataset.image;
+    }
+
+    if (stageScreenIndex) {
+      stageScreenIndex.textContent = String(nextProject + 1).padStart(2, "0");
+    }
+
+    if (stageScreenTitle) {
+      stageScreenTitle.textContent = link.dataset.title || link.textContent.trim();
+    }
+
+    if (stageScreenMeta) {
+      stageScreenMeta.textContent = link.dataset.meta || "";
+    }
+
+    if (stageCaseLink) {
+      stageCaseLink.href = link.href;
+      if (link.target === "_blank") {
+        stageCaseLink.target = "_blank";
+        stageCaseLink.rel = "noopener noreferrer";
+      } else {
+        stageCaseLink.removeAttribute("target");
+        stageCaseLink.removeAttribute("rel");
+      }
+    }
+
+    if (syncRail) {
+      centerProjectInRail(link);
+    }
+  };
+
+  projectLinks.forEach((link) => {
+    link.addEventListener("focus", () => {
+      railUserInteracted = true;
+      setProject(link, true);
+    });
+
+    link.addEventListener("keydown", (event) => {
+      const currentIndex = projectLinks.indexOf(link);
+      const direction = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
+
+      if (!direction) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+      railUserInteracted = true;
+      const nextLink = projectLinks[clamp(currentIndex + direction, 0, projectLinks.length - 1)];
+      nextLink.focus();
+      setProject(nextLink, true);
+    });
+  });
+
+  document.addEventListener("focus", (event) => {
+    const link = event.target.closest?.("[data-project]");
+
+    if (link && projectLinks.includes(link)) {
+      railUserInteracted = true;
+      setProject(link, true);
+    }
+  }, true);
+
+  document.addEventListener("keydown", (event) => {
+    const link = document.activeElement?.closest?.("[data-project]");
+    const currentIndex = projectLinks.indexOf(link);
+    const direction = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
+
+    if (!link || currentIndex < 0 || !direction) {
+      return;
+    }
+
+    event.preventDefault();
+    railUserInteracted = true;
+    const nextLink = projectLinks[clamp(currentIndex + direction, 0, projectLinks.length - 1)];
+    nextLink.focus();
+    setProject(nextLink, true);
+  }, true);
+
+  if (projectLinks.length) {
+    setProject(projectLinks[0], true);
+    manualProjectUntil = 0;
+    window.requestAnimationFrame(() => centerProjectInRail(projectLinks[0]));
+    window.setTimeout(() => {
+      if (!railUserInteracted) {
+        centerProjectInRail(projectLinks[0]);
+      }
+    }, 260);
+  }
+
+  const updateProjectFromRail = () => {
+    if (!workPicker || !projectLinks.length || isSyncingRail || !railUserInteracted) {
+      return;
+    }
+
+    const pickerRect = workPicker.getBoundingClientRect();
+    const pickerCenter = pickerRect.left + pickerRect.width / 2;
+    const nearest = projectLinks.reduce((closest, link) => {
+      const rect = link.getBoundingClientRect();
+      const distance = Math.abs(rect.left + rect.width / 2 - pickerCenter);
+      return distance < closest.distance ? { link, distance } : closest;
+    }, { link: projectLinks[0], distance: Number.POSITIVE_INFINITY }).link;
+
+    setProject(nearest, true, false);
+  };
+
+  if (workPicker) {
+    let isDragging = false;
+    let dragStartX = 0;
+    let dragStartScroll = 0;
+    let activePointerId = null;
+    let lastPointerDownAt = 0;
+    let suppressClick = false;
+
+    workPicker.addEventListener("scroll", () => {
+      if (railFrame) {
+        window.cancelAnimationFrame(railFrame);
+      }
+
+      if (railSettleTimer) {
+        window.clearTimeout(railSettleTimer);
+      }
+
+      railFrame = window.requestAnimationFrame(updateProjectFromRail);
+      railSettleTimer = window.setTimeout(updateProjectFromRail, 220);
+    }, { passive: true });
+
+    workPicker.addEventListener("focusin", (event) => {
+      const link = event.target.closest("[data-project]");
+
+      if (link) {
+        railUserInteracted = true;
+        setProject(link, true);
+      }
+    });
+
+    workPicker.addEventListener("keydown", (event) => {
+      const link = event.target.closest("[data-project]");
+      const currentIndex = projectLinks.indexOf(link);
+      const direction = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
+
+      if (!link || currentIndex < 0 || !direction) {
+        return;
+      }
+
+      event.preventDefault();
+      railUserInteracted = true;
+      const nextLink = projectLinks[clamp(currentIndex + direction, 0, projectLinks.length - 1)];
+      nextLink.focus();
+      setProject(nextLink, true);
+    });
+
+    workPicker.addEventListener("wheel", (event) => {
+      if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) {
+        return;
+      }
+
+      event.preventDefault();
+      railUserInteracted = true;
+      workPicker.scrollLeft += event.deltaY;
+    }, { passive: false });
+
+    const beginDrag = (clientX) => {
+      isDragging = true;
+      railUserInteracted = true;
+      suppressClick = false;
+      dragStartX = clientX;
+      dragStartScroll = workPicker.scrollLeft;
+      workPicker.classList.add("is-dragging");
+    };
+
+    const moveDrag = (clientX) => {
+      const delta = clientX - dragStartX;
+      if (Math.abs(delta) > 4) {
+        suppressClick = true;
+      }
+
+      workPicker.scrollLeft = dragStartScroll - delta;
+    };
+
+    const finishDrag = (event) => {
+      if (!isDragging) {
+        return;
+      }
+
+      isDragging = false;
+      activePointerId = null;
+      workPicker.classList.remove("is-dragging");
+
+      if (event?.pointerId !== undefined && workPicker.hasPointerCapture(event.pointerId)) {
+        workPicker.releasePointerCapture(event.pointerId);
+      }
+
+      updateProjectFromRail();
+      window.setTimeout(updateProjectFromRail, 260);
+    };
+
+    workPicker.addEventListener("pointerdown", (event) => {
+      if (event.button !== 0) {
+        return;
+      }
+
+      activePointerId = event.pointerId;
+      lastPointerDownAt = Date.now();
+      beginDrag(event.clientX);
+      workPicker.setPointerCapture(event.pointerId);
+    });
+
+    workPicker.addEventListener("pointermove", (event) => {
+      if (!isDragging) {
+        const link = event.target.closest("[data-project]");
+
+        if (link && projectLinks.includes(link)) {
+          railUserInteracted = true;
+          setProject(link, true);
+        }
+
+        return;
+      }
+
+      if (activePointerId !== null && event.pointerId !== activePointerId) {
+        return;
+      }
+
+      moveDrag(event.clientX);
+    });
+
+    workPicker.addEventListener("mousedown", (event) => {
+      if (event.button !== 0 || Date.now() - lastPointerDownAt < 500) {
+        return;
+      }
+
+      beginDrag(event.clientX);
+    });
+
+    window.addEventListener("mousemove", (event) => {
+      if (isDragging && activePointerId === null) {
+        moveDrag(event.clientX);
+      }
+    });
+
+    window.addEventListener("mouseup", (event) => {
+      if (activePointerId === null) {
+        finishDrag(event);
+      }
+    });
+
+    workPicker.addEventListener("pointerup", finishDrag);
+    workPicker.addEventListener("pointercancel", finishDrag);
+
+    workPicker.addEventListener("click", (event) => {
+      if (!suppressClick) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+      suppressClick = false;
+    }, true);
+  }
+
+  const resizeCanvas = () => {
+    if (!canvas || !context) {
+      return;
+    }
+
+    const ratio = Math.min(window.devicePixelRatio || 1, 2);
+    const width = Math.max(1, Math.floor(canvas.clientWidth * ratio));
+    const height = Math.max(1, Math.floor(canvas.clientHeight * ratio));
+
+    if (canvas.width !== width || canvas.height !== height) {
+      canvas.width = width;
+      canvas.height = height;
+    }
+
+    context.setTransform(ratio, 0, 0, ratio, 0, 0);
+  };
+
+  const drawCanvas = (time = 0) => {
+    if (!canvas || !context) {
+      return;
+    }
+
+    resizeCanvas();
+
+    const width = canvas.clientWidth;
+    const height = canvas.clientHeight;
+    const progress = latestStageProgress;
+    const cameraProgress = clamp(progress / 0.36);
+    const cameraEase = 1 - Math.pow(1 - cameraProgress, 3);
+    const centerX = width / 2;
+    const horizon = height * lerp(0.16, 0.29 + progress * 0.08, cameraEase);
+    const floorBottom = height + lerp(110, 40, cameraEase);
+
+    context.clearRect(0, 0, width, height);
+    context.fillStyle = "#101010";
+    context.fillRect(0, 0, width, height);
+
+    const glowY = height * lerp(0.66, 0.73, cameraEase);
+    const glow = context.createRadialGradient(centerX, glowY, 0, centerX, glowY, width * lerp(0.36, 0.45, cameraEase));
+    glow.addColorStop(0, "rgba(245,245,245,0.17)");
+    glow.addColorStop(0.42, "rgba(160,160,160,0.07)");
+    glow.addColorStop(1, "rgba(16,16,16,0)");
+    context.fillStyle = glow;
+    context.fillRect(0, 0, width, height);
+
+    context.strokeStyle = "rgba(245,245,245,0.1)";
+    context.lineWidth = 1;
+
+    for (let index = -7; index <= 7; index += 1) {
+      const floorX = centerX + index * width * lerp(0.095, 0.078, cameraEase);
+      context.beginPath();
+      context.moveTo(centerX, horizon);
+      context.lineTo(floorX, floorBottom);
+      context.stroke();
+    }
+
+    for (let index = 0; index < 11; index += 1) {
+      const depth = index / 10;
+      const y = horizon + Math.pow(depth, 1.8) * (floorBottom - horizon);
+      const halfWidth = width * (lerp(0.12, 0.06, cameraEase) + depth * lerp(0.5, 0.46, cameraEase));
+      context.beginPath();
+      context.moveTo(centerX - halfWidth, y);
+      context.lineTo(centerX + halfWidth, y);
+      context.stroke();
+    }
+
+    const beamTop = height * lerp(0.01, 0.08, cameraEase);
+    const beamHit = height * lerp(0.56, 0.42, cameraEase);
+    const beamGradient = context.createLinearGradient(centerX, beamTop, centerX, beamHit);
+    beamGradient.addColorStop(0, "rgba(245,245,245,0.09)");
+    beamGradient.addColorStop(0.48, "rgba(245,245,245,0.05)");
+    beamGradient.addColorStop(1, "rgba(245,245,245,0)");
+    context.fillStyle = beamGradient;
+    context.beginPath();
+    context.moveTo(centerX - width * 0.004, beamTop);
+    context.lineTo(centerX + width * 0.004, beamTop);
+    context.lineTo(centerX + width * 0.035, beamHit);
+    context.lineTo(centerX - width * 0.035, beamHit);
+    context.closePath();
+    context.fill();
+
+    const screenGlowY = height * lerp(0.26, 0.3, cameraEase);
+    const screenPool = context.createRadialGradient(centerX, screenGlowY, 0, centerX, screenGlowY, width * 0.16);
+    screenPool.addColorStop(0, "rgba(245,245,245,0.1)");
+    screenPool.addColorStop(0.4, "rgba(245,245,245,0.04)");
+    screenPool.addColorStop(1, "rgba(16,16,16,0)");
+    context.fillStyle = screenPool;
+    context.beginPath();
+    context.ellipse(centerX, screenGlowY, width * 0.12, height * 0.08, 0, 0, Math.PI * 2);
+    context.fill();
+
+    const floorPool = context.createRadialGradient(centerX, height * 0.76, 0, centerX, height * 0.76, width * 0.16);
+    floorPool.addColorStop(0, "rgba(245,245,245,0.16)");
+    floorPool.addColorStop(0.48, "rgba(245,245,245,0.05)");
+    floorPool.addColorStop(1, "rgba(16,16,16,0)");
+    context.fillStyle = floorPool;
+    context.beginPath();
+    context.ellipse(centerX, height * 0.76, width * 0.13, height * 0.08, 0, 0, Math.PI * 2);
+    context.fill();
+
+    const sweep = (Math.sin(time / 1100) + 1) / 2;
+    context.fillStyle = `rgba(245,245,245,${0.006 + sweep * 0.01})`;
+    context.beginPath();
+    context.moveTo(centerX - width * 0.025, horizon);
+    context.lineTo(centerX + width * 0.025, horizon);
+    context.lineTo(centerX + width * (0.11 + sweep * 0.025), height);
+    context.lineTo(centerX - width * (0.11 + sweep * 0.02), height);
+    context.closePath();
+    context.fill();
+
+    for (let index = 0; index < 5; index += 1) {
+      const x = centerX + Math.cos(index * 1.72 + progress * 2.2) * width * (0.18 + index * 0.032);
+      const y = height * (0.72 + Math.sin(index + progress * 3) * 0.08);
+      const radius = 14 + index * 3;
+      context.fillStyle = `rgba(${170 + index * 8},${170 + index * 8},${170 + index * 8},0.72)`;
+      context.beginPath();
+      context.ellipse(x, y, radius, radius * 0.42, 0, 0, Math.PI * 2);
+      context.fill();
+      context.fillStyle = "rgba(16,16,16,0.26)";
+      context.fillRect(x - radius, y, radius * 2, Math.max(3, radius * 0.22));
+    }
+  };
+
+  const animateCanvas = (time) => {
+    drawCanvas(time);
+    if (!prefersReducedMotion && canvas) {
+      animationFrame = window.requestAnimationFrame(animateCanvas);
+    }
+  };
+
+  const updateScroll = () => {
+    const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+    const pageProgress = scrollable > 0 ? clamp(window.scrollY / scrollable) : 0;
+
+    if (progressBar) {
+      progressBar.style.transform = `scaleX(${pageProgress})`;
+    }
+
+    if (hero) {
+      const rect = hero.getBoundingClientRect();
+      const heroScrollable = Math.max(1, rect.height - window.innerHeight * 0.45);
+      const heroProgress = clamp((0 - rect.top) / heroScrollable);
+      hero.style.setProperty("--hero-progress", heroProgress.toFixed(3));
+
+      if (!prefersReducedMotion) {
+        heroLetters.forEach((letter, index) => {
+          const direction = index % 2 === 0 ? -1 : 1;
+          const stagger = (index % 7) * 4;
+          const y = heroProgress * direction * (90 + stagger);
+          const rotate = heroProgress * direction * 2.2;
+          letter.style.transform = `translate3d(0, ${y.toFixed(2)}px, 0) rotate(${rotate.toFixed(2)}deg)`;
+        });
+      }
+    }
+
+    if (stage) {
+      const rect = stage.getBoundingClientRect();
+      const stageScrollable = Math.max(1, stage.offsetHeight - window.innerHeight);
+      const stageProgress = clamp((0 - rect.top) / stageScrollable);
+      latestStageProgress = stageProgress;
+      const cameraProgress = clamp(stageProgress / 0.36);
+      const cameraEase = 1 - Math.pow(1 - cameraProgress, 3);
+      const headingProgress = clamp(stageProgress / 0.2);
+      const headingEase = 1 - Math.pow(1 - headingProgress, 2);
+      const controlsProgress = clamp((stageProgress - 0.26) / 0.16);
+      const controlsEase = 1 - Math.pow(1 - controlsProgress, 2);
+      const fixtureProgress = clamp(stageProgress / 0.32);
+      const fixtureEase = 1 - Math.pow(1 - fixtureProgress, 3);
+      const compactStage = window.innerWidth <= 760;
+      const startWorldTilt = compactStage ? 34 : 42;
+      const startScreenTop = compactStage ? window.innerHeight * 0.22 : window.innerHeight * 0.18;
+      const endScreenTop = window.innerHeight * 0.25;
+      const startScreenWidth = compactStage ? Math.min(260, window.innerWidth * 0.72) : Math.min(380, window.innerWidth * 0.27);
+      const endScreenWidth = compactStage ? Math.min(344, window.innerWidth * 0.9) : Math.min(520, window.innerWidth * 0.36);
+      const startScreenTilt = compactStage ? 78 : 82;
+      const startScreenDepth = compactStage ? 0.28 : 0.22;
+      const startFloorTilt = compactStage ? 60 : 61;
+      const endFloorTilt = compactStage ? 70 : 69;
+      const startFixtureTop = compactStage ? window.innerHeight * -0.05 : window.innerHeight * -0.08;
+      const endFixtureTop = compactStage ? window.innerHeight * 0.08 : window.innerHeight * -0.025;
+      const startFixtureHeight = compactStage ? window.innerHeight * 0.64 : Math.min(580, window.innerHeight * 0.66);
+      const endFixtureHeight = compactStage ? Math.min(84, window.innerHeight * 0.1) : Math.min(118, window.innerHeight * 0.13);
+      const baseWorldY = lerp(42, -22, cameraEase) + stageProgress * -22;
+
+      stage.style.setProperty("--stage-progress", stageProgress.toFixed(3));
+      stage.style.setProperty("--screen-y", `${baseWorldY.toFixed(2)}px`);
+      stage.style.setProperty("--screen-scale", (1 + cameraEase * 0.08 + stageProgress * 0.06).toFixed(3));
+      stage.style.setProperty("--world-tilt", `${lerp(startWorldTilt, 0, cameraEase).toFixed(2)}deg`);
+      stage.style.setProperty("--project-screen-top", `${lerp(startScreenTop, endScreenTop, cameraEase).toFixed(2)}px`);
+      stage.style.setProperty("--project-screen-width", `${lerp(startScreenWidth, endScreenWidth, cameraEase).toFixed(2)}px`);
+      stage.style.setProperty("--project-screen-tilt", `${lerp(startScreenTilt, 8, cameraEase).toFixed(2)}deg`);
+      stage.style.setProperty("--project-screen-depth", lerp(startScreenDepth, 1, cameraEase).toFixed(3));
+      stage.style.setProperty("--floor-tilt", `${lerp(startFloorTilt, endFloorTilt, cameraEase).toFixed(2)}deg`);
+      stage.style.setProperty("--wall-opacity", lerp(compactStage ? 0.46 : 0.5, compactStage ? 0.66 : 0.7, cameraEase).toFixed(3));
+      stage.style.setProperty("--wall-skew-left", `${lerp(0, compactStage ? 7 : 10, cameraEase).toFixed(2)}deg`);
+      stage.style.setProperty("--wall-skew-right", `${lerp(0, compactStage ? -7 : -10, cameraEase).toFixed(2)}deg`);
+      stage.style.setProperty("--rail-opacity", lerp(0, 1, controlsEase).toFixed(3));
+      stage.style.setProperty("--rail-y", `${lerp(compactStage ? 96 : 112, 0, controlsEase).toFixed(2)}px`);
+      stage.style.setProperty("--case-opacity", controlsEase.toFixed(3));
+      stage.style.setProperty("--case-y", `${lerp(compactStage ? 64 : 72, 0, controlsEase).toFixed(2)}px`);
+      stage.style.setProperty("--heading-opacity", lerp(0.9, 0, headingEase).toFixed(3));
+      stage.style.setProperty("--heading-y", `${lerp(0, -34, headingEase).toFixed(2)}px`);
+      stage.style.setProperty("--light-opacity", lerp(compactStage ? 0.3 : 0.34, compactStage ? 0.22 : 0.2, cameraEase).toFixed(3));
+      stage.style.setProperty("--light-pool-opacity", lerp(compactStage ? 0.26 : 0.3, 0.18, cameraEase).toFixed(3));
+      stage.style.setProperty("--beam-opacity", lerp(compactStage ? 0.16 : 0.18, compactStage ? 0.075 : 0.085, cameraEase).toFixed(3));
+      stage.style.setProperty("--screen-overlay-opacity", lerp(compactStage ? 0.07 : 0.075, 0.035, cameraEase).toFixed(3));
+      stage.style.setProperty("--screen-glow-opacity", lerp(compactStage ? 0.03 : 0.035, 0.018, cameraEase).toFixed(3));
+      stage.style.setProperty("--fixture-top", `${lerp(startFixtureTop, endFixtureTop, fixtureEase).toFixed(2)}px`);
+      stage.style.setProperty("--fixture-height", `${lerp(startFixtureHeight, endFixtureHeight, fixtureEase).toFixed(2)}px`);
+      document.body.classList.toggle("portfolio-over-dark", rect.top <= 80 && rect.bottom > 80);
+
+      if (!prefersReducedMotion) {
+        stageLetters.forEach((letter) => {
+          letter.style.transform = "";
+        });
+      }
+
+      if (projectLinks.length && Date.now() > manualProjectUntil) {
+        const projectProgress = clamp((stageProgress - 0.42) / 0.58);
+        const nextIndex = clamp(Math.floor(projectProgress * projectLinks.length), 0, projectLinks.length - 1);
+        if (activeProject === nextIndex && !railUserInteracted) {
+          centerProjectInRail(projectLinks[nextIndex]);
+        } else {
+          setProject(projectLinks[nextIndex]);
+        }
+      }
+
+      if (prefersReducedMotion) {
+        drawCanvas();
+      }
+    }
+  };
+
+  updateScroll();
+  window.addEventListener("scroll", updateScroll, { passive: true });
+  window.addEventListener("resize", () => {
+    resizeCanvas();
+    updateScroll();
+  });
+
+  if (canvas && !prefersReducedMotion) {
+    animationFrame = window.requestAnimationFrame(animateCanvas);
+  } else {
+    drawCanvas();
+  }
+
+  window.addEventListener("pagehide", () => {
+    if (animationFrame) {
+      window.cancelAnimationFrame(animationFrame);
+    }
+  });
+})();

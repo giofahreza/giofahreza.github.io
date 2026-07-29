@@ -1,0 +1,18 @@
+---
+layout: default
+---
+
+<article class="blog-page">
+  <div class="blog-wrapper">
+    <header class="blog-page__header">
+      <p class="blog-kicker">Page</p>
+      <h1>{{ page.title | escape }}</h1>
+      {% if page.description %}
+        <p>{{ page.description }}</p>
+      {% endif %}
+    </header>
+    <div class="blog-prose">
+      {{ content }}
+    </div>
+  </div>
+</article>

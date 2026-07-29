@@ -1,0 +1,35 @@
+<header class="global-header">
+  <div class="global-header__inner">
+    <a class="global-brand" href="{{ '/' | relative_url }}" aria-label="Giofahreza home">
+      <img src="{{ '/assets/img/favicon.ico' | relative_url }}" alt="{{ site.title }}">
+      <span>
+        <strong>{{ site.title }}</strong>
+        <small>Fullstack Software Engineer</small>
+      </span>
+    </a>
+    <button class="global-menu-toggle" type="button" aria-label="Open navigation" aria-controls="globalNav" aria-expanded="false">
+      <span class="global-menu-toggle__bar"></span>
+      <span class="global-menu-toggle__bar"></span>
+      <span class="global-menu-toggle__bar"></span>
+    </button>
+    <nav id="globalNav" class="global-nav" aria-label="Primary navigation">
+      {% for item in site.data.navigation.items %}
+        {% assign is_active = false %}
+        {% unless item.external %}
+          {% if page.nav_active == item.url %}
+            {% assign is_active = true %}
+          {% elsif page.url == item.url %}
+            {% assign is_active = true %}
+          {% elsif item.url != '/' and page.url contains item.url %}
+            {% assign is_active = true %}
+          {% endif %}
+        {% endunless %}
+        {% if item.external %}
+          <a href="{{ item.url }}" target="_blank" rel="noopener noreferrer">{{ item.label }}</a>
+        {% else %}
+          <a{% if is_active %} class="is-active"{% endif %} href="{{ item.url | relative_url }}">{{ item.label }}</a>
+        {% endif %}
+      {% endfor %}
+    </nav>
+  </div>
+</header>

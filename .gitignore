@@ -1,1 +1,12 @@
 .DS_Store
+.bundle/
+.jekyll-cache/
+.jekyll-metadata
+.sass-cache/
+_site/
+vendor/bundle/
+__pycache__/
+*.pyc
+.playwright-mcp/
+reference-*.png
+stage-*-before.png

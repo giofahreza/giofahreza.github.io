@@ -56,8 +56,101 @@
   ];
 
   const categories = ["Data", "Encoding", "Security", "Date", "Generators", "Code", "Frontend", "Reference"];
+  const routeSlugOverrides = {
+    base64: "base64",
+    totp: "2fa"
+  };
+  const cacheNamespace = "giofahreza.tools.inputs.v1";
   const state = { activeId: tools[0].id, timers: [] };
   const $ = (selector) => document.querySelector(selector);
+
+  function routeSlugFor(tool) {
+    return routeSlugOverrides[tool.id] || tool.title.toLowerCase()
+      .replace(/&/g, " and ")
+      .replace(/\+/g, " plus ")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+  }
+
+  function toolPathFor(tool) {
+    return `/${routeSlugFor(tool)}`;
+  }
+
+  function toolIdFromLocation() {
+    const path = window.location.pathname.replace(/\/+$/, "");
+    const slug = decodeURIComponent(path.split("/").filter(Boolean).pop() || "");
+    if (!slug || slug === "tools" || slug === "tools.html") return tools[0].id;
+    const matched = tools.find((tool) => routeSlugFor(tool) === slug || tool.id === slug);
+    return matched ? matched.id : tools[0].id;
+  }
+
+  function isToolsIndexPath() {
+    const path = window.location.pathname.replace(/\/+$/, "");
+    return path === "" || path === "/tools" || path === "/tools.html";
+  }
+
+  function cacheKeyFor(id) {
+    return `${cacheNamespace}.${id}`;
+  }
+
+  function cacheableControls() {
+    return Array.from(document.querySelectorAll("#toolPanel input:not([type='file']), #toolPanel textarea:not([readonly]), #toolPanel select"))
+      .filter((control) => control.id);
+  }
+
+  function readCachedToolValues(id) {
+    try {
+      return JSON.parse(window.localStorage.getItem(cacheKeyFor(id)) || "{}");
+    } catch (error) {
+      return {};
+    }
+  }
+
+  function persistToolCache(id) {
+    const values = cacheableControls().reduce((next, control) => {
+      next[control.id] = control.type === "checkbox" || control.type === "radio" ? control.checked : control.value;
+      return next;
+    }, {});
+    try {
+      window.localStorage.setItem(cacheKeyFor(id), JSON.stringify(values));
+    } catch (error) {
+      // Some browsers block localStorage in private or restricted contexts.
+    }
+  }
+
+  function restoreToolCache(id) {
+    const values = readCachedToolValues(id);
+    cacheableControls().forEach((control) => {
+      if (!Object.prototype.hasOwnProperty.call(values, control.id)) return;
+      if (control.type === "checkbox" || control.type === "radio") {
+        control.checked = Boolean(values[control.id]);
+      } else if (control.tagName === "SELECT") {
+        const exists = Array.from(control.options).some((option) => option.value === values[control.id]);
+        if (exists) control.value = values[control.id];
+      } else {
+        control.value = values[control.id];
+      }
+    });
+  }
+
+  function bindToolCache(id) {
+    const panel = $("#toolPanel");
+    if (!panel) return;
+    const persistSoon = () => window.setTimeout(() => persistToolCache(id), 0);
+    panel.oninput = persistSoon;
+    panel.onchange = persistSoon;
+    panel.onclick = (event) => {
+      if (event.target.closest("button, a")) persistSoon();
+    };
+  }
+
+  function unbindToolCache() {
+    const panel = $("#toolPanel");
+    if (!panel) return;
+    panel.oninput = null;
+    panel.onchange = null;
+    panel.onclick = null;
+  }
 
   function escapeHtml(value) {
     return String(value ?? "")
@@ -136,14 +229,17 @@
         <div class="nav-group">
           <p class="nav-group-title">${category}</p>
           ${items.map((tool) => `
-            <button class="tool-nav-button${tool.id === state.activeId ? " is-active" : ""}" type="button" data-tool="${tool.id}">
+            <a class="tool-nav-button${tool.id === state.activeId ? " is-active" : ""}" href="${toolPathFor(tool)}" data-tool="${tool.id}">
               <i class="fa ${tool.icon}"></i><span>${tool.title}</span>
-            </button>
+            </a>
           `).join("")}
         </div>`;
     }).join("");
-    nav.querySelectorAll("[data-tool]").forEach((button) => {
-      button.addEventListener("click", () => selectTool(button.dataset.tool));
+    nav.querySelectorAll("[data-tool]").forEach((link) => {
+      link.addEventListener("click", (event) => {
+        event.preventDefault();
+        selectTool(link.dataset.tool, { push: true });
+      });
     });
   }
 
@@ -165,18 +261,28 @@
     select.value = matched.some((tool) => tool.id === state.activeId) ? state.activeId : matched[0].id;
   }
 
-  function selectTool(id) {
+  function selectTool(id, options = {}) {
     clearTimers();
-    state.activeId = id;
     const tool = tools.find((item) => item.id === id) || tools[0];
+    state.activeId = tool.id;
+    if (options.push) {
+      const nextPath = toolPathFor(tool);
+      if (window.location.pathname.replace(/\/+$/, "") !== nextPath) {
+        window.history.pushState({ toolId: tool.id }, "", nextPath);
+      }
+    }
+    if (!isToolsIndexPath()) document.title = `${tool.title} - Giofahreza`;
     $("#toolTitle").textContent = tool.title;
     $("#toolCategory").textContent = tool.category;
-    $("#toolPanel").innerHTML = templateFor(id);
+    unbindToolCache();
+    $("#toolPanel").innerHTML = templateFor(tool.id);
+    restoreToolCache(tool.id);
     renderNav($("#toolSearch").value);
     renderToolSelect($("#toolSearch").value);
     const select = $("#toolSelect");
     if (select && Array.from(select.options).some((option) => option.value === tool.id)) select.value = tool.id;
-    setupFor(id);
+    setupFor(tool.id);
+    bindToolCache(tool.id);
   }
 
   function templateFor(id) {
@@ -847,7 +953,7 @@
       short_name: $("#shortName").value,
       start_url: $("#startUrl").value,
       display: "standalone",
-      background_color: "#ffffff",
+      background_color: "#111318",
       theme_color: $("#theme").value,
       icons: [
         { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
@@ -1230,6 +1336,7 @@ ${(px / viewport) * 100}vw`);
   }
 
   document.addEventListener("DOMContentLoaded", () => {
+    state.activeId = toolIdFromLocation();
     $("#toolCount").textContent = tools.length;
     renderToolSelect();
     renderNav();
@@ -1238,12 +1345,16 @@ ${(px / viewport) * 100}vw`);
       renderToolSelect(event.target.value);
     });
     $("#toolSelect").addEventListener("change", (event) => {
-      if (event.target.value) selectTool(event.target.value);
+      if (event.target.value) selectTool(event.target.value, { push: true });
     });
     $("#copyOutput").addEventListener("click", async () => {
       const text = getOutput();
       if (text) await navigator.clipboard.writeText(text);
     });
     selectTool(state.activeId);
+  });
+
+  window.addEventListener("popstate", () => {
+    selectTool(toolIdFromLocation());
   });
 })();

@@ -1,0 +1,37 @@
+<main class="tools-shell">
+  <header class="tools-topbar">
+    <div>
+      <h1>Developer Tools</h1>
+      <p>Fast browser tools for daily engineering work.</p>
+    </div>
+    <div class="tools-count"><span id="toolCount">0</span> tools</div>
+  </header>
+
+  <section class="tools-layout">
+    <aside class="tools-sidebar" aria-label="Developer tools">
+      <label class="tools-search">
+        <i class="fa fa-magnifying-glass"></i>
+        <input id="toolSearch" type="search" placeholder="Search tools" autocomplete="off">
+      </label>
+      <div class="tool-select-wrap">
+        <label for="toolSelect">Select tool</label>
+        <select id="toolSelect"></select>
+      </div>
+      <div id="toolNav" class="tools-nav"></div>
+    </aside>
+
+    <section class="tool-workspace">
+      <div class="workspace-header">
+        <div>
+          <p id="toolCategory" class="tool-category">Tool</p>
+          <h2 id="toolTitle">Developer Tool</h2>
+        </div>
+        <button id="copyOutput" class="icon-button" type="button" title="Copy output" aria-label="Copy output">
+          <i class="fa fa-copy"></i>
+        </button>
+      </div>
+
+      <div id="toolPanel" class="tool-panel"></div>
+    </section>
+  </section>
+</main>

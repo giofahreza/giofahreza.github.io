@@ -1,0 +1,37 @@
+---
+layout: default
+---
+
+<section class="blog-hero">
+  <div class="blog-wrapper">
+    <p class="blog-kicker">Engineering Notes</p>
+    <h1>{{ page.heading | default: page.title | default: 'Blog' }}</h1>
+    <p>{{ page.description | default: site.description }}</p>
+  </div>
+</section>
+
+<section class="blog-list">
+  <div class="blog-wrapper">
+    {% if site.posts.size > 0 %}
+      <div class="post-grid">
+        {% for post in site.posts %}
+          <article class="post-card">
+            <a class="post-card__title" href="{{ post.url | relative_url }}">{{ post.title | escape }}</a>
+            <p class="post-card__meta">
+              <time datetime="{{ post.date | date_to_xmlschema }}">{{ post.date | date: "%B %-d, %Y" }}</time>
+              {% if post.tags %}
+                <span>{{ post.tags | join: ", " }}</span>
+              {% endif %}
+            </p>
+            <p>{{ post.excerpt | default: post.description | strip_html | normalize_whitespace | truncate: 180 }}</p>
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <h2>No posts yet</h2>
+        <p>New engineering notes will appear here.</p>
+      </div>
+    {% endif %}
+  </div>
+</section>

@@ -1,0 +1,50 @@
+$schema: https://unpkg.com/@sveltia/cms/schema/sveltia-cms.json
+load_config_file: true
+
+backend:
+  name: github
+  repo: giofahreza/giofahreza.github.io
+  branch: master
+  allow_token_auth: true
+  site_domain: giofahreza.com
+  skip_ci: true
+  commit_messages:
+    create: "content: create {{collection}} {{slug}}"
+    update: "content: update {{collection}} {{slug}}"
+    delete: "content: delete {{collection}} {{slug}}"
+    uploadMedia: "media: upload"
+    deleteMedia: "media: delete"
+
+app_title: Giofahreza CMS
+site_url: https://giofahreza.com
+display_url: https://giofahreza.com
+media_folder: assets/img/blog
+public_folder: /assets/img/blog
+
+slug:
+  encoding: unicode
+  sanitize_replacement: "-"
+  trim: true
+  lowercase: true
+  timezone: local
+
+collections:
+  - name: posts
+    label: Posts
+    folder: _posts
+    create: true
+    slug: "{{year}}-{{month}}-{{day}}-{{slug}}"
+    extension: md
+    format: frontmatter
+    summary: "{{title}} - {{date}}"
+    sortable_fields:
+      - title
+      - date
+    fields:
+      - { label: Layout, name: layout, widget: hidden, default: post }
+      - { label: Title, name: title, widget: string }
+      - { label: Date, name: date, widget: datetime }
+      - { label: Tags, name: tags, widget: list, required: false }
+      - { label: Excerpt, name: excerpt, widget: text, required: false }
+      - { label: Cover Image, name: cover_image, widget: image, required: false }
+      - { label: Body, name: body, widget: markdown, modes: [rich_text, raw] }

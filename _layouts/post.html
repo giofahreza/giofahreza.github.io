@@ -1,0 +1,25 @@
+---
+layout: default
+---
+
+<article class="blog-post">
+  <div class="blog-wrapper blog-wrapper--narrow">
+    <header class="blog-post__header">
+      <p class="blog-kicker">Post</p>
+      <h1>{{ page.title | escape }}</h1>
+      <p class="blog-post__meta">
+        <time datetime="{{ page.date | date_to_xmlschema }}">{{ page.date | date: "%B %-d, %Y" }}</time>
+        {% if page.tags %}
+          <span>{{ page.tags | join: ", " }}</span>
+        {% endif %}
+      </p>
+      {% if page.cover_image %}
+        <img class="blog-post__cover" src="{{ page.cover_image | relative_url }}" alt="{{ page.title | escape }}">
+      {% endif %}
+    </header>
+
+    <div class="blog-prose">
+      {{ content }}
+    </div>
+  </div>
+</article>
