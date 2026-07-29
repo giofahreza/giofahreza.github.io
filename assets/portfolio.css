@@ -34,9 +34,9 @@ body.portfolio-page img {
 
 .portfolio-page.portfolio-over-dark .global-header {
   border-bottom-color: rgba(246, 247, 251, 0.08);
-  background: linear-gradient(180deg, rgba(8, 10, 15, 0.88), rgba(8, 10, 15, 0.36));
+  background: linear-gradient(180deg, rgba(8, 10, 15, 0.24), rgba(8, 10, 15, 0));
   color: #f5f5f5;
-  backdrop-filter: blur(18px);
+  backdrop-filter: none;
 }
 
 .portfolio-page .global-header__inner {

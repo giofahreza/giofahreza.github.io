@@ -65,10 +65,11 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Fraunces:wght@600;700&family=Work+Sans:wght@400;500;600;700&display=swap">
     <link rel="stylesheet" href="./assets/nav.css?v=20260728f">
-    <link rel="stylesheet" href="./assets/showcase.css?v=20260729e">
-    <link rel="stylesheet" href="./assets/portfolio.css?v=20260728g">
+    <link rel="stylesheet" href="./assets/showcase.css?v=20260729t">
+    <link rel="stylesheet" href="./assets/portfolio.css?v=20260729j">
     <script src="./assets/nav.js?v=20260728f" defer></script>
-    <script src="./assets/showcase.js?v=20260729e" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js" defer></script>
+    <script src="./assets/showcase.js?v=20260729y" defer></script>
 </head>
 <body class="legacy-page portfolio-page">
     <header class="global-header">
@@ -160,8 +161,17 @@
                         <div class="stage-wall stage-wall--left"></div>
                         <div class="stage-wall stage-wall--right"></div>
                         <div class="stage-floor"></div>
-                        <div class="stage-light"></div>
-                        <div class="stage-stand"></div>
+                        <div class="stage-projector-beam"></div>
+                        <div class="stage-projector">
+                            <div class="stage-projector__reel stage-projector__reel--left"></div>
+                            <div class="stage-projector__reel stage-projector__reel--right"></div>
+                            <div class="stage-projector__body">
+                                <span class="stage-projector__vent"></span>
+                                <span class="stage-projector__vent"></span>
+                                <span class="stage-projector__vent"></span>
+                                <span class="stage-projector__lens"></span>
+                            </div>
+                        </div>
                         <div class="stage-disc stage-disc--one"></div>
                         <div class="stage-disc stage-disc--two"></div>
                         <div class="stage-disc stage-disc--three"></div>

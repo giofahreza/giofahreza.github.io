@@ -81,7 +81,9 @@
   const stageScreenMeta = stageScreen?.querySelector(".stage-screen__meta");
   const stageCaseLink = stage?.querySelector(".stage-case-link");
   const canvas = stage?.querySelector(".showcase-canvas");
-  const context = canvas?.getContext("2d");
+  const hasThree = Boolean(canvas && window.THREE);
+  let context = hasThree ? null : canvas?.getContext("2d");
+  let projectorScene = null;
   let activeProject = -1;
   let manualProjectUntil = 0;
   let latestStageProgress = 0;
@@ -90,6 +92,22 @@
   let railSettleTimer = 0;
   let isSyncingRail = false;
   let railUserInteracted = false;
+
+  const updateScreenImageOrientation = () => {
+    if (!stageScreen || !stageScreenImage || !stageScreenImage.naturalWidth || !stageScreenImage.naturalHeight) {
+      return;
+    }
+
+    const imageWidth = stageScreenImage.naturalWidth;
+    const imageHeight = stageScreenImage.naturalHeight;
+    const imageDelta = Math.abs(imageWidth - imageHeight);
+    const isSquare = imageDelta <= Math.max(imageWidth, imageHeight) * 0.12;
+    const isPortrait = !isSquare && imageHeight > imageWidth * 1.08;
+
+    stageScreen.classList.toggle("is-portrait-image", isPortrait);
+    stageScreen.classList.toggle("is-square-image", isSquare);
+    stageScreen.classList.toggle("is-landscape-image", !isPortrait && !isSquare);
+  };
 
   const centerProjectInRail = (link) => {
     if (!workPicker || !link) {
@@ -129,10 +147,19 @@
     });
 
     stageScreen.dataset.preview = link.dataset.preview || "terminal";
+    stageScreen.classList.remove("is-portrait-image", "is-square-image", "is-landscape-image");
     stageScreen.classList.toggle("has-image", Boolean(link.dataset.image));
 
     if (stageScreenImage && link.dataset.image) {
-      stageScreenImage.src = link.dataset.image;
+      stageScreenImage.addEventListener("load", updateScreenImageOrientation, { once: true });
+
+      if (stageScreenImage.getAttribute("src") !== link.dataset.image) {
+        stageScreenImage.src = link.dataset.image;
+      }
+
+      if (stageScreenImage.complete) {
+        updateScreenImageOrientation();
+      }
     }
 
     if (stageScreenIndex) {
@@ -393,8 +420,197 @@
     }, true);
   }
 
+  const createProjectorScene = () => {
+    if (!canvas || !stage || !window.THREE) {
+      return null;
+    }
+
+    const THREE = window.THREE;
+    let renderer;
+
+    try {
+      renderer = new THREE.WebGLRenderer({
+        canvas,
+        antialias: true,
+        alpha: true,
+        preserveDrawingBuffer: true,
+        powerPreference: "high-performance",
+      });
+    } catch (error) {
+      return null;
+    }
+
+    if ("outputColorSpace" in renderer && THREE.SRGBColorSpace) {
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+    }
+
+    const scene = new THREE.Scene();
+    scene.background = null;
+    renderer.setClearColor(0x000000, 0);
+
+    const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 80);
+    scene.add(camera);
+
+    scene.add(new THREE.AmbientLight(0x8f969f, 0.55));
+
+    const keyLight = new THREE.DirectionalLight(0xffffff, 1.4);
+    keyLight.position.set(2.2, 4.5, 4);
+    scene.add(keyLight);
+
+    const rimLight = new THREE.DirectionalLight(0x75c7a0, 0.65);
+    rimLight.position.set(-3, 2.2, 1.4);
+    scene.add(rimLight);
+
+    const lensLight = new THREE.PointLight(0xffefb0, 0, 4.5);
+    lensLight.position.set(0, 0.62, 1.45);
+    scene.add(lensLight);
+
+    const projector = new THREE.Group();
+    projector.position.set(0, 0.36, 0.15);
+    scene.add(projector);
+
+    const bodyMaterial = new THREE.MeshStandardMaterial({
+      color: 0x191c21,
+      roughness: 0.54,
+      metalness: 0.55,
+    });
+    const bevelMaterial = new THREE.MeshStandardMaterial({
+      color: 0x343942,
+      roughness: 0.48,
+      metalness: 0.5,
+    });
+    const darkMaterial = new THREE.MeshStandardMaterial({
+      color: 0x050607,
+      roughness: 0.72,
+      metalness: 0.2,
+    });
+    const glassMaterial = new THREE.MeshStandardMaterial({
+      color: 0x101922,
+      emissive: 0xffefb0,
+      emissiveIntensity: 0.18,
+      roughness: 0.2,
+      metalness: 0.08,
+    });
+
+    const body = new THREE.Mesh(new THREE.BoxGeometry(1.75, 0.48, 1.05), bodyMaterial);
+    body.position.y = 0.34;
+    projector.add(body);
+
+    const topPlate = new THREE.Mesh(new THREE.BoxGeometry(1.62, 0.08, 0.88), bevelMaterial);
+    topPlate.position.set(0, 0.62, 0);
+    projector.add(topPlate);
+
+    const rearPanel = new THREE.Mesh(new THREE.BoxGeometry(1.06, 0.16, 0.035), darkMaterial);
+    rearPanel.position.set(0, 0.36, 0.545);
+    projector.add(rearPanel);
+
+    [-0.36, -0.12, 0.12, 0.36].forEach((x) => {
+      const vent = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.022, 0.045), bevelMaterial);
+      vent.position.set(x, 0.38, 0.57);
+      projector.add(vent);
+    });
+
+    [-0.42, 0.42].forEach((x) => {
+      const reel = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.34, 0.08, 48), bevelMaterial);
+      reel.position.set(x, 0.82, 0.03);
+      projector.add(reel);
+
+      const reelRing = new THREE.Mesh(
+        new THREE.TorusGeometry(0.24, 0.025, 8, 48),
+        darkMaterial,
+      );
+      reelRing.rotation.x = Math.PI / 2;
+      reelRing.position.set(x, 0.866, 0.03);
+      projector.add(reelRing);
+
+      const reelHole = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.086, 28), darkMaterial);
+      reelHole.position.set(x, 0.875, 0.03);
+      projector.add(reelHole);
+    });
+
+    const lensGlow = new THREE.Mesh(
+      new THREE.CircleGeometry(0.26, 48),
+      new THREE.MeshBasicMaterial({
+        color: 0xffefb0,
+        transparent: true,
+        opacity: 0,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      }),
+    );
+    lensGlow.position.set(0, 0.35, -0.862);
+    lensGlow.visible = false;
+
+    stage.classList.add("has-projector-webgl");
+
+    return {
+      renderer,
+      scene,
+      camera,
+      projector,
+      lensGlow,
+      lensLight,
+    };
+  };
+
+  const resizeProjectorScene = () => {
+    if (!projectorScene || !canvas) {
+      return;
+    }
+
+    const width = Math.max(1, canvas.clientWidth);
+    const height = Math.max(1, canvas.clientHeight);
+    const ratio = Math.min(window.devicePixelRatio || 1, 2);
+
+    projectorScene.renderer.setPixelRatio(ratio);
+    projectorScene.renderer.setSize(width, height, false);
+    projectorScene.camera.aspect = width / height;
+    projectorScene.camera.updateProjectionMatrix();
+  };
+
+  const renderProjectorScene = (time = 0) => {
+    if (!projectorScene || !canvas) {
+      return;
+    }
+
+    resizeProjectorScene();
+
+    const width = canvas.clientWidth;
+    const progress = latestStageProgress;
+    const compactStage = width <= 760;
+    const cameraProgress = clamp(progress / 0.36);
+    const cameraEase = 1 - Math.pow(1 - cameraProgress, 3);
+    const beamRevealProgress = clamp((cameraProgress - 0.22) / 0.78);
+    const beamRevealEase = 1 - Math.pow(1 - beamRevealProgress, 3);
+    const projectorZ = lerp(0.12, compactStage ? 2.05 : 2.24, cameraEase);
+
+    projectorScene.camera.fov = lerp(compactStage ? 47 : 40, compactStage ? 52 : 44, cameraEase);
+    projectorScene.camera.position.set(
+      0,
+      lerp(compactStage ? 7.2 : 7.8, compactStage ? 2.5 : 2.08, cameraEase),
+      lerp(0.16, compactStage ? 6.15 : 6.25, cameraEase),
+    );
+    projectorScene.camera.lookAt(
+      0,
+      lerp(0.02, compactStage ? 0.96 : 0.88, cameraEase),
+      lerp(0.05, compactStage ? -1.18 : -1.42, cameraEase),
+    );
+    projectorScene.camera.updateProjectionMatrix();
+
+    projectorScene.projector.position.set(0, 0.36, projectorZ);
+    projectorScene.projector.scale.setScalar(lerp(compactStage ? 0.78 : 0.84, compactStage ? 0.96 : 1.06, cameraEase));
+    projectorScene.projector.rotation.y = Math.sin(time / 1900) * 0.012;
+
+    projectorScene.lensGlow.material.opacity = beamRevealEase * 0.72;
+    projectorScene.lensLight.position.set(0, 0.72, projectorZ - 0.9);
+    projectorScene.lensLight.intensity = beamRevealEase * 2.1;
+
+    projectorScene.renderer.render(projectorScene.scene, projectorScene.camera);
+  };
+
   const resizeCanvas = () => {
     if (!canvas || !context) {
+      resizeProjectorScene();
       return;
     }
 
@@ -411,6 +627,11 @@
   };
 
   const drawCanvas = (time = 0) => {
+    if (projectorScene) {
+      renderProjectorScene(time);
+      return;
+    }
+
     if (!canvas || !context) {
       return;
     }
@@ -459,61 +680,121 @@
       context.stroke();
     }
 
-    const beamTop = height * lerp(0.01, 0.08, cameraEase);
-    const beamHit = height * lerp(0.56, 0.42, cameraEase);
-    const beamGradient = context.createLinearGradient(centerX, beamTop, centerX, beamHit);
-    beamGradient.addColorStop(0, "rgba(245,245,245,0.09)");
-    beamGradient.addColorStop(0.48, "rgba(245,245,245,0.05)");
-    beamGradient.addColorStop(1, "rgba(245,245,245,0)");
-    context.fillStyle = beamGradient;
-    context.beginPath();
-    context.moveTo(centerX - width * 0.004, beamTop);
-    context.lineTo(centerX + width * 0.004, beamTop);
-    context.lineTo(centerX + width * 0.035, beamHit);
-    context.lineTo(centerX - width * 0.035, beamHit);
-    context.closePath();
-    context.fill();
+    const stageStyle = stage ? getComputedStyle(stage) : null;
+    const cssBeamTop = parseFloat(stageStyle?.getPropertyValue("--projector-beam-top") || "");
+    const cssBeamHeight = parseFloat(stageStyle?.getPropertyValue("--projector-beam-height") || "");
+    const cssBeamOpacity = parseFloat(stageStyle?.getPropertyValue("--projector-beam-opacity") || "");
+    const cssBeamWidth = parseFloat(stageStyle?.getPropertyValue("--projector-beam-width") || "");
+    const cssProjectorTop = parseFloat(stageStyle?.getPropertyValue("--projector-top") || "");
+    const cssProjectorY = parseFloat(stageStyle?.getPropertyValue("--projector-y") || "");
+    const cssProjectorScale = parseFloat(stageStyle?.getPropertyValue("--projector-scale") || "");
+    const beamTop = Number.isFinite(cssBeamTop) ? cssBeamTop : height * lerp(0.24, 0.22, cameraEase);
+    const beamHeight = Number.isFinite(cssBeamHeight) ? cssBeamHeight : height * lerp(0, 0.48, cameraEase);
+    const beamOpacity = Number.isFinite(cssBeamOpacity) ? cssBeamOpacity : 0;
+    const beamWidth = Number.isFinite(cssBeamWidth) ? cssBeamWidth : width * lerp(0.16, 0.34, cameraEase);
+    const projectorTop = Number.isFinite(cssProjectorTop) ? cssProjectorTop : height * lerp(0.54, 0.66, cameraEase);
+    const projectorY = Number.isFinite(cssProjectorY) ? cssProjectorY : 0;
+    const projectorScale = Number.isFinite(cssProjectorScale) ? cssProjectorScale : lerp(0.72, 1, cameraEase);
+    const projectorCenterY = projectorTop + projectorY + height * 0.06 * projectorScale;
+    const projectorWidth = Math.min(width * 0.22, 240) * projectorScale;
+    const projectorHeight = projectorWidth * 0.42;
+    const beamMaxOpacity = width <= 760 ? 0.2 : 0.24;
+    const lightReveal = clamp(beamOpacity / beamMaxOpacity);
+    const beamHit = beamTop + beamHeight;
+
+    if (beamOpacity > 0.001 && beamHeight > 1) {
+      const beamGradient = context.createLinearGradient(centerX, beamTop, centerX, beamHit);
+      beamGradient.addColorStop(0, `rgba(255,246,204,${(beamOpacity * 0.56).toFixed(3)})`);
+      beamGradient.addColorStop(0.5, `rgba(245,245,245,${(beamOpacity * 0.36).toFixed(3)})`);
+      beamGradient.addColorStop(1, "rgba(245,245,245,0)");
+      context.fillStyle = beamGradient;
+      context.beginPath();
+      context.moveTo(centerX - beamWidth * 0.5, beamTop);
+      context.lineTo(centerX + beamWidth * 0.5, beamTop);
+      context.lineTo(centerX + projectorWidth * 0.08, beamHit);
+      context.lineTo(centerX - projectorWidth * 0.08, beamHit);
+      context.closePath();
+      context.fill();
+    }
 
     const screenGlowY = height * lerp(0.26, 0.3, cameraEase);
     const screenPool = context.createRadialGradient(centerX, screenGlowY, 0, centerX, screenGlowY, width * 0.16);
-    screenPool.addColorStop(0, "rgba(245,245,245,0.1)");
-    screenPool.addColorStop(0.4, "rgba(245,245,245,0.04)");
+    screenPool.addColorStop(0, `rgba(245,245,245,${(0.1 * lightReveal).toFixed(3)})`);
+    screenPool.addColorStop(0.4, `rgba(245,245,245,${(0.04 * lightReveal).toFixed(3)})`);
     screenPool.addColorStop(1, "rgba(16,16,16,0)");
     context.fillStyle = screenPool;
     context.beginPath();
     context.ellipse(centerX, screenGlowY, width * 0.12, height * 0.08, 0, 0, Math.PI * 2);
     context.fill();
 
-    const floorPool = context.createRadialGradient(centerX, height * 0.76, 0, centerX, height * 0.76, width * 0.16);
-    floorPool.addColorStop(0, "rgba(245,245,245,0.16)");
-    floorPool.addColorStop(0.48, "rgba(245,245,245,0.05)");
+    const floorPool = context.createRadialGradient(centerX, projectorCenterY + projectorHeight * 0.34, 0, centerX, projectorCenterY + projectorHeight * 0.34, width * 0.16);
+    floorPool.addColorStop(0, `rgba(245,245,245,${(0.16 * lightReveal).toFixed(3)})`);
+    floorPool.addColorStop(0.48, `rgba(245,245,245,${(0.05 * lightReveal).toFixed(3)})`);
     floorPool.addColorStop(1, "rgba(16,16,16,0)");
     context.fillStyle = floorPool;
     context.beginPath();
-    context.ellipse(centerX, height * 0.76, width * 0.13, height * 0.08, 0, 0, Math.PI * 2);
+    context.ellipse(centerX, projectorCenterY + projectorHeight * 0.34, width * 0.13, height * 0.07, 0, 0, Math.PI * 2);
     context.fill();
 
     const sweep = (Math.sin(time / 1100) + 1) / 2;
-    context.fillStyle = `rgba(245,245,245,${0.006 + sweep * 0.01})`;
+    context.fillStyle = `rgba(245,245,245,${((0.006 + sweep * 0.01) * lightReveal).toFixed(3)})`;
     context.beginPath();
-    context.moveTo(centerX - width * 0.025, horizon);
-    context.lineTo(centerX + width * 0.025, horizon);
-    context.lineTo(centerX + width * (0.11 + sweep * 0.025), height);
-    context.lineTo(centerX - width * (0.11 + sweep * 0.02), height);
+    context.moveTo(centerX - beamWidth * 0.16, beamTop);
+    context.lineTo(centerX + beamWidth * 0.16, beamTop);
+    context.lineTo(centerX + projectorWidth * (0.1 + sweep * 0.02), beamHit);
+    context.lineTo(centerX - projectorWidth * (0.1 + sweep * 0.018), beamHit);
     context.closePath();
     context.fill();
 
-    for (let index = 0; index < 5; index += 1) {
-      const x = centerX + Math.cos(index * 1.72 + progress * 2.2) * width * (0.18 + index * 0.032);
-      const y = height * (0.72 + Math.sin(index + progress * 3) * 0.08);
-      const radius = 14 + index * 3;
-      context.fillStyle = `rgba(${170 + index * 8},${170 + index * 8},${170 + index * 8},0.72)`;
+    context.save();
+    context.translate(centerX, projectorCenterY);
+    context.scale(projectorScale, projectorScale);
+
+    context.fillStyle = "rgba(0,0,0,0.42)";
+    context.beginPath();
+    context.ellipse(0, projectorHeight * 0.56, projectorWidth * 0.52, projectorHeight * 0.34, 0, 0, Math.PI * 2);
+    context.fill();
+
+    [-0.28, 0.28].forEach((offset) => {
+      const reelX = projectorWidth * offset;
+      const reelRadius = projectorWidth * 0.145;
+      context.fillStyle = "#272b31";
       context.beginPath();
-      context.ellipse(x, y, radius, radius * 0.42, 0, 0, Math.PI * 2);
+      context.ellipse(reelX, -projectorHeight * 0.35, reelRadius, reelRadius * 0.7, 0, 0, Math.PI * 2);
       context.fill();
-      context.fillStyle = "rgba(16,16,16,0.26)";
-      context.fillRect(x - radius, y, radius * 2, Math.max(3, radius * 0.22));
+      context.strokeStyle = "rgba(245,245,245,0.24)";
+      context.stroke();
+      context.fillStyle = "#080808";
+      context.beginPath();
+      context.ellipse(reelX, -projectorHeight * 0.35, reelRadius * 0.34, reelRadius * 0.26, 0, 0, Math.PI * 2);
+      context.fill();
+    });
+
+    const bodyGradient = context.createLinearGradient(0, -projectorHeight * 0.24, 0, projectorHeight * 0.42);
+    bodyGradient.addColorStop(0, "#3c424a");
+    bodyGradient.addColorStop(0.45, "#181b20");
+    bodyGradient.addColorStop(1, "#060607");
+    context.fillStyle = bodyGradient;
+    context.strokeStyle = "rgba(245,245,245,0.24)";
+    context.lineWidth = 1;
+    context.beginPath();
+    context.roundRect(-projectorWidth * 0.42, -projectorHeight * 0.12, projectorWidth * 0.84, projectorHeight * 0.52, 8);
+    context.fill();
+    context.stroke();
+
+    context.fillStyle = `rgba(255,239,176,${(0.22 + lightReveal * 0.5).toFixed(3)})`;
+    context.beginPath();
+    context.ellipse(0, projectorHeight * 0.42, projectorWidth * 0.13, projectorWidth * 0.1, 0, 0, Math.PI * 2);
+    context.fill();
+    context.strokeStyle = "rgba(255,246,204,0.36)";
+    context.stroke();
+
+    context.fillStyle = "rgba(245,245,245,0.28)";
+    for (let index = -2; index <= 2; index += 1) {
+      context.fillRect(index * projectorWidth * 0.075 - projectorWidth * 0.018, projectorHeight * 0.08, projectorWidth * 0.036, 3);
     }
+
+    context.restore();
   };
 
   const animateCanvas = (time) => {
@@ -559,32 +840,58 @@
       const headingEase = 1 - Math.pow(1 - headingProgress, 2);
       const controlsProgress = clamp((stageProgress - 0.26) / 0.16);
       const controlsEase = 1 - Math.pow(1 - controlsProgress, 2);
-      const fixtureProgress = clamp(stageProgress / 0.32);
-      const fixtureEase = 1 - Math.pow(1 - fixtureProgress, 3);
       const compactStage = window.innerWidth <= 760;
       const startWorldTilt = compactStage ? 34 : 42;
-      const startScreenTop = compactStage ? window.innerHeight * 0.22 : window.innerHeight * 0.18;
-      const endScreenTop = window.innerHeight * 0.25;
+      const startScreenTop = compactStage ? window.innerHeight * 0.22 : window.innerHeight * 0.13;
+      const endScreenTop = compactStage ? window.innerHeight * 0.25 : window.innerHeight * 0.105;
       const startScreenWidth = compactStage ? Math.min(260, window.innerWidth * 0.72) : Math.min(380, window.innerWidth * 0.27);
       const endScreenWidth = compactStage ? Math.min(344, window.innerWidth * 0.9) : Math.min(520, window.innerWidth * 0.36);
       const startScreenTilt = compactStage ? 78 : 82;
       const startScreenDepth = compactStage ? 0.28 : 0.22;
       const startFloorTilt = compactStage ? 60 : 61;
       const endFloorTilt = compactStage ? 70 : 69;
-      const startFixtureTop = compactStage ? window.innerHeight * -0.05 : window.innerHeight * -0.08;
-      const endFixtureTop = compactStage ? window.innerHeight * 0.08 : window.innerHeight * -0.025;
-      const startFixtureHeight = compactStage ? window.innerHeight * 0.64 : Math.min(580, window.innerHeight * 0.66);
-      const endFixtureHeight = compactStage ? Math.min(84, window.innerHeight * 0.1) : Math.min(118, window.innerHeight * 0.13);
+      const startProjectorTop = compactStage ? window.innerHeight * 0.56 : window.innerHeight * 0.52;
+      const endProjectorTop = compactStage ? window.innerHeight * 0.64 : window.innerHeight * 0.68;
+      const startProjectorScale = compactStage ? 0.68 : 0.72;
+      const endProjectorScale = compactStage ? 0.96 : 1.06;
+      const startProjectorTilt = compactStage ? 72 : 74;
+      const endProjectorTilt = compactStage ? 12 : 8;
+      const beamRevealProgress = clamp((cameraProgress - 0.22) / 0.78);
+      const beamRevealEase = 1 - Math.pow(1 - beamRevealProgress, 3);
+      const beamMaxOpacity = compactStage ? 0.46 : 0.56;
+      const startBeamWidth = compactStage ? Math.min(90, window.innerWidth * 0.3) : Math.min(160, window.innerWidth * 0.12);
+      const endBeamWidth = compactStage ? Math.min(270, window.innerWidth * 0.7) : Math.min(520, window.innerWidth * 0.36);
+      const startBeamHeight = 0;
+      const currentScreenTop = lerp(startScreenTop, endScreenTop, cameraEase);
+      const currentScreenWidth = lerp(startScreenWidth, endScreenWidth, cameraEase);
+      const currentScreenTilt = lerp(startScreenTilt, 8, cameraEase);
+      const currentScreenDepth = lerp(startScreenDepth, 1, cameraEase);
+      const currentProjectorTop = lerp(startProjectorTop, endProjectorTop, cameraEase);
+      const currentProjectorY = lerp(0, compactStage ? 20 : 6, cameraEase);
+      const screenLayoutHeight = currentScreenWidth / 1.86;
+      const screenVisibleHeight = screenLayoutHeight * currentScreenDepth * Math.cos((currentScreenTilt * Math.PI) / 180);
+      const lateBeamProgress = clamp((stageProgress - 0.42) / 0.12);
+      const lateBeamEase = 1 - Math.pow(1 - lateBeamProgress, 2);
+      const beamTop =
+        currentScreenTop +
+        screenLayoutHeight * 0.5 +
+        screenVisibleHeight * 0.5 +
+        (compactStage ? 8 : 10) -
+        lateBeamEase * (compactStage ? 34 : 64);
+      const endBeamHeight = Math.max(
+        0,
+        currentProjectorTop + currentProjectorY - beamTop + window.innerHeight * (compactStage ? 0.05 : 0.065),
+      );
       const baseWorldY = lerp(42, -22, cameraEase) + stageProgress * -22;
 
       stage.style.setProperty("--stage-progress", stageProgress.toFixed(3));
       stage.style.setProperty("--screen-y", `${baseWorldY.toFixed(2)}px`);
       stage.style.setProperty("--screen-scale", (1 + cameraEase * 0.08 + stageProgress * 0.06).toFixed(3));
       stage.style.setProperty("--world-tilt", `${lerp(startWorldTilt, 0, cameraEase).toFixed(2)}deg`);
-      stage.style.setProperty("--project-screen-top", `${lerp(startScreenTop, endScreenTop, cameraEase).toFixed(2)}px`);
-      stage.style.setProperty("--project-screen-width", `${lerp(startScreenWidth, endScreenWidth, cameraEase).toFixed(2)}px`);
-      stage.style.setProperty("--project-screen-tilt", `${lerp(startScreenTilt, 8, cameraEase).toFixed(2)}deg`);
-      stage.style.setProperty("--project-screen-depth", lerp(startScreenDepth, 1, cameraEase).toFixed(3));
+      stage.style.setProperty("--project-screen-top", `${currentScreenTop.toFixed(2)}px`);
+      stage.style.setProperty("--project-screen-width", `${currentScreenWidth.toFixed(2)}px`);
+      stage.style.setProperty("--project-screen-tilt", `${currentScreenTilt.toFixed(2)}deg`);
+      stage.style.setProperty("--project-screen-depth", currentScreenDepth.toFixed(3));
       stage.style.setProperty("--floor-tilt", `${lerp(startFloorTilt, endFloorTilt, cameraEase).toFixed(2)}deg`);
       stage.style.setProperty("--wall-opacity", lerp(compactStage ? 0.46 : 0.5, compactStage ? 0.66 : 0.7, cameraEase).toFixed(3));
       stage.style.setProperty("--wall-skew-left", `${lerp(0, compactStage ? 7 : 10, cameraEase).toFixed(2)}deg`);
@@ -595,13 +902,17 @@
       stage.style.setProperty("--case-y", `${lerp(compactStage ? 64 : 72, 0, controlsEase).toFixed(2)}px`);
       stage.style.setProperty("--heading-opacity", lerp(0.9, 0, headingEase).toFixed(3));
       stage.style.setProperty("--heading-y", `${lerp(0, -34, headingEase).toFixed(2)}px`);
-      stage.style.setProperty("--light-opacity", lerp(compactStage ? 0.3 : 0.34, compactStage ? 0.22 : 0.2, cameraEase).toFixed(3));
-      stage.style.setProperty("--light-pool-opacity", lerp(compactStage ? 0.26 : 0.3, 0.18, cameraEase).toFixed(3));
-      stage.style.setProperty("--beam-opacity", lerp(compactStage ? 0.16 : 0.18, compactStage ? 0.075 : 0.085, cameraEase).toFixed(3));
+      stage.style.setProperty("--light-pool-opacity", (beamRevealEase * (compactStage ? 0.24 : 0.28)).toFixed(3));
+      stage.style.setProperty("--projector-top", `${currentProjectorTop.toFixed(2)}px`);
+      stage.style.setProperty("--projector-y", `${currentProjectorY.toFixed(2)}px`);
+      stage.style.setProperty("--projector-scale", lerp(startProjectorScale, endProjectorScale, cameraEase).toFixed(3));
+      stage.style.setProperty("--projector-tilt", `${lerp(startProjectorTilt, endProjectorTilt, cameraEase).toFixed(2)}deg`);
+      stage.style.setProperty("--projector-beam-opacity", (beamRevealEase * beamMaxOpacity).toFixed(3));
+      stage.style.setProperty("--projector-beam-top", `${beamTop.toFixed(2)}px`);
+      stage.style.setProperty("--projector-beam-width", `${lerp(startBeamWidth, endBeamWidth, beamRevealEase).toFixed(2)}px`);
+      stage.style.setProperty("--projector-beam-height", `${lerp(startBeamHeight, endBeamHeight, beamRevealEase).toFixed(2)}px`);
       stage.style.setProperty("--screen-overlay-opacity", lerp(compactStage ? 0.07 : 0.075, 0.035, cameraEase).toFixed(3));
       stage.style.setProperty("--screen-glow-opacity", lerp(compactStage ? 0.03 : 0.035, 0.018, cameraEase).toFixed(3));
-      stage.style.setProperty("--fixture-top", `${lerp(startFixtureTop, endFixtureTop, fixtureEase).toFixed(2)}px`);
-      stage.style.setProperty("--fixture-height", `${lerp(startFixtureHeight, endFixtureHeight, fixtureEase).toFixed(2)}px`);
       document.body.classList.toggle("portfolio-over-dark", rect.top <= 80 && rect.bottom > 80);
 
       if (!prefersReducedMotion) {
@@ -625,6 +936,15 @@
       }
     }
   };
+
+  if (hasThree) {
+    projectorScene = createProjectorScene();
+
+    if (!projectorScene && canvas) {
+      stage?.classList.remove("has-projector-webgl");
+      context = canvas.getContext("2d");
+    }
+  }
 
   updateScroll();
   window.addEventListener("scroll", updateScroll, { passive: true });
