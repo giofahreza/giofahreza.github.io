@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Under Maintenance</title>
+    <link rel="icon" href="/assets/img/favicon.ico">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -52,33 +53,34 @@
     </div>
 
     <script>
-        // Function to fetch data from the API and update date and time
         function updateDateAndTime() {
-            fetch('https://worldtimeapi.org/api/timezone/Asia/Jakarta')
-                .then(response => response.json())
-                .then(data => {
-                    // Extract date and time from the API response
-                    const datetime = new Date(data.datetime);
+            const datetimeElement = document.getElementById('datetime');
+            if (!datetimeElement) {
+                return;
+            }
 
-                    // Format date and time
-                    const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-                    const timeOptions = { hour: 'numeric', minute: 'numeric', second: 'numeric' };
-                    const formattedDate = datetime.toLocaleDateString('en-US', dateOptions);
-                    const formattedTime = datetime.toLocaleTimeString('en-US', timeOptions);
+            const datetime = new Date();
+            const dateOptions = {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                timeZone: 'Asia/Jakarta'
+            };
+            const timeOptions = {
+                hour: 'numeric',
+                minute: 'numeric',
+                second: 'numeric',
+                timeZone: 'Asia/Jakarta',
+                timeZoneName: 'short'
+            };
+            const formattedDate = datetime.toLocaleDateString('en-US', dateOptions);
+            const formattedTime = datetime.toLocaleTimeString('en-US', timeOptions);
 
-                    // Display date and time on the webpage
-                    document.getElementById('datetime').textContent = `${formattedDate} | ${formattedTime}`;
-                })
-                .catch(error => {
-                    console.error('Error fetching data:', error);
-                    document.getElementById('date').textContent = 'Error fetching date';
-                });
+            datetimeElement.textContent = `${formattedDate} | ${formattedTime}`;
         }
 
-        // Call the function initially
         updateDateAndTime();
-
-        // Auto-reload the date and time every second
         setInterval(updateDateAndTime, 1000);
     </script>
 </body>

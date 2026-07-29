@@ -4,23 +4,37 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>README.md to HTML</title>
+    <link rel="icon" href="/assets/img/favicon.ico">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+        }
+
         /* CSS styles for the rendered HTML */
         body {
             font-family: Arial, sans-serif;
             line-height: 1.6;
-            margin: 20px;
+            margin: 20px auto;
             max-width: 800px;
-            margin-left: auto;
-            margin-right: auto;
             padding: 0 20px; /* Add padding for better readability */
+            overflow-wrap: anywhere;
+        }
+
+        img {
+            height: auto;
+            max-width: 100%;
+        }
+
+        pre {
+            overflow-x: auto;
         }
 
         /* Responsive styles */
         @media only screen and (max-width: 600px) {
             body {
-                max-width: 100%; /* Make the content full width on small screens */
                 padding: 0 10px; /* Adjust padding for small screens */
             }
         }
@@ -39,17 +53,51 @@
             // Replace occurrences of './' with the GitHub Raw URL pattern
             // var absoluteURL = relativePath.replace(/\.\//g, rawURLPattern);
 
-            var absoluteURL = relativePath.replace(/(\.\/|\/?)assets\//g, rawURLPattern);
+            var absoluteURL = relativePath
+                .replace(/(\.\/|\/?)assets\//g, rawURLPattern)
+                .replace(
+                    'https://raw.githubusercontent.com/devicons/devicon/master/icons/laravel/laravel-plain-wordmark.svg',
+                    'https://raw.githubusercontent.com/devicons/devicon/master/icons/laravel/laravel-original.svg'
+                )
+                .replace(
+                    'https://raw.githubusercontent.com/devicons/devicon/master/icons/nestjs/nestjs-plain.svg',
+                    'https://raw.githubusercontent.com/devicons/devicon/master/icons/nestjs/nestjs-original.svg'
+                );
 
             return absoluteURL;
+        }
+
+        function removeUnstableEmbeds(markdownContent) {
+            const isStableImage = imageUrl => {
+                try {
+                    return new URL(imageUrl).hostname === 'raw.githubusercontent.com';
+                } catch (error) {
+                    return false;
+                }
+            };
+
+            return markdownContent
+                .replace(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+["'][^"']*["'])?\)/g, (image, alt, imageUrl) => {
+                    return isStableImage(imageUrl) ? image : alt;
+                })
+                .replace(/<img\b[^>]*\bsrc=["']([^"']+)["'][^>]*>/gi, (image, imageUrl) => {
+                    return isStableImage(imageUrl) ? image : '';
+                });
         }
 
         // Function to fetch README.md file content
         function fetchReadme() {
             fetch('https://raw.githubusercontent.com/giofahreza/giofahreza/main/README.md')
-                .then(response => response.text())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`README request failed with HTTP ${response.status}`);
+                    }
+
+                    return response.text();
+                })
                 .then(markdownContent => {
-                  markdownContent = convertRelativePathToGitHubRawURL(markdownContent);
+                    markdownContent = convertRelativePathToGitHubRawURL(markdownContent);
+                    markdownContent = removeUnstableEmbeds(markdownContent);
 
                     // Convert Markdown to HTML
                     var htmlContent = marked.parse(markdownContent);
@@ -57,7 +105,11 @@
                     // Display HTML content
                     document.getElementById('markdown-content').innerHTML = htmlContent;
                 })
-                .catch(error => console.error('Error fetching README.md:', error));
+                .catch(error => {
+                    document.getElementById('markdown-content').textContent =
+                        'The profile is temporarily unavailable. Please visit github.com/giofahreza.';
+                    console.error('Error fetching README.md:', error);
+                });
         }
 
         // Call fetchReadme function when the page loads
