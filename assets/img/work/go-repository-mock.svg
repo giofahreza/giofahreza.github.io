@@ -1,0 +1,144 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="860" viewBox="0 0 1600 860" role="img" aria-labelledby="title desc">
+  <title id="title">Go repository architecture mockup</title>
+  <desc id="desc">A dark engineering workspace presenting a Go service architecture and source code.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#111820"/>
+      <stop offset="1" stop-color="#070b10"/>
+    </linearGradient>
+    <linearGradient id="node" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1d2a34"/>
+      <stop offset="1" stop-color="#101820"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="180%">
+      <feDropShadow dx="0" dy="24" stdDeviation="28" flood-color="#000" flood-opacity=".5"/>
+    </filter>
+    <pattern id="grid" width="42" height="42" patternUnits="userSpaceOnUse">
+      <path d="M42 0H0v42" fill="none" stroke="#8dc9d8" stroke-opacity=".045"/>
+    </pattern>
+  </defs>
+  <rect width="1600" height="860" fill="url(#bg)"/>
+  <rect width="1600" height="860" fill="url(#grid)"/>
+  <g filter="url(#shadow)">
+    <rect x="62" y="46" width="1476" height="768" rx="26" fill="#0c1218" stroke="#33414c" stroke-width="2"/>
+    <path d="M62 116h1476" stroke="#32404b" stroke-width="2"/>
+    <circle cx="101" cy="81" r="8" fill="#f16d6d"/>
+    <circle cx="129" cy="81" r="8" fill="#e6b95b"/>
+    <circle cx="157" cy="81" r="8" fill="#77c79d"/>
+    <text x="208" y="88" fill="#dce7eb" font-family="monospace" font-size="16">all-about-go / service-lab</text>
+    <rect x="1272" y="66" width="106" height="32" rx="16" fill="#14232b"/>
+    <circle cx="1293" cy="82" r="5" fill="#73c7dc"/>
+    <text x="1307" y="87" fill="#9fd4df" font-family="monospace" font-size="12">PASSING</text>
+    <rect x="1392" y="66" width="102" height="32" rx="16" fill="#17251f"/>
+    <text x="1412" y="87" fill="#77c79d" font-family="monospace" font-size="12">GO 1.24</text>
+
+    <rect x="62" y="117" width="246" height="697" fill="#091016"/>
+    <text x="94" y="164" fill="#798996" font-family="monospace" font-size="11" letter-spacing="2">EXPLORER</text>
+    <g font-family="monospace" font-size="14">
+      <text x="94" y="210" fill="#dbe4e8">▾ cmd</text>
+      <text x="119" y="243" fill="#8897a3">api</text>
+      <text x="119" y="276" fill="#8897a3">worker</text>
+      <text x="94" y="320" fill="#dbe4e8">▾ internal</text>
+      <text x="119" y="353" fill="#73c7dc">handler</text>
+      <text x="119" y="386" fill="#8897a3">service</text>
+      <text x="119" y="419" fill="#8897a3">repository</text>
+      <text x="94" y="463" fill="#dbe4e8">▸ migrations</text>
+      <text x="94" y="507" fill="#dbe4e8">▸ pkg</text>
+      <text x="94" y="551" fill="#8897a3">go.mod</text>
+      <text x="94" y="584" fill="#8897a3">Makefile</text>
+      <text x="94" y="617" fill="#8897a3">docker-compose.yml</text>
+    </g>
+    <rect x="84" y="708" width="200" height="72" rx="12" fill="#101920" stroke="#25343e"/>
+    <text x="104" y="735" fill="#71828e" font-family="monospace" font-size="11">COVERAGE</text>
+    <text x="104" y="765" fill="#73c7dc" font-family="monospace" font-size="22">87.4%</text>
+    <rect x="188" y="750" width="72" height="7" rx="3" fill="#202f38"/>
+    <rect x="188" y="750" width="63" height="7" rx="3" fill="#73c7dc"/>
+
+    <rect x="309" y="117" width="747" height="697" fill="#0d141a"/>
+    <text x="348" y="168" fill="#f0f4f5" font-family="Arial, sans-serif" font-size="26" font-weight="700">Service Architecture</text>
+    <text x="348" y="196" fill="#758692" font-family="monospace" font-size="12">CLEAN ARCHITECTURE · EVENT-DRIVEN WORKER</text>
+    <rect x="348" y="228" width="668" height="526" rx="18" fill="#0a1117" stroke="#253641"/>
+    <rect x="348" y="228" width="668" height="526" rx="18" fill="url(#grid)"/>
+
+    <g fill="none" stroke="#73c7dc" stroke-width="2" stroke-opacity=".5">
+      <path d="M476 347h118"/>
+      <path d="M720 347h118"/>
+      <path d="M657 402v83"/>
+      <path d="M901 402v83"/>
+      <path d="M720 540h118"/>
+    </g>
+    <g fill="#73c7dc">
+      <path d="m586 341 12 6-12 6z"/>
+      <path d="m830 341 12 6-12 6z"/>
+      <path d="m651 477 6 12 6-12z"/>
+      <path d="m895 477 6 12 6-12z"/>
+      <path d="m830 534 12 6-12 6z"/>
+    </g>
+
+    <g font-family="Arial, sans-serif">
+      <g transform="translate(384 302)">
+        <rect width="96" height="90" rx="17" fill="url(#node)" stroke="#4c6977"/>
+        <circle cx="48" cy="31" r="13" fill="#73c7dc" opacity=".2"/>
+        <path d="M40 31h16M48 23v16" stroke="#73c7dc" stroke-width="3" stroke-linecap="round"/>
+        <text x="48" y="68" fill="#dce8ec" font-size="13" text-anchor="middle">CLIENT</text>
+      </g>
+      <g transform="translate(598 292)">
+        <rect width="126" height="110" rx="17" fill="url(#node)" stroke="#73c7dc"/>
+        <text x="63" y="34" fill="#73c7dc" font-family="monospace" font-size="11" text-anchor="middle">HTTP</text>
+        <text x="63" y="63" fill="#eef4f5" font-size="17" font-weight="700" text-anchor="middle">API</text>
+        <text x="63" y="87" fill="#7f909b" font-size="11" text-anchor="middle">chi router</text>
+      </g>
+      <g transform="translate(842 292)">
+        <rect width="126" height="110" rx="17" fill="url(#node)" stroke="#475b66"/>
+        <text x="63" y="34" fill="#8fa2ad" font-family="monospace" font-size="11" text-anchor="middle">DOMAIN</text>
+        <text x="63" y="63" fill="#eef4f5" font-size="17" font-weight="700" text-anchor="middle">SERVICE</text>
+        <text x="63" y="87" fill="#7f909b" font-size="11" text-anchor="middle">use cases</text>
+      </g>
+      <g transform="translate(598 489)">
+        <rect width="126" height="102" rx="17" fill="url(#node)" stroke="#475b66"/>
+        <text x="63" y="37" fill="#dce7eb" font-size="16" font-weight="700" text-anchor="middle">WORKER</text>
+        <text x="63" y="63" fill="#7f909b" font-size="11" text-anchor="middle">async jobs</text>
+        <circle cx="63" cy="81" r="4" fill="#77c79d"/>
+      </g>
+      <g transform="translate(842 489)">
+        <rect width="126" height="102" rx="17" fill="url(#node)" stroke="#475b66"/>
+        <text x="63" y="37" fill="#dce7eb" font-size="16" font-weight="700" text-anchor="middle">POSTGRES</text>
+        <text x="63" y="63" fill="#7f909b" font-size="11" text-anchor="middle">repository</text>
+        <path d="M50 77c0-8 26-8 26 0v9c0 8-26 8-26 0z" fill="#73c7dc" opacity=".35"/>
+      </g>
+      <rect x="386" y="653" width="592" height="68" rx="12" fill="#101920" stroke="#263641"/>
+      <text x="408" y="680" fill="#72838f" font-family="monospace" font-size="11">REQUEST TRACE</text>
+      <circle cx="408" cy="701" r="4" fill="#77c79d"/>
+      <text x="422" y="706" fill="#a7b4bc" font-family="monospace" font-size="12">POST /v1/orders  →  201  ·  42ms</text>
+    </g>
+
+    <rect x="1057" y="117" width="481" height="697" fill="#080d12"/>
+    <path d="M1057 170h481" stroke="#27333d"/>
+    <text x="1087" y="151" fill="#d6e0e4" font-family="monospace" font-size="13">handler/order.go</text>
+    <g font-family="monospace" font-size="14">
+      <g fill="#4f5d68">
+        <text x="1083" y="214">01</text><text x="1083" y="246">02</text><text x="1083" y="278">03</text>
+        <text x="1083" y="310">04</text><text x="1083" y="342">05</text><text x="1083" y="374">06</text>
+        <text x="1083" y="406">07</text><text x="1083" y="438">08</text><text x="1083" y="470">09</text>
+        <text x="1083" y="502">10</text><text x="1083" y="534">11</text><text x="1083" y="566">12</text>
+      </g>
+      <text x="1122" y="214" fill="#c79bd8">func</text>
+      <text x="1162" y="214" fill="#dce5e8">CreateOrder(w http.ResponseWriter, r *http.Request) {</text>
+      <text x="1143" y="246" fill="#c79bd8">var</text><text x="1175" y="246" fill="#dce5e8">input CreateOrderInput</text>
+      <text x="1143" y="278" fill="#c79bd8">if</text><text x="1167" y="278" fill="#dce5e8">err := decode(r, &amp;input); err != nil {</text>
+      <text x="1164" y="310" fill="#73c7dc">respondError</text><text x="1268" y="310" fill="#dce5e8">(w, err)</text>
+      <text x="1164" y="342" fill="#c79bd8">return</text>
+      <text x="1143" y="374" fill="#dce5e8">}</text>
+      <text x="1143" y="406" fill="#dce5e8">order, err := h.service.Create(r.Context(), input)</text>
+      <text x="1143" y="438" fill="#c79bd8">if</text><text x="1167" y="438" fill="#dce5e8">err != nil {</text>
+      <text x="1164" y="470" fill="#73c7dc">respondError</text><text x="1268" y="470" fill="#dce5e8">(w, err)</text>
+      <text x="1164" y="502" fill="#c79bd8">return</text>
+      <text x="1143" y="534" fill="#dce5e8">}</text>
+      <text x="1143" y="566" fill="#73c7dc">respondJSON</text><text x="1245" y="566" fill="#dce5e8">(w, http.StatusCreated, order)</text>
+      <text x="1122" y="598" fill="#dce5e8">}</text>
+    </g>
+    <rect x="1083" y="675" width="419" height="96" rx="12" fill="#101820" stroke="#25343e"/>
+    <text x="1105" y="704" fill="#71828d" font-family="monospace" font-size="11">TERMINAL</text>
+    <text x="1105" y="735" fill="#77c79d" font-family="monospace" font-size="13">✓ go test ./...   28 packages passed</text>
+  </g>
+</svg>

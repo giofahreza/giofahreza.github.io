@@ -1,86 +1,3 @@
-.portfolio-loader {
-  position: fixed;
-  inset: 0;
-  z-index: 120;
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-  background:
-    radial-gradient(ellipse at 50% 38%, rgba(117, 199, 160, 0.12), transparent 42%),
-    #080a0f;
-  color: #f6f7fb;
-  pointer-events: none;
-  animation: portfolio-loader-out 2600ms cubic-bezier(0.11, 0.82, 0.39, 0.92) forwards;
-}
-
-.portfolio-loader__mark {
-  display: grid;
-  justify-items: center;
-  gap: clamp(18px, 4vw, 30px);
-}
-
-.portfolio-loader__icon {
-  width: clamp(64px, 10vw, 112px);
-  height: clamp(64px, 10vw, 112px);
-  border-radius: 24px;
-  box-shadow:
-    0 0 0 1px rgba(246, 247, 251, 0.18),
-    0 0 42px rgba(117, 199, 160, 0.34),
-    0 22px 80px rgba(0, 0, 0, 0.42);
-  animation: portfolio-loader-icon 1900ms cubic-bezier(0.11, 0.82, 0.39, 0.92) forwards;
-}
-
-.portfolio-loader__type {
-  position: relative;
-  width: min(520px, 78vw);
-  aspect-ratio: 1.75;
-  font-family: "Bebas Neue", "Arial Narrow", Impact, sans-serif;
-  font-size: clamp(34px, 6vw, 86px);
-  line-height: 0.82;
-  text-align: center;
-  transform: perspective(520px) rotateX(62deg) rotateZ(-8deg);
-  animation: portfolio-loader-type 2100ms cubic-bezier(0.11, 0.82, 0.39, 0.92) forwards;
-}
-
-.portfolio-loader__type span {
-  position: absolute;
-  left: 50%;
-  display: block;
-  white-space: nowrap;
-  transform: translateX(-50%);
-}
-
-.portfolio-loader__type span:nth-child(1) {
-  top: 0;
-}
-
-.portfolio-loader__type span:nth-child(2) {
-  top: 24%;
-  transform: translateX(-50%) skewX(-12deg);
-}
-
-.portfolio-loader__type span:nth-child(3) {
-  top: 44%;
-  transform: translateX(-50%) scaleX(1.28);
-}
-
-.portfolio-loader__type span:nth-child(4) {
-  top: 62%;
-  transform: translateX(-50%) skewX(10deg);
-}
-
-.portfolio-loader__type span:nth-child(5) {
-  top: 80%;
-}
-
-.portfolio-loader__counter {
-  position: absolute;
-  left: clamp(18px, 4vw, 56px);
-  bottom: clamp(18px, 4vw, 56px);
-  font-family: "DejaVu Sans Mono", "SFMono-Regular", Consolas, monospace;
-  font-size: 16px;
-}
-
 .portfolio-editorial {
   --hero-progress: 0;
   position: relative;
@@ -170,7 +87,7 @@
   position: absolute;
   top: 48%;
   left: 50%;
-  z-index: 3;
+  z-index: 5;
   width: clamp(260px, 25vw, 360px);
   margin: 0;
   transform: translate3d(-50%, -38%, 0);
@@ -412,7 +329,6 @@
 .stage-wall,
 .stage-projector-beam,
 .stage-projector,
-.stage-disc,
 .stage-screen {
   position: absolute;
   left: 50%;
@@ -623,32 +539,6 @@
   z-index: 1;
 }
 
-.stage-disc {
-  z-index: 4;
-  bottom: 10vh;
-  width: 58px;
-  height: 34px;
-  border-radius: 50%;
-  background:
-    linear-gradient(180deg, #cfcfcf, #686868 55%, #262626),
-    repeating-linear-gradient(90deg, rgba(16, 16, 16, 0.2) 0 2px, transparent 2px 5px);
-  box-shadow: 0 18px 22px rgba(0, 0, 0, 0.4);
-}
-
-.stage-disc--one {
-  margin-left: min(-360px, -28vw);
-}
-
-.stage-disc--two {
-  margin-left: min(150px, 11vw);
-  bottom: 11vh;
-}
-
-.stage-disc--three {
-  margin-left: min(245px, 18vw);
-  bottom: 10vh;
-}
-
 .stage-screen {
   top: var(--project-screen-top);
   z-index: 9;
@@ -699,10 +589,6 @@
   transition: opacity 240ms ease, transform 640ms cubic-bezier(0.11, 0.82, 0.39, 0.92);
 }
 
-.stage-screen[data-preview="dashboard"] img {
-  object-position: center top;
-}
-
 .stage-screen[data-preview="mobile"] {
   width: min(440px, var(--project-screen-width));
   aspect-ratio: 1.86;
@@ -716,6 +602,12 @@
     radial-gradient(ellipse at 50% 48%, rgba(117, 199, 160, 0.08), transparent 62%),
     #11151d;
   padding: clamp(8px, 1.2vw, 14px);
+}
+
+.stage-screen[data-preview="dashboard"] img {
+  object-fit: cover;
+  object-position: center top;
+  padding: 0;
 }
 
 .stage-screen[data-preview="icon"] {
@@ -733,6 +625,45 @@
 
 .stage-screen:not(.has-image) img {
   opacity: 0;
+}
+
+.stage-screen.is-loading img {
+  opacity: 0.16;
+  transform: scale(1.025);
+}
+
+.stage-screen__loader {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 12px;
+  background:
+    radial-gradient(circle at center, rgba(117, 199, 160, 0.13), transparent 46%),
+    rgba(7, 10, 12, 0.72);
+  color: rgba(245, 245, 245, 0.72);
+  opacity: 0;
+  transition: opacity 180ms ease;
+  pointer-events: none;
+}
+
+.stage-screen.is-loading .stage-screen__loader {
+  opacity: 1;
+}
+
+.stage-screen__loader-icon {
+  width: 68px;
+  aspect-ratio: 1;
+  background: url("./img/loading.svg") center / contain no-repeat;
+}
+
+.stage-screen__loader small {
+  font-family: "DejaVu Sans Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
 }
 
 .stage-screen__wire {
@@ -779,7 +710,7 @@
 .stage-screen__caption {
   position: absolute;
   inset: auto 16px 14px;
-  z-index: 3;
+  z-index: 4;
   display: grid;
   gap: 3px;
   color: #f5f5f5;
@@ -940,62 +871,9 @@
   will-change: opacity, transform;
 }
 
-@keyframes portfolio-loader-out {
-  0%,
-  72% {
-    opacity: 1;
-    transform: translateY(0);
-    visibility: visible;
-  }
-
-  100% {
-    opacity: 0;
-    transform: translateY(-5%);
-    visibility: hidden;
-  }
-}
-
-@keyframes portfolio-loader-type {
-  0% {
-    transform: perspective(520px) rotateX(72deg) rotateZ(-14deg) scale(0.82);
-    filter: blur(2px);
-  }
-
-  65% {
-    transform: perspective(520px) rotateX(58deg) rotateZ(7deg) scale(1.06);
-    filter: blur(0);
-  }
-
-  100% {
-    transform: perspective(520px) rotateX(42deg) rotateZ(0) scale(1);
-    filter: blur(0);
-  }
-}
-
-@keyframes portfolio-loader-icon {
-  0% {
-    opacity: 0;
-    transform: translateY(22px) scale(0.74) rotate(-8deg);
-  }
-
-  58% {
-    opacity: 1;
-    transform: translateY(0) scale(1.08) rotate(3deg);
-  }
-
-  100% {
-    opacity: 1;
-    transform: translateY(0) scale(1) rotate(0);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .portfolio-loader {
-    animation-duration: 1ms;
-  }
-
-  .portfolio-loader__type {
-    animation: none;
+  .stage-screen__loader-icon {
+    background-image: url("./img/new_logo.png");
   }
 
   .split-letter,
@@ -1022,10 +900,6 @@
 }
 
 @media (max-width: 760px) {
-  .portfolio-loader__type {
-    width: min(360px, 84vw);
-  }
-
   .portfolio-editorial {
     min-height: auto;
     padding-top: 98px;
@@ -1141,11 +1015,6 @@
   .stage-projector {
     width: clamp(128px, 40vw, 180px);
     height: clamp(88px, 28vw, 124px);
-  }
-
-  .stage-disc {
-    width: 44px;
-    height: 26px;
   }
 
   .work-picker {

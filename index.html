@@ -57,6 +57,7 @@
 
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="./assets/img/favicon.ico">
+    <link rel="preload" as="image" type="image/svg+xml" href="./assets/img/loading.svg">
     <meta name="msapplication-TileImage" content="./assets/img/logo.png">
     <meta name="msapplication-TileColor" content="#080a0f">
     <meta name="theme-color" content="#080a0f">
@@ -64,18 +65,32 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Fraunces:wght@600;700&family=Work+Sans:wght@400;500;600;700&display=swap">
-    <link rel="stylesheet" href="./assets/nav.css?v=20260728f">
-    <link rel="stylesheet" href="./assets/showcase.css?v=20260729w">
+    <link rel="stylesheet" href="./assets/nav.css?v=20260729h">
+    <link rel="stylesheet" href="./assets/showcase.css?v=20260729ad">
     <link rel="stylesheet" href="./assets/portfolio.css?v=20260729j">
-    <script src="./assets/nav.js?v=20260728f" defer></script>
+    <script src="./assets/nav.js?v=20260729h" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js" defer></script>
-    <script src="./assets/showcase.js?v=20260729af" defer></script>
+    <script src="./assets/showcase.js?v=20260729ag" defer></script>
 </head>
 <body class="legacy-page portfolio-page">
+    <div class="site-loader" data-site-loader role="status" aria-live="polite" aria-label="Loading page">
+        <picture>
+            <source media="(prefers-reduced-motion: reduce)" srcset="./assets/img/new_logo.png">
+            <img class="site-loader__image" src="./assets/img/loading.svg" alt="">
+        </picture>
+        <span class="site-loader__label">Loading</span>
+    </div>
+    <noscript>
+        <style>
+            .site-loader {
+                display: none !important;
+            }
+        </style>
+    </noscript>
     <header class="global-header">
         <div class="global-header__inner">
             <a class="global-brand" href="/" aria-label="Giofahreza home">
-                <img src="/assets/img/favicon.ico" alt="Giofahreza">
+                <img src="/assets/img/logo.png" alt="Giofahreza">
                 <span>
                     <strong>Giofahreza</strong>
                     <small>Fullstack Software Engineer</small>
@@ -100,20 +115,6 @@
     </div>
 
     <main>
-        <div class="portfolio-loader" aria-hidden="true">
-            <div class="portfolio-loader__mark">
-                <img class="portfolio-loader__icon" src="./assets/img/favicon.ico" alt="">
-                <div class="portfolio-loader__type">
-                    <span>BUILD</span>
-                    <span>SYSTEMS</span>
-                    <span>THAT</span>
-                    <span>STAY</span>
-                    <span>USEFUL</span>
-                </div>
-            </div>
-            <div class="portfolio-loader__counter">0%</div>
-        </div>
-
         <section class="portfolio-editorial" data-editorial-hero aria-labelledby="portfolio-heading">
             <div class="portfolio-editorial__count" aria-hidden="true">
                 <span>1</span>
@@ -170,11 +171,12 @@
                                 <span class="stage-projector__lens"></span>
                             </div>
                         </div>
-                        <div class="stage-disc stage-disc--one"></div>
-                        <div class="stage-disc stage-disc--two"></div>
-                        <div class="stage-disc stage-disc--three"></div>
                         <div class="stage-screen has-image" data-preview="dashboard">
                             <img src="./assets/img/work/io-gateway-dashboard.png" alt="">
+                            <div class="stage-screen__loader" aria-hidden="true">
+                                <span class="stage-screen__loader-icon"></span>
+                                <small>Loading preview</small>
+                            </div>
                             <div class="stage-screen__wire" aria-hidden="true">
                                 <span></span>
                                 <span></span>
@@ -196,12 +198,12 @@
                         <strong>IO Gateway</strong>
                         <small>AI gateway</small>
                     </a>
-                    <a class="work-picker__item" href="https://github.com/giofahreza/io-workbench" target="_blank" rel="noopener noreferrer" data-project="1" data-title="IO Workbench" data-meta="Rust / Workspace server" data-preview="icon" data-image="./assets/img/work/io-workbench-icon.svg">
+                    <a class="work-picker__item" href="https://github.com/giofahreza/io-workbench" target="_blank" rel="noopener noreferrer" data-project="1" data-title="IO Workbench" data-meta="Rust / Workspace server" data-preview="workbench" data-image="./assets/img/work/io-workbench-mock.png">
                         <span>02</span>
                         <strong>IO Workbench</strong>
                         <small>Agent workspace</small>
                     </a>
-                    <a class="work-picker__item" href="https://github.com/giofahreza/gitvault" target="_blank" rel="noopener noreferrer" data-project="2" data-title="GitVault" data-meta="Dart / Encrypted vault" data-preview="mobile" data-image="./assets/img/work/gitvault-passwords-list.png">
+                    <a class="work-picker__item" href="https://github.com/giofahreza/gitvault" target="_blank" rel="noopener noreferrer" data-project="2" data-title="GitVault" data-meta="Dart / Encrypted vault" data-preview="gitvault" data-image="./assets/img/work/gitvault-control-room.png">
                         <span>03</span>
                         <strong>GitVault</strong>
                         <small>Security app</small>
@@ -211,22 +213,22 @@
                         <strong>Personal Website</strong>
                         <small>GitHub Pages</small>
                     </a>
-                    <a class="work-picker__item" href="./tools/" data-project="4" data-title="Developer Tools" data-meta="Browser Utilities / JavaScript" data-preview="terminal">
+                    <a class="work-picker__item" href="./tools/" data-project="4" data-title="Developer Tools" data-meta="Browser Utilities / JavaScript" data-preview="terminal" data-image="./assets/img/work/developer-tools-mock.svg">
                         <span>05</span>
                         <strong>Developer Tools</strong>
                         <small>Browser-only</small>
                     </a>
-                    <a class="work-picker__item" href="https://github.com/giofahreza/all-about-go" target="_blank" rel="noopener noreferrer" data-project="5" data-title="Go Repository" data-meta="Backend Practice / Golang" data-preview="flow">
+                    <a class="work-picker__item" href="https://github.com/giofahreza/all-about-go" target="_blank" rel="noopener noreferrer" data-project="5" data-title="Go Repository" data-meta="Backend Practice / Golang" data-preview="flow" data-image="./assets/img/work/go-repository-mock.svg">
                         <span>06</span>
                         <strong>Go Repository</strong>
                         <small>Architecture</small>
                     </a>
-                    <a class="work-picker__item" href="https://github.com/giofahreza/cs-ai-indonesia" target="_blank" rel="noopener noreferrer" data-project="6" data-title="Customer Service AI" data-meta="AI Experiment / Embeddings" data-preview="chat">
+                    <a class="work-picker__item" href="https://github.com/giofahreza/cs-ai-indonesia" target="_blank" rel="noopener noreferrer" data-project="6" data-title="Customer Service AI" data-meta="AI Experiment / Embeddings" data-preview="chat" data-image="./assets/img/work/customer-service-ai-mock.svg">
                         <span>07</span>
                         <strong>Customer Service AI</strong>
                         <small>Indonesian support</small>
                     </a>
-                    <a class="work-picker__item" href="https://perkumpulan-perusahaan-gadai.com/" target="_blank" rel="noopener noreferrer" data-project="7" data-title="Pawnbrokers Association" data-meta="Client Site / Directory" data-preview="grid">
+                    <a class="work-picker__item" href="https://perkumpulan-perusahaan-gadai.com/" target="_blank" rel="noopener noreferrer" data-project="7" data-title="Pawnbrokers Association" data-meta="Client Site / Directory" data-preview="grid" data-image="./assets/img/work/pawnbrokers-association-mock.svg">
                         <span>08</span>
                         <strong>Pawnbrokers Association</strong>
                         <small>Public website</small>

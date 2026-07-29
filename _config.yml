@@ -5,7 +5,7 @@ baseurl: ""
 timezone: Asia/Jakarta
 lang: en-US
 permalink: /blog/:year/:month/:day/:title/
-nav_asset_version: 20260728f
+nav_asset_version: 20260729h
 
 author:
   name: Giofahreza

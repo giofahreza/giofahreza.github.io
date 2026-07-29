@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="860" viewBox="0 0 1600 860" role="img" aria-labelledby="title desc">
+  <title id="title">Pawnbrokers Association directory mockup</title>
+  <desc id="desc">A polished public association website with a searchable directory of verified pawn companies.</desc>
+  <defs>
+    <linearGradient id="hero" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#172b32"/>
+      <stop offset="1" stop-color="#243e43"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#c89e4b"/>
+      <stop offset="1" stop-color="#e4c77b"/>
+    </linearGradient>
+    <filter id="shadow" x="-25%" y="-25%" width="150%" height="180%">
+      <feDropShadow dx="0" dy="24" stdDeviation="30" flood-color="#0b1518" flood-opacity=".38"/>
+    </filter>
+  </defs>
+  <rect width="1600" height="860" fill="#e9e5dc"/>
+  <circle cx="1400" cy="80" r="320" fill="#d8bd78" opacity=".16"/>
+  <g filter="url(#shadow)">
+    <rect x="58" y="44" width="1484" height="772" rx="28" fill="#f7f5ef" stroke="#b9b6ad" stroke-width="2"/>
+    <path d="M58 116h1484" stroke="#d2cfc6" stroke-width="2"/>
+    <circle cx="98" cy="80" r="8" fill="#d86d64"/>
+    <circle cx="126" cy="80" r="8" fill="#d8ad58"/>
+    <circle cx="154" cy="80" r="8" fill="#66aa86"/>
+    <rect x="220" y="64" width="650" height="34" rx="17" fill="#eeece6" stroke="#d4d0c7"/>
+    <text x="252" y="86" fill="#77766f" font-family="monospace" font-size="13">perkumpulan-perusahaan-gadai.com</text>
+
+    <rect x="58" y="117" width="1484" height="84" fill="#f8f6f0"/>
+    <g transform="translate(96 137)">
+      <circle cx="26" cy="22" r="22" fill="#1f373c"/>
+      <path d="M17 27h18M21 20h10M24 14h4" stroke="#dfbd69" stroke-width="3" stroke-linecap="round"/>
+      <text x="62" y="20" fill="#1c3035" font-family="Arial, sans-serif" font-size="16" font-weight="700">PERKUMPULAN</text>
+      <text x="62" y="39" fill="#8a7441" font-family="Arial, sans-serif" font-size="13" font-weight="700">PERUSAHAAN GADAI</text>
+    </g>
+    <g fill="#405156" font-family="Arial, sans-serif" font-size="14">
+      <text x="815" y="168">Tentang Kami</text>
+      <text x="947" y="168">Keanggotaan</text>
+      <text x="1071" y="168">Direktori</text>
+      <text x="1168" y="168">Berita</text>
+    </g>
+    <rect x="1261" y="140" width="224" height="42" rx="21" fill="#1f373c"/>
+    <text x="1373" y="166" fill="#f3e7c4" font-family="Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">Daftar Anggota</text>
+
+    <rect x="58" y="201" width="1484" height="305" fill="url(#hero)"/>
+    <circle cx="1350" cy="310" r="226" fill="none" stroke="#d8b960" stroke-opacity=".16" stroke-width="56"/>
+    <circle cx="1350" cy="310" r="130" fill="none" stroke="#f6e7b9" stroke-opacity=".1" stroke-width="2"/>
+    <path d="M1290 353h120M1310 319h80M1331 281h38M1343 248h14" stroke="#e4c77b" stroke-width="10" stroke-linecap="round" opacity=".55"/>
+    <text x="112" y="266" fill="#ddc172" font-family="monospace" font-size="12" letter-spacing="3">DIREKTORI RESMI</text>
+    <text x="112" y="323" fill="#f7f5ef" font-family="Georgia, serif" font-size="48" font-weight="700">Temukan perusahaan gadai</text>
+    <text x="112" y="375" fill="#f7f5ef" font-family="Georgia, serif" font-size="48" font-weight="700">yang terdaftar dan tepercaya.</text>
+    <text x="112" y="418" fill="#b9c7c9" font-family="Arial, sans-serif" font-size="16">Akses informasi anggota asosiasi dari seluruh Indonesia.</text>
+    <rect x="112" y="449" width="760" height="72" rx="14" fill="#fff" stroke="#d7d2c7"/>
+    <circle cx="148" cy="485" r="10" fill="none" stroke="#777b78" stroke-width="2"/>
+    <path d="m155 492 9 9" stroke="#777b78" stroke-width="2"/>
+    <text x="183" y="491" fill="#898b86" font-family="Arial, sans-serif" font-size="16">Cari nama perusahaan atau wilayah...</text>
+    <rect x="696" y="461" width="164" height="48" rx="11" fill="url(#gold)"/>
+    <text x="778" y="491" fill="#223337" font-family="Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle">Cari Anggota</text>
+
+    <rect x="58" y="506" width="1484" height="310" fill="#f7f5ef"/>
+    <text x="112" y="566" fill="#21363b" font-family="Georgia, serif" font-size="28" font-weight="700">Anggota terverifikasi</text>
+    <text x="112" y="596" fill="#777a76" font-family="Arial, sans-serif" font-size="14">Perusahaan dengan izin dan keanggotaan aktif.</text>
+    <rect x="1243" y="548" width="242" height="44" rx="10" fill="#f0eee8" stroke="#d8d3c9"/>
+    <text x="1264" y="575" fill="#777a76" font-family="Arial, sans-serif" font-size="13">Semua wilayah</text>
+    <path d="m1454 566 8 8 8-8" fill="none" stroke="#777a76" stroke-width="2"/>
+
+    <g font-family="Arial, sans-serif">
+      <g transform="translate(112 626)">
+        <rect width="407" height="144" rx="16" fill="#fff" stroke="#ddd8ce"/>
+        <circle cx="52" cy="52" r="28" fill="#e8dfc6"/>
+        <text x="52" y="59" fill="#8d7338" font-size="18" font-weight="700" text-anchor="middle">AN</text>
+        <text x="96" y="44" fill="#273a3e" font-size="16" font-weight="700">Amanah Nusantara</text>
+        <text x="96" y="68" fill="#777e7e" font-size="12">Jakarta · Anggota Aktif</text>
+        <rect x="24" y="104" width="128" height="24" rx="12" fill="#e9f2ed"/>
+        <circle cx="42" cy="116" r="5" fill="#55916f"/>
+        <text x="54" y="121" fill="#487a60" font-size="11">Terverifikasi</text>
+      </g>
+      <g transform="translate(544 626)">
+        <rect width="407" height="144" rx="16" fill="#fff" stroke="#ddd8ce"/>
+        <circle cx="52" cy="52" r="28" fill="#dce9e9"/>
+        <text x="52" y="59" fill="#315e65" font-size="18" font-weight="700" text-anchor="middle">GS</text>
+        <text x="96" y="44" fill="#273a3e" font-size="16" font-weight="700">Gadai Sentosa</text>
+        <text x="96" y="68" fill="#777e7e" font-size="12">Jawa Barat · Anggota Aktif</text>
+        <rect x="24" y="104" width="128" height="24" rx="12" fill="#e9f2ed"/>
+        <circle cx="42" cy="116" r="5" fill="#55916f"/>
+        <text x="54" y="121" fill="#487a60" font-size="11">Terverifikasi</text>
+      </g>
+      <g transform="translate(976 626)">
+        <rect width="509" height="144" rx="16" fill="#fff" stroke="#ddd8ce"/>
+        <circle cx="52" cy="52" r="28" fill="#eee1dc"/>
+        <text x="52" y="59" fill="#8b5748" font-size="18" font-weight="700" text-anchor="middle">MP</text>
+        <text x="96" y="44" fill="#273a3e" font-size="16" font-weight="700">Mitra Prima</text>
+        <text x="96" y="68" fill="#777e7e" font-size="12">Jawa Timur · Anggota Aktif</text>
+        <rect x="24" y="104" width="128" height="24" rx="12" fill="#e9f2ed"/>
+        <circle cx="42" cy="116" r="5" fill="#55916f"/>
+        <text x="54" y="121" fill="#487a60" font-size="11">Terverifikasi</text>
+      </g>
+    </g>
+  </g>
+</svg>

@@ -72,6 +72,7 @@
     <link rel="manifest" href="<?=BASE_URL?>application/assets/img/favicon/manifest.json"> -->
 
     <link rel="icon" type="image/png" href="./assets/img/favicon.ico">
+    <link rel="preload" as="image" type="image/svg+xml" href="./assets/img/loading.svg">
     <meta name="msapplication-TileImage" content="./assets/img/logo.png">
     <meta name="msapplication-TileColor" content="#101217">
     <meta name="theme-color" content="#101217">
@@ -79,9 +80,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Work+Sans:wght@400;500;600;700&display=swap">
-    <link rel="stylesheet" href="./assets/nav.css?v=20260728f">
+    <link rel="stylesheet" href="./assets/nav.css?v=20260729h">
     <link rel="stylesheet" href="assets/styles.css">
-    <script src="./assets/nav.js?v=20260728e" defer></script>
+    <script src="./assets/nav.js?v=20260729h" defer></script>
     <style>
       body {
         /* font-family: 'Roboto', sans-serif; */
@@ -105,10 +106,24 @@
     </script>
 </head>
 <body class="legacy-page resume-page">
+    <div class="site-loader" data-site-loader role="status" aria-live="polite" aria-label="Loading page">
+        <picture>
+            <source media="(prefers-reduced-motion: reduce)" srcset="./assets/img/new_logo.png">
+            <img class="site-loader__image" src="./assets/img/loading.svg" alt="">
+        </picture>
+        <span class="site-loader__label">Loading</span>
+    </div>
+    <noscript>
+        <style>
+            .site-loader {
+                display: none !important;
+            }
+        </style>
+    </noscript>
     <header class="global-header">
         <div class="global-header__inner">
             <a class="global-brand" href="/" aria-label="Giofahreza home">
-                <img src="/assets/img/favicon.ico" alt="Giofahreza">
+                <img src="/assets/img/logo.png" alt="Giofahreza">
                 <span>
                     <strong>Giofahreza</strong>
                     <small>Fullstack Software Engineer</small>

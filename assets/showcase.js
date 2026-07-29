@@ -92,6 +92,7 @@
   let railSettleTimer = 0;
   let isSyncingRail = false;
   let railUserInteracted = false;
+  let stageImageRequest = 0;
 
   const updateScreenImageOrientation = () => {
     if (!stageScreen || !stageScreenImage || !stageScreenImage.naturalWidth || !stageScreenImage.naturalHeight) {
@@ -148,18 +149,58 @@
 
     stageScreen.dataset.preview = link.dataset.preview || "terminal";
     stageScreen.classList.remove("is-portrait-image", "is-square-image", "is-landscape-image");
-    stageScreen.classList.toggle("has-image", Boolean(link.dataset.image));
+    const nextImage = link.dataset.image || "";
+    const imageRequest = ++stageImageRequest;
+    stageScreen.classList.toggle("has-image", Boolean(nextImage));
+    stageScreen.classList.remove("has-image-error");
 
-    if (stageScreenImage && link.dataset.image) {
-      stageScreenImage.addEventListener("load", updateScreenImageOrientation, { once: true });
+    if (stageScreenImage && nextImage) {
+      const imageChanged = stageScreenImage.getAttribute("src") !== nextImage;
 
-      if (stageScreenImage.getAttribute("src") !== link.dataset.image) {
-        stageScreenImage.src = link.dataset.image;
-      }
-
-      if (stageScreenImage.complete) {
+      if (!imageChanged && stageScreenImage.complete && stageScreenImage.naturalWidth) {
+        stageScreen.classList.remove("is-loading");
         updateScreenImageOrientation();
+      } else {
+        let requestSettled = false;
+        stageScreen.classList.add("is-loading");
+
+        const settleImageRequest = (loaded) => {
+          if (requestSettled) {
+            return;
+          }
+
+          requestSettled = true;
+          stageScreenImage.removeEventListener("load", handleImageLoad);
+          stageScreenImage.removeEventListener("error", handleImageError);
+
+          if (imageRequest !== stageImageRequest) {
+            return;
+          }
+
+          stageScreen.classList.remove("is-loading");
+          stageScreen.classList.toggle("has-image-error", !loaded);
+
+          if (loaded) {
+            updateScreenImageOrientation();
+          }
+        };
+
+        const handleImageLoad = () => settleImageRequest(true);
+        const handleImageError = () => settleImageRequest(false);
+
+        stageScreenImage.addEventListener("load", handleImageLoad, { once: true });
+        stageScreenImage.addEventListener("error", handleImageError, { once: true });
+
+        if (imageChanged) {
+          stageScreenImage.src = nextImage;
+        }
+
+        if (stageScreenImage.complete) {
+          settleImageRequest(Boolean(stageScreenImage.naturalWidth));
+        }
       }
+    } else {
+      stageScreen.classList.remove("is-loading");
     }
 
     if (stageScreenIndex) {

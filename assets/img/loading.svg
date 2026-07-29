@@ -1,0 +1,76 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="288"
+  height="288"
+  viewBox="0 0 288 288"
+  role="img"
+  aria-label="Loading"
+>
+  <defs>
+    <filter id="soft-glow" x="-25%" y="-25%" width="150%" height="150%">
+      <feGaussianBlur stdDeviation="3.5" />
+    </filter>
+
+    <path id="diamond-path" d="M144 47 L184 126 L144 206 L104 126 Z" />
+    <circle id="ring-path" cx="144" cy="204" r="41" />
+  </defs>
+
+  <style>
+    .logo-base {
+      fill: none;
+      stroke: #fff;
+      stroke-width: 9.5;
+      stroke-linecap: round;
+      stroke-linejoin: miter;
+      opacity: 0.2;
+    }
+
+    .tracer {
+      fill: none;
+      stroke: #fff;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .diamond {
+      stroke-dasharray: 70 282;
+      animation: run-diamond 1.8s linear infinite;
+    }
+
+    .ring {
+      stroke-dasharray: 52 206;
+      animation: run-ring 1.8s linear infinite;
+    }
+
+    @keyframes run-diamond {
+      to {
+        stroke-dashoffset: -352;
+      }
+    }
+
+    @keyframes run-ring {
+      to {
+        stroke-dashoffset: -258;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .tracer {
+        animation: none;
+      }
+    }
+  </style>
+
+  <g class="logo-base">
+    <use href="#diamond-path" />
+    <use href="#ring-path" />
+  </g>
+
+  <g opacity="0.55" filter="url(#soft-glow)">
+    <use class="tracer diamond" href="#diamond-path" stroke-width="18" />
+    <use class="tracer ring" href="#ring-path" stroke-width="18" />
+  </g>
+
+  <use class="tracer diamond" href="#diamond-path" stroke-width="9.5" />
+  <use class="tracer ring" href="#ring-path" stroke-width="9.5" />
+</svg>

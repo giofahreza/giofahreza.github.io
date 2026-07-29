@@ -1,0 +1,14 @@
+<div class="site-loader" data-site-loader role="status" aria-live="polite" aria-label="Loading page">
+  <picture>
+    <source media="(prefers-reduced-motion: reduce)" srcset="{{ '/assets/img/new_logo.png' | relative_url }}">
+    <img class="site-loader__image" src="{{ '/assets/img/loading.svg' | relative_url }}" alt="">
+  </picture>
+  <span class="site-loader__label">Loading</span>
+</div>
+<noscript>
+  <style>
+    .site-loader {
+      display: none !important;
+    }
+  </style>
+</noscript>

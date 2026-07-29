@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="860" viewBox="0 0 1600 860" role="img" aria-labelledby="title desc">
+  <title id="title">Developer Tools dashboard mockup</title>
+  <desc id="desc">A dark browser interface showing a searchable collection of browser-only developer utilities.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#12171d"/>
+      <stop offset="1" stop-color="#07090c"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#182028"/>
+      <stop offset="1" stop-color="#10151b"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="24" stdDeviation="30" flood-color="#000" flood-opacity=".48"/>
+    </filter>
+  </defs>
+  <rect width="1600" height="860" fill="url(#bg)"/>
+  <circle cx="1320" cy="80" r="330" fill="#75c7a0" opacity=".05"/>
+  <circle cx="180" cy="800" r="300" fill="#75c7a0" opacity=".035"/>
+
+  <g filter="url(#shadow)">
+    <rect x="60" y="46" width="1480" height="768" rx="28" fill="#0d1116" stroke="#353d46" stroke-width="2"/>
+    <path d="M60 117h1480" stroke="#303840" stroke-width="2"/>
+    <circle cx="100" cy="82" r="8" fill="#f16d6d"/>
+    <circle cx="128" cy="82" r="8" fill="#e6b95b"/>
+    <circle cx="156" cy="82" r="8" fill="#75c7a0"/>
+    <rect x="220" y="66" width="650" height="32" rx="16" fill="#171d24" stroke="#303840"/>
+    <circle cx="244" cy="82" r="7" fill="none" stroke="#7d8792" stroke-width="2"/>
+    <path d="m249 87 6 6" stroke="#7d8792" stroke-width="2" stroke-linecap="round"/>
+    <text x="276" y="87" fill="#8d98a3" font-family="monospace" font-size="14">tools.giofahreza.com</text>
+
+    <rect x="60" y="118" width="262" height="696" fill="#0a0e12"/>
+    <text x="94" y="168" fill="#f1f4f6" font-family="Arial, sans-serif" font-size="25" font-weight="700">DEV / TOOLS</text>
+    <text x="94" y="195" fill="#77828d" font-family="monospace" font-size="12" letter-spacing="2">BROWSER-ONLY</text>
+    <rect x="86" y="232" width="210" height="44" rx="10" fill="#18251f" stroke="#75c7a0" stroke-opacity=".34"/>
+    <circle cx="108" cy="254" r="7" fill="#75c7a0"/>
+    <text x="130" y="260" fill="#dce8e2" font-family="Arial, sans-serif" font-size="16">All tools</text>
+    <g fill="#8d98a3" font-family="Arial, sans-serif" font-size="15">
+      <text x="96" y="320">Data &amp; formatters</text>
+      <text x="96" y="367">Security &amp; crypto</text>
+      <text x="96" y="414">Web &amp; network</text>
+      <text x="96" y="461">CSS &amp; frontend</text>
+      <text x="96" y="508">Generators</text>
+    </g>
+    <rect x="86" y="716" width="210" height="62" rx="12" fill="#11171d" stroke="#28313a"/>
+    <circle cx="110" cy="746" r="10" fill="#75c7a0" opacity=".75"/>
+    <text x="132" y="742" fill="#c8d0d7" font-family="Arial, sans-serif" font-size="13">Runs locally</text>
+    <text x="132" y="762" fill="#68737e" font-family="monospace" font-size="11">NO DATA UPLOAD</text>
+
+    <text x="370" y="176" fill="#f4f6f7" font-family="Arial, sans-serif" font-size="36" font-weight="700">Developer Tools</text>
+    <text x="370" y="208" fill="#83909b" font-family="Arial, sans-serif" font-size="15">Fast utilities for everyday engineering work.</text>
+    <rect x="1040" y="154" width="440" height="52" rx="14" fill="#121920" stroke="#343e48"/>
+    <circle cx="1072" cy="180" r="8" fill="none" stroke="#8c98a3" stroke-width="2"/>
+    <path d="m1078 186 8 8" stroke="#8c98a3" stroke-width="2"/>
+    <text x="1102" y="186" fill="#687580" font-family="Arial, sans-serif" font-size="15">Search 50+ utilities...</text>
+
+    <g font-family="Arial, sans-serif">
+      <g transform="translate(370 250)">
+        <rect width="342" height="218" rx="18" fill="url(#panel)" stroke="#34404a"/>
+        <rect x="24" y="24" width="52" height="52" rx="14" fill="#203d32"/>
+        <path d="M42 42h16M42 51h16M42 60h11" stroke="#75c7a0" stroke-width="4" stroke-linecap="round"/>
+        <text x="24" y="112" fill="#edf2ef" font-size="21" font-weight="700">JSON Formatter</text>
+        <text x="24" y="140" fill="#7d8994" font-size="14">Format, validate and inspect JSON.</text>
+        <rect x="24" y="174" width="122" height="24" rx="12" fill="#16251f"/>
+        <text x="39" y="191" fill="#75c7a0" font-family="monospace" font-size="11">DATA</text>
+      </g>
+      <g transform="translate(734 250)">
+        <rect width="342" height="218" rx="18" fill="url(#panel)" stroke="#34404a"/>
+        <rect x="24" y="24" width="52" height="52" rx="14" fill="#2d273d"/>
+        <path d="M40 51h20M44 42l-8 9 8 9M56 42l8 9-8 9" fill="none" stroke="#b49bde" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        <text x="24" y="112" fill="#edf2ef" font-size="21" font-weight="700">JWT Decoder</text>
+        <text x="24" y="140" fill="#7d8994" font-size="14">Inspect token headers and payloads.</text>
+        <rect x="24" y="174" width="122" height="24" rx="12" fill="#231e30"/>
+        <text x="39" y="191" fill="#b49bde" font-family="monospace" font-size="11">SECURITY</text>
+      </g>
+      <g transform="translate(1098 250)">
+        <rect width="382" height="218" rx="18" fill="url(#panel)" stroke="#34404a"/>
+        <rect x="24" y="24" width="52" height="52" rx="14" fill="#273541"/>
+        <path d="M39 44h22M39 51h22M39 58h22" stroke="#78b8df" stroke-width="3" stroke-linecap="round"/>
+        <text x="24" y="112" fill="#edf2ef" font-size="21" font-weight="700">Hash Generator</text>
+        <text x="24" y="140" fill="#7d8994" font-size="14">SHA, MD5 and HMAC in your browser.</text>
+        <rect x="24" y="174" width="122" height="24" rx="12" fill="#1d2932"/>
+        <text x="39" y="191" fill="#78b8df" font-family="monospace" font-size="11">CRYPTO</text>
+      </g>
+      <g transform="translate(370 492)">
+        <rect width="342" height="250" rx="18" fill="url(#panel)" stroke="#34404a"/>
+        <text x="24" y="48" fill="#edf2ef" font-size="20" font-weight="700">Regex Tester</text>
+        <rect x="24" y="74" width="294" height="40" rx="9" fill="#0d1217" stroke="#2e3942"/>
+        <text x="40" y="100" fill="#75c7a0" font-family="monospace" font-size="13">^[a-z0-9_-]+$</text>
+        <rect x="24" y="132" width="294" height="82" rx="9" fill="#0d1217"/>
+        <rect x="40" y="151" width="180" height="9" rx="4" fill="#4a5661"/>
+        <rect x="40" y="174" width="238" height="9" rx="4" fill="#75c7a0" opacity=".64"/>
+        <rect x="40" y="197" width="132" height="9" rx="4" fill="#4a5661"/>
+      </g>
+      <g transform="translate(734 492)">
+        <rect width="342" height="250" rx="18" fill="url(#panel)" stroke="#34404a"/>
+        <text x="24" y="48" fill="#edf2ef" font-size="20" font-weight="700">QR Code</text>
+        <rect x="24" y="72" width="154" height="154" rx="10" fill="#edf2ef"/>
+        <g fill="#11171d">
+          <path d="M42 90h42v42H42zm9 9v24h24V99zM118 90h42v42h-42zm9 9v24h24V99zM42 166h42v42H42zm9 9v24h24v-24z"/>
+          <path d="M99 91h9v18h-9zm0 29h18v9H99zm18 20h9v18h-9zm18 0h18v9h-18zm-36 29h18v9H99zm27 18h27v18h-9v-9h-18z"/>
+        </g>
+        <rect x="198" y="82" width="112" height="11" rx="5" fill="#596570"/>
+        <rect x="198" y="111" width="86" height="9" rx="4" fill="#37414a"/>
+        <rect x="198" y="170" width="118" height="38" rx="9" fill="#203d32"/>
+        <text x="219" y="195" fill="#75c7a0" font-family="monospace" font-size="12">GENERATE</text>
+      </g>
+      <g transform="translate(1098 492)">
+        <rect width="382" height="250" rx="18" fill="url(#panel)" stroke="#34404a"/>
+        <text x="24" y="48" fill="#edf2ef" font-size="20" font-weight="700">Timezone Converter</text>
+        <text x="24" y="82" fill="#7c8994" font-family="monospace" font-size="12">JAKARTA</text>
+        <text x="24" y="122" fill="#f2f4f6" font-family="monospace" font-size="28">19:42</text>
+        <path d="M24 148h334" stroke="#313c46"/>
+        <text x="24" y="180" fill="#7c8994" font-family="monospace" font-size="12">SAN FRANCISCO</text>
+        <text x="24" y="220" fill="#75c7a0" font-family="monospace" font-size="28">05:42</text>
+      </g>
+    </g>
+  </g>
+</svg>
