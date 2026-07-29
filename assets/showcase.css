@@ -563,8 +563,8 @@
 
 .stage-projector__lens {
   position: absolute;
+  top: -18%;
   left: 50%;
-  bottom: -20%;
   width: 30%;
   aspect-ratio: 1;
   border: 1px solid rgba(245, 245, 245, 0.24);
@@ -597,30 +597,6 @@
 
 .stage-projector__vent:nth-child(3) {
   right: 10%;
-}
-
-.stage-projector__reel {
-  position: absolute;
-  top: 0;
-  width: 35%;
-  aspect-ratio: 1;
-  border: 1px solid rgba(245, 245, 245, 0.28);
-  border-radius: 50%;
-  background:
-    radial-gradient(circle at center, #09090a 0 16%, transparent 17%),
-    conic-gradient(from 28deg, #3a3d42, #111318 22%, #5a5e65 34%, #111318 48%, #42464d 62%, #111318 78%, #3a3d42),
-    #171a1f;
-  box-shadow:
-    inset 0 0 18px rgba(0, 0, 0, 0.72),
-    0 12px 30px rgba(0, 0, 0, 0.4);
-}
-
-.stage-projector__reel--left {
-  left: 16%;
-}
-
-.stage-projector__reel--right {
-  right: 16%;
 }
 
 .recent-stage.has-projector-webgl .stage-projector {

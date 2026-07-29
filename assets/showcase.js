@@ -511,34 +511,17 @@
 
     const frontLensHousing = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 0.1, 48), lensMaterial);
     frontLensHousing.rotation.x = Math.PI / 2;
-    frontLensHousing.position.set(0, 0.48, 0.625);
+    frontLensHousing.position.set(0, 0.48, -0.625);
     projector.add(frontLensHousing);
 
     const frontLensFace = new THREE.Mesh(new THREE.CircleGeometry(0.085, 48), lensMaterial);
-    frontLensFace.position.set(0, 0.48, 0.68);
+    frontLensFace.rotation.y = Math.PI;
+    frontLensFace.position.set(0, 0.48, -0.68);
     projector.add(frontLensFace);
 
     const frontLensTrim = new THREE.Mesh(new THREE.TorusGeometry(0.09, 0.008, 8, 48), lensMaterial);
-    frontLensTrim.position.set(0, 0.48, 0.684);
+    frontLensTrim.position.set(0, 0.48, -0.684);
     projector.add(frontLensTrim);
-
-    [-0.42, 0.42].forEach((x) => {
-      const reel = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.34, 0.08, 48), bevelMaterial);
-      reel.position.set(x, 0.82, 0.03);
-      projector.add(reel);
-
-      const reelRing = new THREE.Mesh(
-        new THREE.TorusGeometry(0.24, 0.025, 8, 48),
-        darkMaterial,
-      );
-      reelRing.rotation.x = Math.PI / 2;
-      reelRing.position.set(x, 0.866, 0.03);
-      projector.add(reelRing);
-
-      const reelHole = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.086, 28), darkMaterial);
-      reelHole.position.set(x, 0.875, 0.03);
-      projector.add(reelHole);
-    });
 
     const lensGlow = new THREE.Mesh(
       new THREE.CircleGeometry(0.26, 48),
@@ -767,21 +750,6 @@
     context.ellipse(0, projectorHeight * 0.56, projectorWidth * 0.52, projectorHeight * 0.34, 0, 0, Math.PI * 2);
     context.fill();
 
-    [-0.28, 0.28].forEach((offset) => {
-      const reelX = projectorWidth * offset;
-      const reelRadius = projectorWidth * 0.145;
-      context.fillStyle = "#272b31";
-      context.beginPath();
-      context.ellipse(reelX, -projectorHeight * 0.35, reelRadius, reelRadius * 0.7, 0, 0, Math.PI * 2);
-      context.fill();
-      context.strokeStyle = "rgba(245,245,245,0.24)";
-      context.stroke();
-      context.fillStyle = "#080808";
-      context.beginPath();
-      context.ellipse(reelX, -projectorHeight * 0.35, reelRadius * 0.34, reelRadius * 0.26, 0, 0, Math.PI * 2);
-      context.fill();
-    });
-
     const bodyGradient = context.createLinearGradient(0, -projectorHeight * 0.24, 0, projectorHeight * 0.42);
     bodyGradient.addColorStop(0, "#3c424a");
     bodyGradient.addColorStop(0.45, "#181b20");
@@ -795,7 +763,7 @@
     context.stroke();
 
     const lensX = 0;
-    const lensY = projectorHeight * 0.42;
+    const lensY = -projectorHeight * 0.16;
     const lensRadiusX = projectorWidth * 0.13;
     const lensRadiusY = projectorWidth * 0.1;
     const lensGradient = context.createRadialGradient(
