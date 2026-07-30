@@ -50,6 +50,7 @@ exclude:
   - .sass-cache
   - Gemfile
   - Gemfile.lock
+  - game
   - README.md
   - reference-current.png
   - reference-mobile-current.png
