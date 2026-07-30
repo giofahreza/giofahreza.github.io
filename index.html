@@ -66,11 +66,11 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Fraunces:wght@600;700&family=Work+Sans:wght@400;500;600;700&display=swap">
     <link rel="stylesheet" href="./assets/nav.css?v=20260729h">
-    <link rel="stylesheet" href="./assets/showcase.css?v=20260729ad">
+    <link rel="stylesheet" href="./assets/showcase.css?v=20260730c">
     <link rel="stylesheet" href="./assets/portfolio.css?v=20260729j">
     <script src="./assets/nav.js?v=20260729h" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js" defer></script>
-    <script src="./assets/showcase.js?v=20260729ag" defer></script>
+    <script src="./assets/showcase.js?v=20260730c" defer></script>
 </head>
 <body class="legacy-page portfolio-page">
     <div class="site-loader" data-site-loader role="status" aria-live="polite" aria-label="Loading page">
@@ -158,7 +158,7 @@
                     <span aria-hidden="true">Scroll</span>
                 </div>
 
-                <div class="stage-scene" aria-hidden="true">
+                <div class="stage-scene">
                     <div class="stage-world">
                         <div class="stage-wall stage-wall--left"></div>
                         <div class="stage-wall stage-wall--right"></div>
@@ -173,7 +173,7 @@
                             </div>
                         </div>
                         <div class="stage-screen has-image" data-preview="dashboard">
-                            <img src="./assets/img/work/io-gateway-dashboard.png" alt="">
+                            <img src="./assets/img/work/io-gateway-dashboard.png" alt="IO Gateway preview">
                             <div class="stage-screen__loader" aria-hidden="true">
                                 <span class="stage-screen__loader-icon"></span>
                                 <small>Loading preview</small>
@@ -193,54 +193,35 @@
                     </div>
                 </div>
 
-                <nav class="work-picker" aria-label="Recent work">
-                    <a class="work-picker__item is-active" href="https://github.com/giofahreza/io-gateway" target="_blank" rel="noopener noreferrer" data-project="0" data-title="IO Gateway" data-meta="Rust / AI account gateway" data-preview="dashboard" data-image="./assets/img/work/io-gateway-dashboard.png">
-                        <span>01</span>
-                        <strong>IO Gateway</strong>
-                        <small>AI gateway</small>
-                    </a>
-                    <a class="work-picker__item" href="https://github.com/giofahreza/io-workbench" target="_blank" rel="noopener noreferrer" data-project="1" data-title="IO Workbench" data-meta="Rust / Workspace server" data-preview="workbench" data-image="./assets/img/work/io-workbench-mock.png">
-                        <span>02</span>
-                        <strong>IO Workbench</strong>
-                        <small>Agent workspace</small>
-                    </a>
-                    <a class="work-picker__item" href="https://github.com/giofahreza/gitvault" target="_blank" rel="noopener noreferrer" data-project="2" data-title="GitVault" data-meta="Dart / Encrypted vault" data-preview="gitvault" data-image="./assets/img/work/gitvault-control-room.png">
-                        <span>03</span>
-                        <strong>GitVault</strong>
-                        <small>Security app</small>
-                    </a>
-                    <a class="work-picker__item" href="/" data-project="3" data-title="Personal Website" data-meta="Static Site / Jekyll" data-preview="image" data-image="./assets/img/ss_index072024.png">
-                        <span>04</span>
-                        <strong>Personal Website</strong>
-                        <small>GitHub Pages</small>
-                    </a>
-                    <a class="work-picker__item" href="./tools/" data-project="4" data-title="Developer Tools" data-meta="Browser Utilities / JavaScript" data-preview="terminal" data-image="./assets/img/work/developer-tools-mock.svg">
-                        <span>05</span>
-                        <strong>Developer Tools</strong>
-                        <small>Browser-only</small>
-                    </a>
-                    <a class="work-picker__item" href="https://github.com/giofahreza/all-about-go" target="_blank" rel="noopener noreferrer" data-project="5" data-title="Go Repository" data-meta="Backend Practice / Golang" data-preview="flow" data-image="./assets/img/work/go-repository-mock.svg">
-                        <span>06</span>
-                        <strong>Go Repository</strong>
-                        <small>Architecture</small>
-                    </a>
-                    <a class="work-picker__item" href="https://github.com/giofahreza/cs-ai-indonesia" target="_blank" rel="noopener noreferrer" data-project="6" data-title="Customer Service AI" data-meta="AI Experiment / Embeddings" data-preview="chat" data-image="./assets/img/work/customer-service-ai-mock.svg">
-                        <span>07</span>
-                        <strong>Customer Service AI</strong>
-                        <small>Indonesian support</small>
-                    </a>
-                    <a class="work-picker__item" href="https://perkumpulan-perusahaan-gadai.com/" target="_blank" rel="noopener noreferrer" data-project="7" data-title="Pawnbrokers Association" data-meta="Client Site / Directory" data-preview="grid" data-image="./assets/img/work/pawnbrokers-association-mock.svg">
-                        <span>08</span>
-                        <strong>Pawnbrokers Association</strong>
-                        <small>Public website</small>
-                    </a>
-                </nav>
+                <div class="stage-screen-hitbox" data-stage-screen role="button" tabindex="0" aria-label="Open full-size preview for IO Gateway"></div>
+
+                <div class="stage-project-data" hidden>
+                    <a href="https://github.com/giofahreza/io-gateway" target="_blank" rel="noopener noreferrer" data-project="0" data-title="IO Gateway" data-meta="Rust / AI account gateway" data-preview="dashboard" data-image="./assets/img/work/io-gateway-dashboard.png">IO Gateway</a>
+                    <a href="https://github.com/giofahreza/io-workbench" target="_blank" rel="noopener noreferrer" data-project="1" data-title="IO Workbench" data-meta="Rust / Workspace server" data-preview="workbench" data-image="./assets/img/work/io-workbench-mock.png">IO Workbench</a>
+                    <a href="https://github.com/giofahreza/gitvault" target="_blank" rel="noopener noreferrer" data-project="2" data-title="GitVault" data-meta="Dart / Encrypted vault" data-preview="gitvault" data-image="./assets/img/work/gitvault-control-room.png">GitVault</a>
+                    <a href="/" data-project="3" data-title="Personal Website" data-meta="Static Site / Jekyll" data-preview="image" data-image="./assets/img/ss_index072024.png">Personal Website</a>
+                    <a href="./tools/" data-project="4" data-title="Developer Tools" data-meta="Browser Utilities / JavaScript" data-preview="terminal" data-image="./assets/img/work/developer-tools-mock.svg">Developer Tools</a>
+                    <a href="https://github.com/giofahreza/all-about-go" target="_blank" rel="noopener noreferrer" data-project="5" data-title="Go Repository" data-meta="Backend Practice / Golang" data-preview="flow" data-image="./assets/img/work/go-repository-mock.svg">Go Repository</a>
+                    <a href="https://github.com/giofahreza/cs-ai-indonesia" target="_blank" rel="noopener noreferrer" data-project="6" data-title="Customer Service AI" data-meta="AI Experiment / Embeddings" data-preview="chat" data-image="./assets/img/work/customer-service-ai-mock.svg">Customer Service AI</a>
+                    <a href="https://perkumpulan-perusahaan-gadai.com/" target="_blank" rel="noopener noreferrer" data-project="7" data-title="Pawnbrokers Association" data-meta="Client Site / Directory" data-preview="grid" data-image="./assets/img/work/pawnbrokers-association-mock.svg">Pawnbrokers Association</a>
+                </div>
 
                 <a class="stage-case-link" href="https://github.com/giofahreza/io-gateway" target="_blank" rel="noopener noreferrer">
                     <span>View Case</span>
                 </a>
             </div>
         </section>
+
+        <dialog class="stage-preview-dialog" data-stage-preview-dialog aria-labelledby="stage-preview-title">
+            <button class="stage-preview-dialog__close" type="button" data-stage-preview-close>Close</button>
+            <figure class="stage-preview-dialog__figure">
+                <img src="./assets/img/work/io-gateway-dashboard.png" alt="IO Gateway preview" data-stage-preview-image>
+                <figcaption>
+                    <strong id="stage-preview-title" data-stage-preview-title>IO Gateway</strong>
+                    <small data-stage-preview-meta>Rust / AI account gateway</small>
+                </figcaption>
+            </figure>
+        </dialog>
 
         <section class="portfolio-shell portfolio-detail" aria-labelledby="portfolio-detail-heading">
             <div>

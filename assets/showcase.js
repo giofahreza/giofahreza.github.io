@@ -70,16 +70,21 @@
   const heroLetters = hero ? Array.from(hero.querySelectorAll(".split-letter")) : [];
   const stage = document.querySelector("[data-showcase-stage]");
   const progressBar = document.querySelector(".portfolio-progress__bar");
-  const workPicker = stage?.querySelector(".work-picker");
   const projectLinks = stage ? Array.from(stage.querySelectorAll("[data-project]")) : [];
   const stageLetters = stage ? Array.from(stage.querySelectorAll(".recent-stage__heading .split-letter")) : [];
   const stageWorld = stage?.querySelector(".stage-world");
   const stageScreen = stage?.querySelector(".stage-screen");
+  const stageScreenControl = stage?.querySelector("[data-stage-screen]") || stageScreen;
   const stageScreenImage = stageScreen?.querySelector("img");
   const stageScreenIndex = stageScreen?.querySelector(".stage-screen__index");
   const stageScreenTitle = stageScreen?.querySelector(".stage-screen__title");
   const stageScreenMeta = stageScreen?.querySelector(".stage-screen__meta");
   const stageCaseLink = stage?.querySelector(".stage-case-link");
+  const previewDialog = document.querySelector("[data-stage-preview-dialog]");
+  const previewImage = previewDialog?.querySelector("[data-stage-preview-image]");
+  const previewTitle = previewDialog?.querySelector("[data-stage-preview-title]");
+  const previewMeta = previewDialog?.querySelector("[data-stage-preview-meta]");
+  const previewClose = previewDialog?.querySelector("[data-stage-preview-close]");
   const canvas = stage?.querySelector(".showcase-canvas");
   const hasThree = Boolean(canvas && window.THREE);
   let context = hasThree ? null : canvas?.getContext("2d");
@@ -88,11 +93,9 @@
   let manualProjectUntil = 0;
   let latestStageProgress = 0;
   let animationFrame = 0;
-  let railFrame = 0;
-  let railSettleTimer = 0;
-  let isSyncingRail = false;
-  let railUserInteracted = false;
   let stageImageRequest = 0;
+  let screenPointer = null;
+  let suppressScreenClick = false;
 
   const updateScreenImageOrientation = () => {
     if (!stageScreen || !stageScreenImage || !stageScreenImage.naturalWidth || !stageScreenImage.naturalHeight) {
@@ -110,23 +113,30 @@
     stageScreen.classList.toggle("is-landscape-image", !isPortrait && !isSquare);
   };
 
-  const centerProjectInRail = (link) => {
-    if (!workPicker || !link) {
+  const activeProjectLink = () => projectLinks[activeProject] || projectLinks[0] || null;
+
+  const updatePreviewDialogContent = (link) => {
+    if (!link || !previewImage) {
       return;
     }
 
-    const left = link.offsetLeft - (workPicker.clientWidth - link.clientWidth) / 2;
-    isSyncingRail = true;
-    workPicker.scrollTo({
-      left,
-      behavior: "auto",
-    });
-    window.setTimeout(() => {
-      isSyncingRail = false;
-    }, 160);
+    const title = link.dataset.title || link.textContent.trim() || "Project preview";
+    const meta = link.dataset.meta || "";
+    const image = link.dataset.image || "";
+
+    previewImage.src = image;
+    previewImage.alt = `${title} preview`;
+
+    if (previewTitle) {
+      previewTitle.textContent = title;
+    }
+
+    if (previewMeta) {
+      previewMeta.textContent = meta;
+    }
   };
 
-  const setProject = (link, manual = false, syncRail = true) => {
+  const setProject = (link, manual = false) => {
     if (!link || !stageScreen) {
       return;
     }
@@ -139,7 +149,7 @@
 
     activeProject = nextProject;
     if (manual) {
-      manualProjectUntil = Date.now() + 1800;
+      manualProjectUntil = Date.now() + 2200;
     }
 
     projectLinks.forEach((item) => {
@@ -215,6 +225,11 @@
       stageScreenMeta.textContent = link.dataset.meta || "";
     }
 
+    stageScreenControl?.setAttribute(
+      "aria-label",
+      `Open full-size preview for ${link.dataset.title || link.textContent.trim() || "project"}`,
+    );
+
     if (stageCaseLink) {
       stageCaseLink.href = link.href;
       if (link.target === "_blank") {
@@ -226,239 +241,188 @@
       }
     }
 
-    if (syncRail) {
-      centerProjectInRail(link);
+    if (previewDialog?.open) {
+      updatePreviewDialogContent(link);
     }
   };
 
-  projectLinks.forEach((link) => {
-    link.addEventListener("focus", () => {
-      railUserInteracted = true;
-      setProject(link, true);
-    });
-
-    link.addEventListener("keydown", (event) => {
-      const currentIndex = projectLinks.indexOf(link);
-      const direction = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
-
-      if (!direction) {
-        return;
-      }
-
-      event.preventDefault();
-      event.stopPropagation();
-      railUserInteracted = true;
-      const nextLink = projectLinks[clamp(currentIndex + direction, 0, projectLinks.length - 1)];
-      nextLink.focus();
-      setProject(nextLink, true);
-    });
-  });
-
-  document.addEventListener("focus", (event) => {
-    const link = event.target.closest?.("[data-project]");
-
-    if (link && projectLinks.includes(link)) {
-      railUserInteracted = true;
-      setProject(link, true);
+  const projectAt = (index) => {
+    if (!projectLinks.length) {
+      return null;
     }
-  }, true);
 
-  document.addEventListener("keydown", (event) => {
-    const link = document.activeElement?.closest?.("[data-project]");
-    const currentIndex = projectLinks.indexOf(link);
-    const direction = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
+    const normalizedIndex = (index + projectLinks.length) % projectLinks.length;
+    return projectLinks[normalizedIndex];
+  };
 
-    if (!link || currentIndex < 0 || !direction) {
+  const setProjectByIndex = (index, manual = false) => {
+    const link = projectLinks[clamp(index, 0, projectLinks.length - 1)];
+    setProject(link, manual);
+  };
+
+  const moveProject = (direction) => {
+    if (!projectLinks.length) {
       return;
     }
 
-    event.preventDefault();
-    railUserInteracted = true;
-    const nextLink = projectLinks[clamp(currentIndex + direction, 0, projectLinks.length - 1)];
-    nextLink.focus();
+    const currentIndex = activeProject >= 0 ? activeProject : 0;
+    const nextLink = projectAt(currentIndex + direction);
     setProject(nextLink, true);
-  }, true);
+  };
+
+  const openStagePreview = () => {
+    const link = activeProjectLink();
+
+    if (!previewDialog || !previewImage || !link?.dataset.image) {
+      return;
+    }
+
+    updatePreviewDialogContent(link);
+    document.body.classList.add("is-stage-preview-open");
+
+    if (typeof previewDialog.showModal === "function") {
+      if (!previewDialog.open) {
+        previewDialog.showModal();
+      }
+      return;
+    }
+
+    previewDialog.setAttribute("open", "");
+  };
+
+  const closeStagePreview = () => {
+    if (!previewDialog) {
+      return;
+    }
+
+    if (typeof previewDialog.close === "function" && previewDialog.open) {
+      previewDialog.close();
+      return;
+    }
+
+    previewDialog.removeAttribute("open");
+    document.body.classList.remove("is-stage-preview-open");
+  };
+
+  const resetScreenDrag = () => {
+    screenPointer = null;
+    stageScreen?.classList.remove("is-swiping");
+    stageScreenControl?.classList.remove("is-swiping");
+    stageScreen?.style.setProperty("--screen-drag-x", "0px");
+    stageScreenControl?.style.setProperty("--screen-drag-x", "0px");
+  };
 
   if (projectLinks.length) {
     setProject(projectLinks[0], true);
     manualProjectUntil = 0;
-    window.requestAnimationFrame(() => centerProjectInRail(projectLinks[0]));
-    window.setTimeout(() => {
-      if (!railUserInteracted) {
-        centerProjectInRail(projectLinks[0]);
-      }
-    }, 260);
   }
 
-  const updateProjectFromRail = () => {
-    if (!workPicker || !projectLinks.length || isSyncingRail || !railUserInteracted) {
-      return;
-    }
+  if (previewDialog) {
+    previewClose?.addEventListener("click", closeStagePreview);
 
-    const pickerRect = workPicker.getBoundingClientRect();
-    const pickerCenter = pickerRect.left + pickerRect.width / 2;
-    const nearest = projectLinks.reduce((closest, link) => {
-      const rect = link.getBoundingClientRect();
-      const distance = Math.abs(rect.left + rect.width / 2 - pickerCenter);
-      return distance < closest.distance ? { link, distance } : closest;
-    }, { link: projectLinks[0], distance: Number.POSITIVE_INFINITY }).link;
-
-    setProject(nearest, true, false);
-  };
-
-  if (workPicker) {
-    let isDragging = false;
-    let dragStartX = 0;
-    let dragStartScroll = 0;
-    let activePointerId = null;
-    let lastPointerDownAt = 0;
-    let suppressClick = false;
-
-    workPicker.addEventListener("scroll", () => {
-      if (railFrame) {
-        window.cancelAnimationFrame(railFrame);
-      }
-
-      if (railSettleTimer) {
-        window.clearTimeout(railSettleTimer);
-      }
-
-      railFrame = window.requestAnimationFrame(updateProjectFromRail);
-      railSettleTimer = window.setTimeout(updateProjectFromRail, 220);
-    }, { passive: true });
-
-    workPicker.addEventListener("focusin", (event) => {
-      const link = event.target.closest("[data-project]");
-
-      if (link) {
-        railUserInteracted = true;
-        setProject(link, true);
+    previewDialog.addEventListener("click", (event) => {
+      if (event.target === previewDialog) {
+        closeStagePreview();
       }
     });
 
-    workPicker.addEventListener("keydown", (event) => {
-      const link = event.target.closest("[data-project]");
-      const currentIndex = projectLinks.indexOf(link);
-      const direction = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
+    previewDialog.addEventListener("close", () => {
+      document.body.classList.remove("is-stage-preview-open");
+    });
+  }
 
-      if (!link || currentIndex < 0 || !direction) {
+  if (stageScreenControl && projectLinks.length) {
+    stageScreenControl.addEventListener("click", () => {
+      if (suppressScreenClick) {
+        suppressScreenClick = false;
+        return;
+      }
+
+      openStagePreview();
+    });
+
+    stageScreenControl.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        moveProject(-1);
+      } else if (event.key === "ArrowRight") {
+        event.preventDefault();
+        moveProject(1);
+      } else if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        openStagePreview();
+      }
+    });
+
+    stageScreenControl.addEventListener("pointerdown", (event) => {
+      if (event.pointerType === "mouse" && event.button !== 0) {
+        return;
+      }
+
+      screenPointer = {
+        id: event.pointerId,
+        startX: event.clientX,
+        startY: event.clientY,
+        deltaX: 0,
+        deltaY: 0,
+        dragged: false,
+      };
+      suppressScreenClick = false;
+      stageScreenControl.setPointerCapture(event.pointerId);
+    });
+
+    stageScreenControl.addEventListener("pointermove", (event) => {
+      if (!screenPointer || event.pointerId !== screenPointer.id) {
+        return;
+      }
+
+      screenPointer.deltaX = event.clientX - screenPointer.startX;
+      screenPointer.deltaY = event.clientY - screenPointer.startY;
+      const horizontal = Math.abs(screenPointer.deltaX) > Math.abs(screenPointer.deltaY);
+
+      if (!horizontal || Math.abs(screenPointer.deltaX) < 6) {
         return;
       }
 
       event.preventDefault();
-      railUserInteracted = true;
-      const nextLink = projectLinks[clamp(currentIndex + direction, 0, projectLinks.length - 1)];
-      nextLink.focus();
-      setProject(nextLink, true);
+      screenPointer.dragged = true;
+      const dragX = clamp(screenPointer.deltaX * 0.18, -28, 28);
+      stageScreen.classList.add("is-swiping");
+      stageScreenControl.classList.add("is-swiping");
+      stageScreen.style.setProperty("--screen-drag-x", `${dragX.toFixed(2)}px`);
+      stageScreenControl.style.setProperty("--screen-drag-x", `${dragX.toFixed(2)}px`);
     });
 
-    workPicker.addEventListener("wheel", (event) => {
-      if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) {
+    const finishScreenPointer = (event) => {
+      if (!screenPointer || event.pointerId !== screenPointer.id) {
         return;
       }
 
-      event.preventDefault();
-      railUserInteracted = true;
-      workPicker.scrollLeft += event.deltaY;
-    }, { passive: false });
+      const { deltaX, deltaY, dragged } = screenPointer;
+      const swipeThreshold = Math.max(42, (stageScreenControl.clientWidth || stageScreen?.clientWidth || 0) * 0.12);
+      const isSwipe = Math.abs(deltaX) >= swipeThreshold && Math.abs(deltaX) > Math.abs(deltaY) * 1.2;
 
-    const beginDrag = (clientX) => {
-      isDragging = true;
-      railUserInteracted = true;
-      suppressClick = false;
-      dragStartX = clientX;
-      dragStartScroll = workPicker.scrollLeft;
-      workPicker.classList.add("is-dragging");
+      if (stageScreenControl.hasPointerCapture(event.pointerId)) {
+        stageScreenControl.releasePointerCapture(event.pointerId);
+      }
+
+      resetScreenDrag();
+
+      if (isSwipe) {
+        suppressScreenClick = true;
+        moveProject(deltaX < 0 ? 1 : -1);
+      } else if (dragged) {
+        suppressScreenClick = true;
+      }
     };
 
-    const moveDrag = (clientX) => {
-      const delta = clientX - dragStartX;
-      if (Math.abs(delta) > 4) {
-        suppressClick = true;
-      }
-
-      workPicker.scrollLeft = dragStartScroll - delta;
-    };
-
-    const finishDrag = (event) => {
-      if (!isDragging) {
-        return;
-      }
-
-      isDragging = false;
-      activePointerId = null;
-      workPicker.classList.remove("is-dragging");
-
-      if (event?.pointerId !== undefined && workPicker.hasPointerCapture(event.pointerId)) {
-        workPicker.releasePointerCapture(event.pointerId);
-      }
-
-      updateProjectFromRail();
-      window.setTimeout(updateProjectFromRail, 260);
-    };
-
-    workPicker.addEventListener("pointerdown", (event) => {
-      if (event.button !== 0) {
-        return;
-      }
-
-      activePointerId = event.pointerId;
-      lastPointerDownAt = Date.now();
-      beginDrag(event.clientX);
-      workPicker.setPointerCapture(event.pointerId);
-    });
-
-    workPicker.addEventListener("pointermove", (event) => {
-      if (!isDragging) {
-        const link = event.target.closest("[data-project]");
-
-        if (link && projectLinks.includes(link)) {
-          railUserInteracted = true;
-          setProject(link, true);
-        }
-
-        return;
-      }
-
-      if (activePointerId !== null && event.pointerId !== activePointerId) {
-        return;
-      }
-
-      moveDrag(event.clientX);
-    });
-
-    workPicker.addEventListener("mousedown", (event) => {
-      if (event.button !== 0 || Date.now() - lastPointerDownAt < 500) {
-        return;
-      }
-
-      beginDrag(event.clientX);
-    });
-
-    window.addEventListener("mousemove", (event) => {
-      if (isDragging && activePointerId === null) {
-        moveDrag(event.clientX);
+    stageScreenControl.addEventListener("pointerup", finishScreenPointer);
+    stageScreenControl.addEventListener("pointercancel", (event) => {
+      if (screenPointer && event.pointerId === screenPointer.id) {
+        resetScreenDrag();
+        suppressScreenClick = true;
       }
     });
-
-    window.addEventListener("mouseup", (event) => {
-      if (activePointerId === null) {
-        finishDrag(event);
-      }
-    });
-
-    workPicker.addEventListener("pointerup", finishDrag);
-    workPicker.addEventListener("pointercancel", finishDrag);
-
-    workPicker.addEventListener("click", (event) => {
-      if (!suppressClick) {
-        return;
-      }
-
-      event.preventDefault();
-      event.stopPropagation();
-      suppressClick = false;
-    }, true);
   }
 
   const createProjectorScene = () => {
@@ -932,8 +896,6 @@
       stage.style.setProperty("--wall-opacity", lerp(compactStage ? 0.46 : 0.5, compactStage ? 0.66 : 0.7, cameraEase).toFixed(3));
       stage.style.setProperty("--wall-skew-left", `${lerp(0, compactStage ? 7 : 10, cameraEase).toFixed(2)}deg`);
       stage.style.setProperty("--wall-skew-right", `${lerp(0, compactStage ? -7 : -10, cameraEase).toFixed(2)}deg`);
-      stage.style.setProperty("--rail-opacity", lerp(0, 1, controlsEase).toFixed(3));
-      stage.style.setProperty("--rail-y", `${lerp(compactStage ? 96 : 112, 0, controlsEase).toFixed(2)}px`);
       stage.style.setProperty("--case-opacity", controlsEase.toFixed(3));
       stage.style.setProperty("--case-y", `${lerp(compactStage ? 64 : 72, 0, controlsEase).toFixed(2)}px`);
       stage.style.setProperty("--heading-opacity", lerp(0.9, 0, headingEase).toFixed(3));
@@ -960,11 +922,7 @@
       if (projectLinks.length && Date.now() > manualProjectUntil) {
         const projectProgress = clamp((stageProgress - 0.42) / 0.58);
         const nextIndex = clamp(Math.floor(projectProgress * projectLinks.length), 0, projectLinks.length - 1);
-        if (activeProject === nextIndex && !railUserInteracted) {
-          centerProjectInRail(projectLinks[nextIndex]);
-        } else {
-          setProject(projectLinks[nextIndex]);
-        }
+        setProjectByIndex(nextIndex);
       }
 
       if (prefersReducedMotion) {
