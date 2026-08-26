@@ -3,6 +3,8 @@ import { createAlunAlunCivicFactory } from "./civic.js";
 import { createAlunAlunEastSchoolsFactory } from "./east-schools.js";
 import { createAlunAlunLesehanFactory } from "./lesehan.js";
 import {
+  ALUN_ALUN_NORTH_PARK_APRON_OUTLINE,
+  ALUN_ALUN_NORTH_PARK_CONTINUATION_BAND_OUTLINE,
   ALUN_ALUN_WEST_MEDIAN_PATH,
   ALUN_ALUN_WEST_MEDIAN_WIDTHS,
   ALUN_ALUN_SOUTH_MEDIAN_PATH,
@@ -1040,18 +1042,20 @@ export function createAlunAlunModelFactory({
     [
       [[-15, -1.15], [16.6, -1.15], [16.6, 1.15], [-15, 1.15]],
       [[-1.2, -13.5], [1.2, -13.5], [1.2, 14.2], [-1.2, 14.2]],
-      [
-        [13.9, -12.8],
-        [16.8, -11.5],
-        [17.1, 10.85],
-        [16.9, 11.08],
-        [16.48, 11.56],
-        [16.35, 11.71],
-        [15.7, 12.05],
-        [13.8, 9.8],
-      ],
+      ALUN_ALUN_NORTH_PARK_APRON_OUTLINE,
     ].forEach((points, index) =>
       addAlunAlunSurface(group, points, 0.052 + index * 0.0005, tileMaterial, 0.6),
+    );
+    // This separately triangulated strip fills only the ground between the
+    // apron and the exact road/curb boundaries. Keep it coplanar with the
+    // adjoining apron: their interiors never overlap and their shared edge
+    // therefore cannot z-fight.
+    addAlunAlunSurface(
+      group,
+      ALUN_ALUN_NORTH_PARK_CONTINUATION_BAND_OUTLINE,
+      0.053,
+      tileMaterial,
+      0.6,
     );
 
     [

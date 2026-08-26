@@ -1,8 +1,20 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import {
+  ALUN_ALUN_JUNCTION_ASPHALT_OUTLINE,
+  ALUN_ALUN_JUNCTION_LOOP_PATH,
+  ALUN_ALUN_JUNCTION_LOOP_SURFACE_WIDTH,
   ALUN_ALUN_PARK_OUTLINE,
+  ALUN_ALUN_SOUTH_APPROACH_DEFINITION,
+  createAlunAlunRoadRibbonGeometry,
 } from "../src/features/landmarks/alun-alun/traffic.js";
+import {
+  ALUN_ALUN_GENERATED_ROAD_REPLACEMENTS,
+  maskAlunAlunGeneratedRoads,
+} from "../src/features/landmarks/alun-alun/generated-road-mask.js";
+import {
+  createMapNavigation,
+} from "../src/world/geospatial-world.js";
 
 const path = resolve("public/data/situbondo-map.json");
 const map = JSON.parse(await readFile(path, "utf8"));
@@ -10,6 +22,18 @@ const failures = [];
 const MAP_METERS_PER_WORLD_UNIT = 5;
 const SURVEYED_CARRIAGEWAY_WIDTH_METERS = 6.6;
 const SURVEYED_CARRIAGEWAY_WIDTH = 66;
+const GENERATED_ROAD_CURB_WIDTH_METERS = 0.18;
+const GENERATED_ROAD_SIDEWALK_WIDTH_METERS = Object.freeze([
+  2.1,
+  1.9,
+  1.7,
+  1.45,
+  1.2,
+  0,
+]);
+const GENERATED_GROUND_SURFACE_LIFT = 0.0008;
+const GENERATED_ROAD_SURFACE_LIFT = 0.024;
+const MASK_CORE_SAMPLE_SPACING = 0.02;
 const ALUN_ALUN_SURVEYED_ROADS = Object.freeze([
   Object.freeze({
     osmWayId: 331217150,
@@ -79,6 +103,19 @@ const check = (condition, message) => {
 };
 
 const coordinateFingerprint = (coordinates) => coordinates.join(",");
+const roadFingerprint = (style, coordinates) =>
+  `${style}:${coordinateFingerprint(coordinates)}`;
+
+function decodeRoadCenterline(road) {
+  const centerline = [];
+  for (let index = 0; index < road[2].length; index += 2) {
+    centerline.push([
+      road[2][index + 1] / map.coordinatePrecision,
+      road[2][index] / map.coordinatePrecision,
+    ]);
+  }
+  return centerline;
+}
 
 function pointToSegmentDistance(point, start, end) {
   const deltaNorth = end[0] - start[0];
@@ -168,6 +205,54 @@ function pointInPolygon(point, polygon) {
   return inside;
 }
 
+function roadRibbonTriangles(points, width) {
+  const geometry = createAlunAlunRoadRibbonGeometry(points, width);
+  try {
+    const positions = geometry.getAttribute("position");
+    const index = geometry.getIndex();
+    const triangles = [];
+    for (let offset = 0; offset < index.count; offset += 3) {
+      triangles.push(
+        [0, 1, 2].map((corner) => {
+          const vertex = index.getX(offset + corner);
+          return [positions.getX(vertex), positions.getZ(vertex)];
+        }),
+      );
+    }
+    return triangles;
+  } finally {
+    geometry.dispose();
+  }
+}
+
+function pointInTriangle(point, triangle) {
+  const first = segmentCross(triangle[0], triangle[1], point);
+  const second = segmentCross(triangle[1], triangle[2], point);
+  const third = segmentCross(triangle[2], triangle[0], point);
+  const epsilon = 1e-8;
+  return (
+    (first >= -epsilon && second >= -epsilon && third >= -epsilon) ||
+    (first <= epsilon && second <= epsilon && third <= epsilon)
+  );
+}
+
+function triangleMaximumEdgeLength(triangle) {
+  return Math.max(
+    Math.hypot(
+      triangle[0][0] - triangle[1][0],
+      triangle[0][1] - triangle[1][1],
+    ),
+    Math.hypot(
+      triangle[1][0] - triangle[2][0],
+      triangle[1][1] - triangle[2][1],
+    ),
+    Math.hypot(
+      triangle[2][0] - triangle[0][0],
+      triangle[2][1] - triangle[0][1],
+    ),
+  );
+}
+
 function centerlineToPolygonDistance(centerline, polygon) {
   if (centerline.some((point) => pointInPolygon(point, polygon))) return 0;
   let minimumDistance = Infinity;
@@ -224,6 +309,248 @@ ALUN_ALUN_SURVEYED_ROADS.forEach(({ osmWayId, style, coordinates }) => {
   );
 });
 
+const sourceRoadsBeforeMask = JSON.stringify(map.roads);
+const renderableRoads = maskAlunAlunGeneratedRoads(map.roads);
+check(
+  JSON.stringify(map.roads) === sourceRoadsBeforeMask,
+  "Alun-Alun generated-road masking mutates source map data",
+);
+const sourceRoadsByFingerprint = new Map();
+map.roads.forEach((road) => {
+  const fingerprint = roadFingerprint(road[0], road[2]);
+  const matches = sourceRoadsByFingerprint.get(fingerprint) ?? [];
+  matches.push(road);
+  sourceRoadsByFingerprint.set(fingerprint, matches);
+});
+const renderableRoadFingerprints = new Set(
+  renderableRoads.map((road) => roadFingerprint(road[0], road[2])),
+);
+ALUN_ALUN_GENERATED_ROAD_REPLACEMENTS.forEach((replacement) => {
+  const sourceFingerprint = roadFingerprint(
+    replacement.style,
+    replacement.coordinates,
+  );
+  const sourceMatches = sourceRoadsByFingerprint.get(sourceFingerprint) ?? [];
+  check(
+    sourceMatches.length === 1,
+    `generated-road replacement ${replacement.label} has ` +
+      `${sourceMatches.length} exact source matches`,
+  );
+  const retainedCoordinates = replacement.coordinates.slice(
+    0,
+    replacement.retainedPointCount * 2,
+  );
+  if (retainedCoordinates.length < 4) {
+    check(
+      !renderableRoadFingerprints.has(sourceFingerprint),
+      `generated-road replacement ${replacement.label} is still rendered`,
+    );
+    return;
+  }
+  check(
+    renderableRoadFingerprints.has(
+      roadFingerprint(replacement.style, retainedCoordinates),
+    ),
+    `generated-road replacement ${replacement.label} retained the wrong prefix`,
+  );
+});
+const fullyReplacedRoadCount = ALUN_ALUN_GENERATED_ROAD_REPLACEMENTS.filter(
+  (replacement) => replacement.retainedPointCount < 2,
+).length;
+check(
+  renderableRoads.length === map.roads.length - fullyReplacedRoadCount,
+  "Alun-Alun generated-road mask removed an unexpected number of road parts",
+);
+
+// Navigation keeps source carriageway cores so the custom asphalt has a
+// continuous movement height, but it must not retain a roadside band that is
+// no longer rendered. This point lies inside the park and inside road 110's
+// former inferred sidewalk; walking across it previously lifted the rider and
+// camera over an invisible crossover. A centreline midpoint verifies that the
+// source road core remains active after roadside masking.
+const parkSideReplacement = ALUN_ALUN_GENERATED_ROAD_REPLACEMENTS.find(
+  (replacement) => replacement.label === "west park-side carriageway",
+);
+const parkSideSourceRoad = parkSideReplacement
+  ? sourceRoadsByFingerprint.get(
+      roadFingerprint(
+        parkSideReplacement.style,
+        parkSideReplacement.coordinates,
+      ),
+    )?.[0]
+  : null;
+const parkSideCenterline = parkSideSourceRoad
+  ? decodeRoadCenterline(parkSideSourceRoad)
+  : [];
+const formerParkSidewalkPoint = [86.7, 17.1];
+const formerParkSidewalkDistance = parkSideCenterline.length >= 2
+  ? Math.min(
+      ...parkSideCenterline.slice(1).map((end, index) =>
+        pointToSegmentDistance(
+          formerParkSidewalkPoint,
+          parkSideCenterline[index],
+          end,
+        ),
+      ),
+    )
+  : Infinity;
+const parkSideHalfWidth = parkSideSourceRoad
+  ? parkSideSourceRoad[1] / map.coordinatePrecision * 0.5
+  : 0;
+const parkSideSidewalkWidth = parkSideSourceRoad
+  ? GENERATED_ROAD_SIDEWALK_WIDTH_METERS[parkSideSourceRoad[0]] ?? 0
+  : 0;
+const navigation = createMapNavigation(map);
+const formerParkSidewalkLift = navigation.surfaceLiftAt(
+  formerParkSidewalkPoint[1],
+  formerParkSidewalkPoint[0],
+);
+check(
+  parkSideSourceRoad &&
+    pointInPolygon(
+      formerParkSidewalkPoint,
+      ALUN_ALUN_PARK_OUTLINE.map(([north, east]) => [
+        north * MAP_METERS_PER_WORLD_UNIT,
+        east * MAP_METERS_PER_WORLD_UNIT,
+      ]),
+    ) &&
+    formerParkSidewalkDistance > parkSideHalfWidth &&
+    formerParkSidewalkDistance <=
+      parkSideHalfWidth +
+        GENERATED_ROAD_CURB_WIDTH_METERS +
+        parkSideSidewalkWidth,
+  "park-side navigation regression point is no longer inside the suppressed " +
+    "generated sidewalk",
+);
+check(
+  Math.abs(formerParkSidewalkLift - GENERATED_GROUND_SURFACE_LIFT) < 1e-9,
+  `suppressed park-side sidewalk still lifts navigation to ` +
+    `${formerParkSidewalkLift.toFixed(4)}`,
+);
+const sourceRoadCorePoint = parkSideCenterline.length >= 2
+  ? [
+      (parkSideCenterline[0][0] + parkSideCenterline[1][0]) * 0.5,
+      (parkSideCenterline[0][1] + parkSideCenterline[1][1]) * 0.5,
+    ]
+  : [Infinity, Infinity];
+const sourceRoadCoreLift = navigation.surfaceLiftAt(
+  sourceRoadCorePoint[1],
+  sourceRoadCorePoint[0],
+);
+check(
+  parkSideSourceRoad &&
+    Math.abs(sourceRoadCoreLift - GENERATED_ROAD_SURFACE_LIFT) < 1e-9,
+  `masked park-side source road core lift changed to ` +
+    `${sourceRoadCoreLift.toFixed(4)}`,
+);
+
+// Road #126's generated centreline bends farther west than the custom traffic
+// loop. Once the generated road is masked, every point in its former core must
+// still be owned by a custom asphalt ribbon or union polygon. Sample at 10 cm
+// or better in real-world units so the former roughly 1 m² wedge cannot regress.
+const compactLoopReplacement = ALUN_ALUN_GENERATED_ROAD_REPLACEMENTS.find(
+  (replacement) => replacement.label === "compact junction loop",
+);
+const compactLoopSourceRoad = compactLoopReplacement
+  ? sourceRoadsByFingerprint.get(
+      roadFingerprint(
+        compactLoopReplacement.style,
+        compactLoopReplacement.coordinates,
+      ),
+    )?.[0]
+  : null;
+const adjacentJunctionLabels = new Set([
+  "east inbound carriageway",
+  "east opposing carriageway",
+  "east outbound carriageway",
+  "north-arm junction connector",
+  "west park-side carriageway",
+  "west post-office-side carriageway",
+]);
+const junctionCoverageTriangles = roadRibbonTriangles(
+  ALUN_ALUN_JUNCTION_LOOP_PATH,
+  ALUN_ALUN_JUNCTION_LOOP_SURFACE_WIDTH,
+);
+ALUN_ALUN_GENERATED_ROAD_REPLACEMENTS.filter((replacement) =>
+  adjacentJunctionLabels.has(replacement.label),
+).forEach((replacement) => {
+  const sourceRoad = sourceRoadsByFingerprint.get(
+    roadFingerprint(replacement.style, replacement.coordinates),
+  )?.[0];
+  if (!sourceRoad) return;
+  const coreWidth =
+    sourceRoad[1] /
+    map.coordinatePrecision /
+    MAP_METERS_PER_WORLD_UNIT;
+  const renderedWidth = coreWidth + Math.min(0.28, coreWidth * 0.18);
+  junctionCoverageTriangles.push(
+    ...roadRibbonTriangles(
+      decodeRoadCenterline(sourceRoad).map(([north, east]) => [
+        north / MAP_METERS_PER_WORLD_UNIT,
+        east / MAP_METERS_PER_WORLD_UNIT,
+      ]),
+      renderedWidth,
+    ),
+  );
+});
+let compactLoopCoverageSamples = 0;
+let firstCompactLoopCoverageGap = null;
+if (compactLoopSourceRoad) {
+  const sourceCoreTriangles = roadRibbonTriangles(
+    decodeRoadCenterline(compactLoopSourceRoad).map(([north, east]) => [
+      north / MAP_METERS_PER_WORLD_UNIT,
+      east / MAP_METERS_PER_WORLD_UNIT,
+    ]),
+    compactLoopSourceRoad[1] /
+      map.coordinatePrecision /
+      MAP_METERS_PER_WORLD_UNIT,
+  );
+  sourceCoreTriangles.forEach((triangle) => {
+    const subdivisions = Math.max(
+      1,
+      Math.ceil(
+        triangleMaximumEdgeLength(triangle) / MASK_CORE_SAMPLE_SPACING,
+      ),
+    );
+    for (let first = 0; first <= subdivisions; first += 1) {
+      for (let second = 0; second <= subdivisions - first; second += 1) {
+        const firstWeight = first / subdivisions;
+        const secondWeight = second / subdivisions;
+        const thirdWeight = 1 - firstWeight - secondWeight;
+        const point = [
+          triangle[0][0] * thirdWeight +
+            triangle[1][0] * firstWeight +
+            triangle[2][0] * secondWeight,
+          triangle[0][1] * thirdWeight +
+            triangle[1][1] * firstWeight +
+            triangle[2][1] * secondWeight,
+        ];
+        compactLoopCoverageSamples += 1;
+        const covered =
+          pointInPolygon(point, ALUN_ALUN_JUNCTION_ASPHALT_OUTLINE) ||
+          pointInPolygon(
+            point,
+            ALUN_ALUN_SOUTH_APPROACH_DEFINITION.surfaceOutline,
+          ) ||
+          junctionCoverageTriangles.some((coverageTriangle) =>
+            pointInTriangle(point, coverageTriangle),
+          );
+        if (!covered && !firstCompactLoopCoverageGap) {
+          firstCompactLoopCoverageGap = point;
+        }
+      }
+    }
+  });
+}
+check(
+  compactLoopSourceRoad && !firstCompactLoopCoverageGap,
+  firstCompactLoopCoverageGap
+    ? `masked compact junction core has an uncovered point at north ` +
+      `${firstCompactLoopCoverageGap[0].toFixed(3)}, east ` +
+      `${firstCompactLoopCoverageGap[1].toFixed(3)}`
+    : "masked compact junction core source road is missing",
+);
+
 let farthestBuildingCenter = 0;
 map.buildings.forEach((building) => {
   const east = building[0] / map.coordinatePrecision;
@@ -275,13 +602,7 @@ map.roads.forEach((road, roadIndex) => {
     farthestRoadPoint,
     validateLine(road[2], "clipped road"),
   );
-  const centerline = [];
-  for (let index = 0; index < road[2].length; index += 2) {
-    centerline.push([
-      road[2][index + 1] / map.coordinatePrecision,
-      road[2][index] / map.coordinatePrecision,
-    ]);
-  }
+  const centerline = decodeRoadCenterline(road);
   const centerlineDistance = centerlineToPolygonDistance(
     centerline,
     parkOutlineMeters,
@@ -296,6 +617,27 @@ map.roads.forEach((road, roadIndex) => {
     roadClearance > 1e-6,
     `road ${roadIndex} crosses the protected Alun-Alun park outline ` +
       `(clearance ${roadClearance.toFixed(3)} m)`,
+  );
+});
+let closestGeneratedParkClearance = Infinity;
+renderableRoads.forEach((road, roadIndex) => {
+  const centerlineDistance = centerlineToPolygonDistance(
+    decodeRoadCenterline(road),
+    parkOutlineMeters,
+  );
+  const halfRenderedEnvelope =
+    road[1] / map.coordinatePrecision * 0.5 +
+    GENERATED_ROAD_CURB_WIDTH_METERS +
+    (GENERATED_ROAD_SIDEWALK_WIDTH_METERS[road[0]] ?? 0);
+  const renderedClearance = centerlineDistance - halfRenderedEnvelope;
+  closestGeneratedParkClearance = Math.min(
+    closestGeneratedParkClearance,
+    renderedClearance,
+  );
+  check(
+    renderedClearance > 1e-6,
+    `renderable generated road ${roadIndex} crosses the complete Alun-Alun ` +
+      `park envelope (clearance ${renderedClearance.toFixed(3)} m)`,
   );
 });
 map.waterways.forEach((waterway) => validateLine(waterway[1], "waterway"));
@@ -345,6 +687,14 @@ if (failures.length > 0) {
   console.log(
     `Closest road-to-park clearance: ${closestParkRoadClearance.toFixed(2)} m ` +
       `(road ${closestParkRoadIndex})`,
+  );
+  console.log(
+    `Renderable generated roads: ${renderableRoads.length}; closest complete ` +
+      `envelope-to-park clearance: ${closestGeneratedParkClearance.toFixed(2)} m`,
+  );
+  console.log(
+    `Masked compact-junction core coverage: ` +
+      `${compactLoopCoverageSamples.toLocaleString("en-US")} samples`,
   );
   console.log("Map validation passed");
 }

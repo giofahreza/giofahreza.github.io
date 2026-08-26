@@ -2,6 +2,10 @@ import { readFileSync } from "node:fs";
 import * as THREE from "three";
 import { createAmbientAnimationSystem } from "../src/animation/ambient.js";
 import {
+  ALUN_ALUN_NORTH_APRON_ROADSIDE_SEAM,
+  ALUN_ALUN_NORTH_PARK_APRON_OUTLINE,
+  ALUN_ALUN_NORTH_PARK_CONTINUATION_BAND_OUTLINE,
+  ALUN_ALUN_PARK_OUTLINE,
   ALUN_ALUN_PEDESTRIAN_ROUTE_DEFINITIONS,
   ALUN_ALUN_SOUTH_APPROACH_DEFINITION,
   ALUN_ALUN_SOUTH_CROSSING_DEFINITION,
@@ -9,6 +13,9 @@ import {
   ALUN_ALUN_TRAFFIC_MINIMUM_SPEED,
   ALUN_ALUN_TRAFFIC_ROUTE_DEFINITIONS,
   ALUN_ALUN_TRAFFIC_SIGNAL_TIMING,
+  ALUN_ALUN_WEST_PARK_SIDE_CARRIAGEWAY_PATH,
+  ALUN_ALUN_WEST_ROAD_OUTER_WIDTH,
+  ALUN_ALUN_WEST_SHARED_ROAD_PATH,
   createAlunAlunTrafficFactory,
   createAlunAlunRoadRibbonGeometry,
   createAlunAlunRoadsideBandGeometry,
@@ -111,6 +118,10 @@ const PRODUCTION_FLEET_FRAME_RATES = Object.freeze([30, 60, 120]);
 const PRODUCTION_FLEET_CHECK_CYCLES = 4;
 const PRODUCTION_FLEET_SOURCE_URL = new URL(
   "../src/features/landmarks/alun-alun/index.js",
+  import.meta.url,
+);
+const TRAFFIC_SOURCE_URL = new URL(
+  "../src/features/landmarks/alun-alun/traffic.js",
   import.meta.url,
 );
 
@@ -2003,6 +2014,288 @@ function validateRoadSurfaceGeometry() {
   }
 }
 
+function validateWestApronRoadSeam() {
+  const seam = ALUN_ALUN_NORTH_APRON_ROADSIDE_SEAM;
+  const apron = ALUN_ALUN_NORTH_PARK_APRON_OUTLINE;
+  const continuation = ALUN_ALUN_NORTH_PARK_CONTINUATION_BAND_OUTLINE;
+  const samePoint = (first, second, epsilon = 1e-8) =>
+    Math.hypot(first[0] - second[0], first[1] - second[1]) <= epsilon;
+  if (
+    seam.length !== 3 ||
+    apron.length < 8 ||
+    polygonArea(apron) < 1 ||
+    continuation.length !== 9 ||
+    polygonArea(continuation) < 1
+  ) {
+    throw new Error("north-west checker apron needs one usable 3-point road seam");
+  }
+  const seamStartIndex = apron.findIndex((point) => samePoint(point, seam[0]));
+  if (
+    seamStartIndex < 1 ||
+    seamStartIndex + seam.length >= apron.length ||
+    seam.some(
+      (point, index) => !samePoint(point, apron[seamStartIndex + index]),
+    )
+  ) {
+    throw new Error("north-west checker apron must contain the complete road seam");
+  }
+  if (!samePoint(continuation[0], seam.at(-1))) {
+    throw new Error("north-west continuation must begin at the clipped apron exit");
+  }
+
+  const cross = (start, end, point) =>
+    (end[0] - start[0]) * (point[1] - start[1]) -
+    (end[1] - start[1]) * (point[0] - start[0]);
+  const pointOnSegment = (point, start, end) =>
+    Math.abs(cross(start, end, point)) <= 1e-8 &&
+    point[0] >= Math.min(start[0], end[0]) - 1e-9 &&
+    point[0] <= Math.max(start[0], end[0]) + 1e-9 &&
+    point[1] >= Math.min(start[1], end[1]) - 1e-9 &&
+    point[1] <= Math.max(start[1], end[1]) + 1e-9;
+  const segmentsIntersect = (firstStart, firstEnd, secondStart, secondEnd) => {
+    const firstCross = cross(firstStart, firstEnd, secondStart);
+    const secondCross = cross(firstStart, firstEnd, secondEnd);
+    const thirdCross = cross(secondStart, secondEnd, firstStart);
+    const fourthCross = cross(secondStart, secondEnd, firstEnd);
+    if (
+      ((firstCross > 1e-9 && secondCross < -1e-9) ||
+        (firstCross < -1e-9 && secondCross > 1e-9)) &&
+      ((thirdCross > 1e-9 && fourthCross < -1e-9) ||
+        (thirdCross < -1e-9 && fourthCross > 1e-9))
+    ) {
+      return true;
+    }
+    return (
+      pointOnSegment(secondStart, firstStart, firstEnd) ||
+      pointOnSegment(secondEnd, firstStart, firstEnd) ||
+      pointOnSegment(firstStart, secondStart, secondEnd) ||
+      pointOnSegment(firstEnd, secondStart, secondEnd)
+    );
+  };
+  [
+    ["north-west checker apron", apron],
+    ["north-west continuation band", continuation],
+  ].forEach(([label, polygon]) => {
+    for (let first = 0; first < polygon.length; first += 1) {
+      const firstEnd = (first + 1) % polygon.length;
+      for (let second = first + 1; second < polygon.length; second += 1) {
+        const secondEnd = (second + 1) % polygon.length;
+        const adjacent =
+          first === second ||
+          firstEnd === second ||
+          secondEnd === first;
+        if (adjacent) continue;
+        if (
+          segmentsIntersect(
+            polygon[first],
+            polygon[firstEnd],
+            polygon[second],
+            polygon[secondEnd],
+          )
+        ) {
+          throw new Error(
+            `${label} self-intersects at edges ${first}/${second}`,
+          );
+        }
+      }
+    }
+  });
+
+  const apronExitEdge = [seam.at(-1), apron[seamStartIndex + seam.length]];
+  if (
+    !pointOnSegment(continuation.at(-1), ...apronExitEdge) ||
+    !samePoint(continuation[6], ALUN_ALUN_PARK_OUTLINE[11]) ||
+    !samePoint(continuation[7], ALUN_ALUN_PARK_OUTLINE[12]) ||
+    !pointOnSegment(
+      continuation[8],
+      ALUN_ALUN_PARK_OUTLINE[12],
+      ALUN_ALUN_PARK_OUTLINE[13],
+    )
+  ) {
+    throw new Error(
+      "north-west continuation must terminate on the apron and park curb",
+    );
+  }
+  const southOutline = ALUN_ALUN_SOUTH_APPROACH_DEFINITION.surfaceOutline;
+  if (
+    !pointOnSegment(continuation[3], southOutline[7], southOutline[8]) ||
+    !samePoint(continuation[4], southOutline[7]) ||
+    !samePoint(continuation[5], southOutline[6]) ||
+    !samePoint(continuation[6], southOutline[5])
+  ) {
+    throw new Error(
+      "north-west continuation must share the south-approach asphalt edge",
+    );
+  }
+
+  const roadGeometries = [
+    createAlunAlunRoadRibbonGeometry(
+      ALUN_ALUN_WEST_SHARED_ROAD_PATH,
+      ALUN_ALUN_WEST_ROAD_OUTER_WIDTH,
+    ),
+    createAlunAlunRoadRibbonGeometry(
+      ALUN_ALUN_WEST_PARK_SIDE_CARRIAGEWAY_PATH,
+      ALUN_ALUN_WEST_ROAD_OUTER_WIDTH,
+    ),
+  ];
+  const pointInsideTriangle = (point, triangle) => {
+    const first = cross(triangle[0], triangle[1], point);
+    const second = cross(triangle[1], triangle[2], point);
+    const third = cross(triangle[2], triangle[0], point);
+    return (
+      (first >= -1e-8 && second >= -1e-8 && third >= -1e-8) ||
+      (first <= 1e-8 && second <= 1e-8 && third <= 1e-8)
+    );
+  };
+  const pointInsideRoad = (point) => roadGeometries.some((geometry) => {
+    const positions = geometry.getAttribute("position");
+    const indices = geometry.getIndex();
+    for (let offset = 0; offset < indices.count; offset += 3) {
+      const triangle = [0, 1, 2].map((corner) => {
+        const vertex = indices.getX(offset + corner);
+        return [positions.getX(vertex), positions.getZ(vertex)];
+      });
+      if (pointInsideTriangle(point, triangle)) return true;
+    }
+    return false;
+  });
+
+  try {
+    seam.slice(0, -1).forEach((start, segmentIndex) => {
+      const end = seam[segmentIndex + 1];
+      const deltaNorth = end[0] - start[0];
+      const deltaEast = end[1] - start[1];
+      const length = Math.hypot(deltaNorth, deltaEast);
+      const normal = [-deltaEast / length, deltaNorth / length];
+      for (let sampleIndex = 1; sampleIndex < 10; sampleIndex += 1) {
+        const amount = sampleIndex / 10;
+        const midpoint = [
+          start[0] + deltaNorth * amount,
+          start[1] + deltaEast * amount,
+        ];
+        const firstSample = [
+          midpoint[0] + normal[0] * 0.002,
+          midpoint[1] + normal[1] * 0.002,
+        ];
+        const secondSample = [
+          midpoint[0] - normal[0] * 0.002,
+          midpoint[1] - normal[1] * 0.002,
+        ];
+        const firstInApron = pointInsidePolygon(firstSample, apron);
+        const secondInApron = pointInsidePolygon(secondSample, apron);
+        const firstInRoad = pointInsideRoad(firstSample);
+        const secondInRoad = pointInsideRoad(secondSample);
+        if (
+          firstInApron === secondInApron ||
+          firstInRoad === secondInRoad ||
+          firstInApron === firstInRoad ||
+          secondInApron === secondInRoad
+        ) {
+          throw new Error(
+            `north-west asphalt/checker seam overlaps or gaps at segment ` +
+              `${segmentIndex}, sample ${sampleIndex}`,
+          );
+        }
+      }
+    });
+
+    const continuationRoadEdge = continuation.slice(0, 4);
+    continuationRoadEdge.slice(0, -1).forEach((start, segmentIndex) => {
+      const end = continuationRoadEdge[segmentIndex + 1];
+      const deltaNorth = end[0] - start[0];
+      const deltaEast = end[1] - start[1];
+      const length = Math.hypot(deltaNorth, deltaEast);
+      const normal = [-deltaEast / length, deltaNorth / length];
+      for (let sampleIndex = 1; sampleIndex < 10; sampleIndex += 1) {
+        const amount = sampleIndex / 10;
+        const midpoint = [
+          start[0] + deltaNorth * amount,
+          start[1] + deltaEast * amount,
+        ];
+        const firstSample = [
+          midpoint[0] + normal[0] * 0.002,
+          midpoint[1] + normal[1] * 0.002,
+        ];
+        const secondSample = [
+          midpoint[0] - normal[0] * 0.002,
+          midpoint[1] - normal[1] * 0.002,
+        ];
+        const firstInBand = pointInsidePolygon(firstSample, continuation);
+        const secondInBand = pointInsidePolygon(secondSample, continuation);
+        const firstInRoad = pointInsideRoad(firstSample);
+        const secondInRoad = pointInsideRoad(secondSample);
+        if (
+          firstInBand === secondInBand ||
+          firstInRoad === secondInRoad ||
+          firstInBand === firstInRoad ||
+          secondInBand === secondInRoad
+        ) {
+          throw new Error(
+            `north-west continuation/road edge overlaps or gaps at segment ` +
+              `${segmentIndex}, sample ${sampleIndex}`,
+          );
+        }
+      }
+    });
+
+    const continuationVertices = continuation.map(
+      ([north, east]) => new THREE.Vector2(north, east),
+    );
+    const continuationTriangles = THREE.ShapeUtils.triangulateShape(
+      continuationVertices,
+      [],
+    );
+    continuationTriangles.forEach((face, faceIndex) => {
+      const triangle = face.map((vertexIndex) => continuation[vertexIndex]);
+      const subdivisions = 10;
+      for (let firstWeight = 1; firstWeight < subdivisions; firstWeight += 1) {
+        for (
+          let secondWeight = 1;
+          secondWeight < subdivisions - firstWeight;
+          secondWeight += 1
+        ) {
+          const thirdWeight = subdivisions - firstWeight - secondWeight;
+          const point = [
+            (triangle[0][0] * firstWeight +
+              triangle[1][0] * secondWeight +
+              triangle[2][0] * thirdWeight) /
+              subdivisions,
+            (triangle[0][1] * firstWeight +
+              triangle[1][1] * secondWeight +
+              triangle[2][1] * thirdWeight) /
+              subdivisions,
+          ];
+          if (
+            pointInsideRoad(point) ||
+            pointInsidePolygon(point, apron) ||
+            pointInsidePolygon(point, ALUN_ALUN_PARK_OUTLINE) ||
+            pointInsidePolygon(point, southOutline)
+          ) {
+            throw new Error(
+              `north-west continuation overlaps an owned surface in triangle ` +
+                `${faceIndex}`,
+            );
+          }
+        }
+      }
+    });
+  } finally {
+    roadGeometries.forEach((geometry) => geometry.dispose());
+  }
+
+  const trafficSource = readFileSync(TRAFFIC_SOURCE_URL, "utf8");
+  const asphaltStart = trafficSource.indexOf("const asphaltSurface =");
+  const asphaltEnd = trafficSource.indexOf("const asphaltTrim =", asphaltStart);
+  if (asphaltStart < 0 || asphaltEnd < 0) {
+    throw new Error("could not locate the custom asphalt material definition");
+  }
+  if (/polygonOffset\s*:/.test(trafficSource.slice(asphaltStart, asphaltEnd))) {
+    throw new Error(
+      "custom asphalt must not use a camera-dependent polygon depth offset",
+    );
+  }
+}
+
 function validateSouthApproachSurfaceDefinition() {
   const definition = ALUN_ALUN_SOUTH_APPROACH_DEFINITION;
   const {
@@ -2193,6 +2486,7 @@ let productionFleetConfigs;
 try {
   validateSignalTiming();
   validateRoadSurfaceGeometry();
+  validateWestApronRoadSeam();
   validateSouthApproachSurfaceDefinition();
   validateCollections(
     ALUN_ALUN_TRAFFIC_ROUTE_DEFINITIONS,

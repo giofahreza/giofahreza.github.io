@@ -1,4 +1,8 @@
 import * as THREE from "three";
+import {
+  getAlunAlunGeneratedRoadReplacement,
+  maskAlunAlunGeneratedRoads,
+} from "../features/landmarks/alun-alun/generated-road-mask.js";
 
 export const MAP_METERS_PER_WORLD_UNIT = 5;
 
@@ -811,6 +815,10 @@ function createRoadsideBand(features, material, context, options) {
 function createRoadNetwork(mapData, context) {
   const group = new THREE.Group();
   group.name = "OSM roads";
+  // Alun-Alun supplies exact road, curb and footway geometry. Remove the
+  // corresponding generated fragments before all three generic layers are
+  // built; leaving them underneath creates view-dependent crossover wedges.
+  const renderableRoads = maskAlunAlunGeneratedRoads(mapData.roads);
   const roadColors = [0x4b5351, 0x555b57, 0x62645c, 0x6a6960, 0x777268, 0xb4a985];
   const sidewalk = createToonMaterial(context.gradientMap, {
     color: 0xd8d3c1,
@@ -827,7 +835,7 @@ function createRoadNetwork(mapData, context) {
   curb.userData.outlineParameters = { visible: false };
 
   for (let style = 0; style < roadColors.length; style += 1) {
-    const roads = mapData.roads.filter((road) => road[0] === style);
+    const roads = renderableRoads.filter((road) => road[0] === style);
     if (roads.length === 0) continue;
     if (style <= 4) {
       group.add(
@@ -2245,19 +2253,28 @@ export function createMapNavigation(mapData, options = {}) {
 
   const roadSegments = [];
   mapData.roads.forEach((road) => {
+    const replacement = getAlunAlunGeneratedRoadReplacement(road);
+    const generatedSidewalkWidth = SIDEWALK_WIDTH_METERS[road[0]] ?? 0;
     const coordinates = road[2];
     for (let index = 2; index < coordinates.length; index += 2) {
+      const segmentEndPointIndex = index / 2;
+      const sidewalkIsRendered =
+        !replacement ||
+        segmentEndPointIndex < replacement.retainedPointCount;
       roadSegments.push({
         ax: coordinates[index - 2] / precision,
         ay: coordinates[index - 1] / precision,
         bx: coordinates[index] / precision,
         by: coordinates[index + 1] / precision,
         halfWidth: road[1] / precision * 0.5,
-        sidewalkWidth: SIDEWALK_WIDTH_METERS[road[0]] ?? 0,
+        sidewalkWidth: sidewalkIsRendered ? generatedSidewalkWidth : 0,
       });
     }
   });
-
+  // Keep the source carriageway cores for continuous movement height, but
+  // derive curb/sidewalk navigation from the same masked roads that are
+  // actually rendered. Otherwise an invisible generated Alun-Alun sidewalk
+  // lifts the rider and camera while crossing the custom park-side seam.
   return {
     buildingCount: polygons.length,
     resolveBuildingCollision(
@@ -2354,6 +2371,7 @@ export function createMapNavigation(mapData, options = {}) {
           lift = Math.max(lift, ROAD_SURFACE_LIFT);
         } else if (
           segment.sidewalkWidth > 0 &&
+          distance > segment.halfWidth &&
           distance <= segment.halfWidth + 0.18 + segment.sidewalkWidth
         ) {
           lift = Math.max(lift, SIDEWALK_SURFACE_LIFT + 0.002);

@@ -361,6 +361,64 @@ export const ALUN_ALUN_SOUTH_CROSSING_DEFINITION = Object.freeze({
 export const ALUN_ALUN_SOUTH_CROSSING_REFUGE =
   ALUN_ALUN_SOUTH_CROSSING_DEFINITION.refuge;
 
+// The north-west checker apron and asphalt share this surveyed road edge.
+// Previously the apron used an independent three-point wedge that covered the
+// entire undivided carriageway; a negative asphalt depth offset then made the
+// buried square road cap pop through only after the camera crossed it.
+export const ALUN_ALUN_WEST_SHARED_ROAD_CORE_WIDTH = 1.32;
+export const ALUN_ALUN_WEST_ROAD_OUTER_WIDTH =
+  ALUN_ALUN_WEST_SHARED_ROAD_CORE_WIDTH +
+  Math.min(0.28, ALUN_ALUN_WEST_SHARED_ROAD_CORE_WIDTH * 0.18);
+export const ALUN_ALUN_WEST_SHARED_ROAD_PATH = freezePath([
+  [11.08, -29.16],
+  [11.28, -28.46],
+  [13.32, -19.4],
+  [17.56, -2.74],
+]);
+export const ALUN_ALUN_WEST_PARK_SIDE_CARRIAGEWAY_PATH = freezePath([
+  [17.56, -2.74],
+  [18.12, 2.2],
+  [19.7, 7.96],
+  [20.46, 12.08],
+]);
+// Clip only the part of the original checker apron that intersected the two
+// asphalt ribbons. The middle point is the exact meeting of their independently
+// mitred outer boundaries; the points on either side are where those boundaries
+// enter and leave the original apron. Following the road all the way around the
+// corner would turn the carriageway itself into checker paving.
+export const ALUN_ALUN_NORTH_APRON_ROADSIDE_SEAM = freezePath([
+  [14.234241339, -12.6501676756],
+  [16.7921987068, -2.5992356382],
+  [16.9364727922, -1.3327769802],
+]);
+export const ALUN_ALUN_NORTH_PARK_APRON_OUTLINE = freezePath([
+  [13.9, -12.8],
+  ...ALUN_ALUN_NORTH_APRON_ROADSIDE_SEAM,
+  [17.1, 10.85],
+  [16.9, 11.08],
+  [16.48, 11.56],
+  [16.35, 11.71],
+  [15.7, 12.05],
+  [13.8, 9.8],
+]);
+
+// Continue the checker footway only through the residual ground strip after
+// the clipped apron leaves the road. Every edge is shared with an existing
+// owner: west-road shoulder, south-approach asphalt, park curb, or the apron
+// above. Keeping this as a separate simple polygon avoids the concave apron
+// triangulation that previously laid checker paving across the carriageway.
+export const ALUN_ALUN_NORTH_PARK_CONTINUATION_BAND_OUTLINE = freezePath([
+  [16.9364727922, -1.3327769802],
+  [17.3563237698, 2.352735246],
+  [18.9421650721, 8.1394872198],
+  [19.4747273835, 11.0303555953],
+  [19.25, 10.65],
+  [18.6, 8.7],
+  [18.01, 9.28],
+  [18.25, 6.85],
+  [16.9777360736, 1.7413374875],
+]);
+
 // Surveyed east-side park curb. Street View shows the carriageway meeting this
 // checker-paved edge directly, apart from the physical curb/drain itself. Keep
 // it shared with index.js so the park and asphalt cannot drift apart again.
@@ -498,6 +556,47 @@ export const ALUN_ALUN_SOUTH_APPROACH_DEFINITION = Object.freeze({
   junctionWestJoin: southApproachWestBoundary.at(-1),
   junctionEastJoin: southApproachEastBoundary.at(-1),
 });
+
+// Keep the compact junction's custom loop and masking polygon available to
+// validation. The generic OSM loop bends farther west at its south-west nose
+// than the traffic centreline below; the extra [21.04, 10.86] boundary point
+// covers that measured core without reaching the park or either footway.
+export const ALUN_ALUN_JUNCTION_LOOP_PATH = freezePath([
+  [22.64, 11.56],
+  [23.12, 11.92],
+  [23.42, 12.36],
+  [23.58, 12.86],
+  [23.58, 13.4],
+  [23.4, 13.92],
+  [23.0, 14.44],
+  [22.42, 14.76],
+  [21.76, 14.84],
+  [21.12, 14.68],
+  [20.52, 14.22],
+  [20.18, 13.54],
+  [20.16, 12.78],
+  [20.46, 12.08],
+  [20.9, 11.9],
+  [21.46, 11.9],
+  [22.06, 11.9],
+  [22.64, 11.82],
+]);
+export const ALUN_ALUN_JUNCTION_LOOP_CORE_WIDTH = 1.32;
+export const ALUN_ALUN_JUNCTION_LOOP_SURFACE_WIDTH =
+  ALUN_ALUN_JUNCTION_LOOP_CORE_WIDTH +
+  Math.min(0.28, ALUN_ALUN_JUNCTION_LOOP_CORE_WIDTH * 0.18);
+export const ALUN_ALUN_JUNCTION_ASPHALT_OUTLINE = freezePath([
+  ALUN_ALUN_SOUTH_APPROACH_DEFINITION.junctionWestJoin,
+  ALUN_ALUN_SOUTH_APPROACH_DEFINITION.junctionEastJoin,
+  [21.4, 15.86],
+  [23.7, 15.66],
+  [24.72, 15.0],
+  [25.0, 13.7],
+  [24.62, 12.1],
+  [23.52, 10.82],
+  [21.6, 10.58],
+  [21.04, 10.86],
+]);
 
 const definePedestrianRoute = (points, width, curbSide) => Object.freeze({
   points: freezePath(points),
@@ -743,14 +842,10 @@ export function createAlunAlunTrafficFactory({
     const asphaltSurface = hideMaterialOutline(
       toonMaterial({
         color: 0x414947,
-        // The global OSM road layer uses a -3 depth offset. This surveyed
-        // replacement must win that depth test wherever its union masks the
-        // generic main-road and side-road ribbons; otherwise those differently
-        // coloured ribbons reappear as diagonal crossover wedges at low camera
-        // angles even though they are physically below this surface.
-        polygonOffset: true,
-        polygonOffsetFactor: -4,
-        polygonOffsetUnits: -4,
+        // The corresponding generated OSM fragments are removed before their
+        // buffers are built. Keep the custom asphalt at its physical depth so
+        // a squared road end can never be pulled through the higher checker
+        // pavement as the chase camera crosses it.
       }),
     );
     const asphaltTrim = toonMaterial({ color: 0x303635 });
@@ -1015,11 +1110,15 @@ export function createAlunAlunTrafficFactory({
     // road widths are metres. The old 8.8-unit value made every approach about
     // 44 metres wide and buried the Alun-Alun pedestrian apron. These widths
     // follow the OSM centre lines and the proportions visible in Street View.
-    const MAIN_SHARED_ROAD_WIDTH = 2.42;
+    // The undivided western approach carries two 3.3 metre lanes. The former
+    // 12.1 metre ribbon ended as a broad square cap at the split and extended
+    // under the checker pavement, where it popped into view after walking past
+    // the seam. Match the surveyed 6.6 metre carriageway instead.
+    const MAIN_SHARED_ROAD_WIDTH = ALUN_ALUN_WEST_SHARED_ROAD_CORE_WIDTH;
     // 6.6 metres keeps the widest production vehicle and its lane variation
     // inside each carriageway with a useful rendered shoulder margin. The old
     // 6.2-metre width left only about 5 mm at the eastbound swept envelope.
-    const MAIN_CARRIAGEWAY_WIDTH = 1.32;
+    const MAIN_CARRIAGEWAY_WIDTH = ALUN_ALUN_WEST_SHARED_ROAD_CORE_WIDTH;
     const NORTH_CROSS_STREET_WIDTH = 1.7;
     const LOCAL_STREET_WIDTH = 1.04;
     const addExistingRoadPath = (
@@ -1061,12 +1160,7 @@ export function createAlunAlunTrafficFactory({
       {
         width: MAIN_SHARED_ROAD_WIDTH,
         centerLine: false,
-        points: [
-          [11.08, -29.16],
-          [11.28, -28.46],
-          [13.32, -19.4],
-          [17.56, -2.74],
-        ],
+        points: ALUN_ALUN_WEST_SHARED_ROAD_PATH,
       },
       {
         width: LOCAL_STREET_WIDTH,
@@ -1097,12 +1191,7 @@ export function createAlunAlunTrafficFactory({
       {
         width: MAIN_CARRIAGEWAY_WIDTH,
         centerLine: false,
-        points: [
-        [20.46, 12.08],
-        [19.7, 7.96],
-        [18.12, 2.2],
-        [17.56, -2.74],
-        ],
+        points: [...ALUN_ALUN_WEST_PARK_SIDE_CARRIAGEWAY_PATH].reverse(),
       },
       {
         width: MAIN_CARRIAGEWAY_WIDTH,
@@ -1163,47 +1252,18 @@ export function createAlunAlunTrafficFactory({
     );
     southApproachSurface.name = "South approach unified asphalt surface";
     addExistingRoadPath(
-      [
-        [22.64, 11.56],
-        [23.12, 11.92],
-        [23.42, 12.36],
-        [23.58, 12.86],
-        [23.58, 13.4],
-        [23.4, 13.92],
-        [23.0, 14.44],
-        [22.42, 14.76],
-        [21.76, 14.84],
-        [21.12, 14.68],
-        [20.52, 14.22],
-        [20.18, 13.54],
-        [20.16, 12.78],
-        [20.46, 12.08],
-        [20.9, 11.9],
-        [21.46, 11.9],
-        [22.06, 11.9],
-        [22.64, 11.82],
-      ],
+      ALUN_ALUN_JUNCTION_LOOP_PATH,
       {
         centerLine: false,
         edgeLines: false,
-        width: MAIN_CARRIAGEWAY_WIDTH,
+        width: ALUN_ALUN_JUNCTION_LOOP_CORE_WIDTH,
       },
     );
     // The mask begins at the exact terminal edge of the unified south surface.
     // Sharing that edge, instead of extending the old mask 25 metres down the
     // approach, removes the last coplanar asphalt overlap at this junction.
     const junctionAsphaltSurface = addRoadSurface(
-      [
-        ALUN_ALUN_SOUTH_APPROACH_DEFINITION.junctionWestJoin,
-        ALUN_ALUN_SOUTH_APPROACH_DEFINITION.junctionEastJoin,
-        [21.4, 15.86],
-        [23.7, 15.66],
-        [24.72, 15.0],
-        [25.0, 13.7],
-        [24.62, 12.1],
-        [23.52, 10.82],
-        [21.6, 10.58],
-      ],
+      ALUN_ALUN_JUNCTION_ASPHALT_OUTLINE,
     );
     junctionAsphaltSurface.name = "Clipped junction asphalt union";
     // Reintroduce only the pedestrian strips that really border the junction.
