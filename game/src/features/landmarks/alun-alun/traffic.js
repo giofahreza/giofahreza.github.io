@@ -361,6 +361,17 @@ export const ALUN_ALUN_SOUTH_CROSSING_DEFINITION = Object.freeze({
 export const ALUN_ALUN_SOUTH_CROSSING_REFUGE =
   ALUN_ALUN_SOUTH_CROSSING_DEFINITION.refuge;
 
+// Surveyed east-side park curb. Street View shows the carriageway meeting this
+// checker-paved edge directly, apart from the physical curb/drain itself. Keep
+// it shared with index.js so the park and asphalt cannot drift apart again.
+export const ALUN_ALUN_PARK_EAST_CURB_PATH = freezePath([
+  [-11.03, 17.58],
+  [-9.98, 17.67],
+  [16.13, 11.96],
+  [17.1, 10.85],
+  [18.01, 9.28],
+]);
+
 // The south approach used to be rendered as one wide ribbon followed by two
 // narrow ribbons that all met at the same centre point. The narrow pair then
 // occupied the same asphalt for roughly 27 metres before reaching the median,
@@ -419,6 +430,15 @@ const southApproachEastBoundary = freezePath([
   [17.55, 15.71],
   [20.55, 15.36],
 ]);
+const southApproachParkSideBoundary = freezePath([
+  southApproachSharedWestBoundary[0],
+  ...ALUN_ALUN_PARK_EAST_CURB_PATH,
+  // Wrap the asphalt around the compact junction corner, replacing the old
+  // overlapping underlay patch with one continuous, non-coplanar outline.
+  [18.6, 8.7],
+  [19.25, 10.65],
+  southApproachWestBoundary.at(-1),
+]);
 const southApproachRoadsideSeam = freezePath([
   ...southApproachSharedEastBoundary,
   ...southApproachEastBoundary,
@@ -447,11 +467,11 @@ export const ALUN_ALUN_SOUTH_APPROACH_DEFINITION = Object.freeze({
   splitCoreWidth: SOUTH_APPROACH_SPLIT_CORE_WIDTH,
   splitNorth: 15.5,
   surfaceOutline: freezePath([
-    ...southApproachSharedWestBoundary,
-    ...southApproachWestBoundary,
+    ...southApproachParkSideBoundary,
     ...[...southApproachEastBoundary].reverse(),
     ...[...southApproachSharedEastBoundary].reverse(),
   ]),
+  parkCurbSeam: ALUN_ALUN_PARK_EAST_CURB_PATH,
   roadsideSeam: southApproachRoadsideSeam,
   sidewalkCenterline: southApproachSidewalkCenterline,
   sidewalkOuterBoundary: southApproachSidewalkOuterBoundary,
@@ -1166,21 +1186,6 @@ export function createAlunAlunTrafficFactory({
       ],
     );
     junctionAsphaltSurface.name = "Clipped junction asphalt union";
-    // The generic map sidewalk leaves a pale-green triangular tongue beside
-    // the Alun-Alun corner. Street View shows continuous asphalt outside the
-    // curved checker-paved curb. Keep this patch lower than the checker mesh so
-    // it fills only the exposed road side and can never cover the footway.
-    const parkCornerRoadUnderlay = addRoadSurface(
-      [
-        [15.65, 10.35],
-        [18.6, 8.7],
-        [19.25, 10.65],
-        [18.3, 11.75],
-        [16.75, 12.45],
-        [15.7, 12.15],
-      ],
-    );
-    parkCornerRoadUnderlay.name = "Alun-Alun corner asphalt underlay";
     // Reintroduce only the pedestrian strips that really border the junction.
     // The asphalt union above intentionally masks the generic OSM sidewalk
     // wedges, so these surveyed ribbons keep a continuous walkable-looking

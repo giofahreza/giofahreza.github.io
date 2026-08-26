@@ -8,6 +8,7 @@ import {
   ALUN_ALUN_SOUTH_MEDIAN_PATH,
   ALUN_ALUN_SOUTH_MEDIAN_WIDTHS,
   ALUN_ALUN_SOUTH_CROSSING_DEFINITION,
+  ALUN_ALUN_PARK_EAST_CURB_PATH,
   createAlunAlunTrafficFactory,
 } from "./traffic.js";
 import { createAlunAlunWestRoadsideFactory } from "./west-roadside.js";
@@ -121,11 +122,7 @@ export function createAlunAlunModelFactory({
     [-17.47, -7.21],
     [-12.92, 15.29],
     [-12.16, 16.87],
-    [-11.03, 17.58],
-    [-9.98, 17.67],
-    [16.13, 11.96],
-    [17.1, 10.85],
-    [18.01, 9.28],
+    ...ALUN_ALUN_PARK_EAST_CURB_PATH,
     [18.25, 6.85],
     [12.41, -16.6],
     [11.4, -17.34],

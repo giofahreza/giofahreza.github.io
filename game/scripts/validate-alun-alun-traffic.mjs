@@ -2009,6 +2009,7 @@ function validateSouthApproachSurfaceDefinition() {
     frontageOuterBoundary,
     junctionEastJoin,
     junctionWestJoin,
+    parkCurbSeam,
     roadsideSeam,
     sidewalkCenterline,
     sidewalkOuterBoundary,
@@ -2031,6 +2032,9 @@ function validateSouthApproachSurfaceDefinition() {
   }
   if (polygonArea(surfaceOutline) < 1) {
     throw new Error("south approach asphalt union has no usable area");
+  }
+  if (!Array.isArray(parkCurbSeam) || parkCurbSeam.length < 2) {
+    throw new Error("south approach needs the surveyed park curb seam");
   }
   boundaryCollections.forEach(([label, points]) => {
     if (!Array.isArray(points) || points.length !== roadsideSeam.length) {
@@ -2064,6 +2068,51 @@ function validateSouthApproachSurfaceDefinition() {
     throw new Error(
       "south approach junction edge must join the asphalt union only once",
     );
+  }
+
+  const parkSeamStartIndex = surfaceOutline.findIndex((point) =>
+    samePoint(point, parkCurbSeam[0]),
+  );
+  if (
+    parkSeamStartIndex < 0 ||
+    parkSeamStartIndex + parkCurbSeam.length > surfaceOutline.length ||
+    parkCurbSeam.some(
+      (point, index) =>
+        !samePoint(point, surfaceOutline[parkSeamStartIndex + index]),
+    )
+  ) {
+    throw new Error(
+      "south approach asphalt must share the complete park curb boundary",
+    );
+  }
+
+  for (let index = 0; index < parkCurbSeam.length - 1; index += 1) {
+    const start = parkCurbSeam[index];
+    const end = parkCurbSeam[index + 1];
+    const deltaNorth = end[0] - start[0];
+    const deltaEast = end[1] - start[1];
+    const length = Math.hypot(deltaNorth, deltaEast);
+    const roadward = [-deltaEast / length, deltaNorth / length];
+    const midpoint = [
+      (start[0] + end[0]) * 0.5,
+      (start[1] + end[1]) * 0.5,
+    ];
+    const asphaltSample = [
+      midpoint[0] + roadward[0] * 0.002,
+      midpoint[1] + roadward[1] * 0.002,
+    ];
+    const parkSample = [
+      midpoint[0] - roadward[0] * 0.002,
+      midpoint[1] - roadward[1] * 0.002,
+    ];
+    if (
+      !pointInsidePolygon(asphaltSample, surfaceOutline) ||
+      pointInsidePolygon(parkSample, surfaceOutline)
+    ) {
+      throw new Error(
+        `south approach asphalt/park curb seam overlaps or gaps at segment ${index}`,
+      );
+    }
   }
 
   const pedestrianRoute = ALUN_ALUN_PEDESTRIAN_ROUTE_DEFINITIONS.southEast;
