@@ -2,12 +2,19 @@ import { readFileSync } from "node:fs";
 import * as THREE from "three";
 import { createAmbientAnimationSystem } from "../src/animation/ambient.js";
 import {
+  GROUND_EPSILON,
+  MAX_WALKABLE_STEP_HEIGHT,
+  PLANET_RADIUS,
+} from "../src/config/runtime.js";
+import { createNavigationSystem } from "../src/navigation/navigation.js";
+import {
   ALUN_ALUN_INTERIOR_CHECKER_PATH_OUTLINES,
   ALUN_ALUN_INTERIOR_TACTILE_PAVER_DEFINITION,
   ALUN_ALUN_NORTH_PARK_ROADSIDE_SEAM,
   ALUN_ALUN_NORTH_PARK_ASPHALT_FILL_OUTLINE,
   ALUN_ALUN_PARK_OUTLINE,
   ALUN_ALUN_PEDESTRIAN_ROUTE_DEFINITIONS,
+  ALUN_ALUN_ROAD_SURFACE_Y,
   ALUN_ALUN_SOUTH_APPROACH_DEFINITION,
   ALUN_ALUN_SOUTH_CROSSING_DEFINITION,
   ALUN_ALUN_TRAFFIC_LANE_OFFSETS,
@@ -24,6 +31,9 @@ import {
   getAlunAlunTrafficSignalState,
 } from "../src/features/landmarks/alun-alun/traffic.js";
 import {
+  ALUN_ALUN_PARK_LAWN_OUTLINE,
+  ALUN_ALUN_PARK_NAVIGATION_SURFACES,
+  ALUN_ALUN_PARK_SURFACE_HEIGHTS,
   ALUN_ALUN_TRAFFIC_COLLISION_OBSTACLES,
 } from "../src/features/landmarks/alun-alun/index.js";
 
@@ -2020,6 +2030,49 @@ function validateParkSurfaceOwnership() {
   const roadSeam = ALUN_ALUN_NORTH_PARK_ROADSIDE_SEAM;
   const parkOutline = ALUN_ALUN_PARK_OUTLINE;
   const southOutline = ALUN_ALUN_SOUTH_APPROACH_DEFINITION.surfaceOutline;
+  const surfaceHeights = ALUN_ALUN_PARK_SURFACE_HEIGHTS;
+  if (
+    !Object.values(surfaceHeights).every(isFiniteNumber) ||
+    surfaceHeights.outerCurbHeight <= 0 ||
+    surfaceHeights.tactileHeight <= 0 ||
+    surfaceHeights.checkerStep < 0 ||
+    surfaceHeights.palePathStep < 0 ||
+    surfaceHeights.lawn >= surfaceHeights.ceramic
+  ) {
+    throw new Error("park surface height stack is invalid");
+  }
+  const outerCurbTop =
+    surfaceHeights.outerCurbCenter + surfaceHeights.outerCurbHeight * 0.5;
+  const outerCurbBottom =
+    surfaceHeights.outerCurbCenter - surfaceHeights.outerCurbHeight * 0.5;
+  const highestChecker =
+    surfaceHeights.checker +
+    (ALUN_ALUN_INTERIOR_CHECKER_PATH_OUTLINES.length - 1) *
+      surfaceHeights.checkerStep;
+  const tactileBottom =
+    surfaceHeights.tactileCenter - surfaceHeights.tactileHeight * 0.5;
+  const roadToCeramicRise =
+    surfaceHeights.ceramic - ALUN_ALUN_ROAD_SURFACE_Y;
+  if (roadToCeramicRise < 0.008) {
+    throw new Error(
+      "park ceramic must be physically higher than the highway by at least 0.008 world units",
+    );
+  }
+  if (
+    outerCurbBottom > ALUN_ALUN_ROAD_SURFACE_Y ||
+    surfaceHeights.ceramic > outerCurbTop ||
+    highestChecker > outerCurbTop ||
+    surfaceHeights.palePath + surfaceHeights.palePathStep > outerCurbTop
+  ) {
+    throw new Error(
+      "blue-white curb must span from below the highway to above every ceramic finish",
+    );
+  }
+  if (tactileBottom + 1e-9 < highestChecker) {
+    throw new Error(
+      "tactile pavers must sit on top of the raised checker ceramic",
+    );
+  }
   const samePoint = (first, second, epsilon = 1e-8) =>
     Math.hypot(first[0] - second[0], first[1] - second[1]) <= epsilon;
   const cross = (start, end, point) =>
@@ -2129,6 +2182,20 @@ function validateParkSurfaceOwnership() {
   validateSimplePolygon("north park asphalt fill", asphaltFill);
   if (asphaltFill.length !== 12 || polygonArea(asphaltFill) < 15) {
     throw new Error("north park asphalt fill does not cover the complete curb strip");
+  }
+  validateSimplePolygon(
+    "raised ceramic lawn hole",
+    ALUN_ALUN_PARK_LAWN_OUTLINE,
+  );
+  if (
+    polygonArea(ALUN_ALUN_PARK_LAWN_OUTLINE) >= polygonArea(parkOutline) ||
+    ALUN_ALUN_PARK_LAWN_OUTLINE.some(
+      (point) => !pointInsidePolygon(point, parkOutline),
+    )
+  ) {
+    throw new Error(
+      "raised ceramic must remain an outer ring around the inset lawn",
+    );
   }
   roadSeam.forEach((point, index) => {
     if (!samePoint(point, asphaltFill[index + 1])) {
@@ -2380,11 +2447,13 @@ function validateParkSurfaceOwnership() {
 
     const landmarkSource = readFileSync(PRODUCTION_FLEET_SOURCE_URL, "utf8");
     if (
-      !/addAlunAlunSurface\(group, ALUN_ALUN_PARK_OUTLINE, [^\n]+tileMaterial/.test(
+      !/addAlunAlunSurface\(\s*group,\s*ALUN_ALUN_PARK_OUTLINE,\s*ALUN_ALUN_PARK_SURFACE_HEIGHTS\.ceramic,\s*tileMaterial,\s*0\.6,\s*\[lawnOutline\],\s*\)/s.test(
         landmarkSource,
       )
     ) {
-      throw new Error("the park interior must retain its ceramic base surface");
+      throw new Error(
+        "the raised park ceramic must retain the inset lawn as an exact hole",
+      );
     }
     const trafficSource = readFileSync(TRAFFIC_SOURCE_URL, "utf8");
     const asphaltStart = trafficSource.indexOf("const asphaltSurface =");
@@ -2402,11 +2471,198 @@ function validateParkSurfaceOwnership() {
       asphaltSamples,
       ceramicSamples,
       curbSamples,
+      roadToCeramicRise,
       tactilePaverCount,
     };
   } finally {
     roadGeometries.forEach((geometry) => geometry.dispose());
   }
+}
+
+function validateParkNavigationSurfaces() {
+  const [ceramicRing, ...checkerSurfaces] =
+    ALUN_ALUN_PARK_NAVIGATION_SURFACES;
+  const expectedCeramicRise =
+    ALUN_ALUN_PARK_SURFACE_HEIGHTS.ceramic - ALUN_ALUN_ROAD_SURFACE_Y;
+  if (
+    ceramicRing?.shape !== "polygon" ||
+    ceramicRing.points !== ALUN_ALUN_PARK_OUTLINE ||
+    ceramicRing.holes?.length !== 1 ||
+    ceramicRing.holes[0] !== ALUN_ALUN_PARK_LAWN_OUTLINE ||
+    Math.abs(ceramicRing.liftOffset - expectedCeramicRise) > 1e-9 ||
+    checkerSurfaces.length !== ALUN_ALUN_INTERIOR_CHECKER_PATH_OUTLINES.length
+  ) {
+    throw new Error(
+      "park navigation must use the exact raised ceramic ring and lawn hole",
+    );
+  }
+  checkerSurfaces.forEach((surface, index) => {
+    const expectedOffset =
+      ALUN_ALUN_PARK_SURFACE_HEIGHTS.checker +
+      index * ALUN_ALUN_PARK_SURFACE_HEIGHTS.checkerStep -
+      ALUN_ALUN_ROAD_SURFACE_Y;
+    if (
+      surface.shape !== "polygon" ||
+      surface.points !== ALUN_ALUN_INTERIOR_CHECKER_PATH_OUTLINES[index] ||
+      Math.abs(surface.liftOffset - expectedOffset) > 1e-9
+    ) {
+      throw new Error(`checker navigation surface ${index} is misaligned`);
+    }
+  });
+
+  const mappedNavigation = {
+    userData: {
+      navigation: {
+        surfaceLiftAt: () => GROUND_EPSILON,
+      },
+    },
+  };
+  const navigation = createNavigationSystem({
+    constants: {
+      GROUND_EPSILON,
+      MAP_METERS_PER_WORLD_UNIT,
+      MAX_WALKABLE_STEP_HEIGHT,
+      PLANET_RADIUS,
+      RIDER_COLLISION_RADIUS,
+    },
+    getGeospatialWorld: () => mappedNavigation,
+  });
+  const registered = navigation.registerStopNavigation({
+    theta: 0,
+    phi: 0,
+    yaw: 0,
+    baseScale: 1,
+    name: "Alun-Alun navigation regression",
+    group: {
+      position: new THREE.Vector3(PLANET_RADIUS, 0, 0),
+      userData: {
+        navigation: { surfaces: ALUN_ALUN_PARK_NAVIGATION_SURFACES },
+      },
+    },
+  });
+  if (
+    !registered ||
+    navigation.walkableSurfaces.length !==
+      ALUN_ALUN_PARK_NAVIGATION_SURFACES.length
+  ) {
+    throw new Error("park polygon navigation surfaces were not registered");
+  }
+  const liftAtLocalPoint = ([north, east]) =>
+    navigation.navigationSurfaceLiftAt(east, -north);
+  let curbTransitionSamples = 0;
+  ALUN_ALUN_PARK_OUTLINE.forEach((start, index) => {
+    const end =
+      ALUN_ALUN_PARK_OUTLINE[(index + 1) % ALUN_ALUN_PARK_OUTLINE.length];
+    const deltaNorth = end[0] - start[0];
+    const deltaEast = end[1] - start[1];
+    const length = Math.hypot(deltaNorth, deltaEast);
+    const midpoint = [(start[0] + end[0]) * 0.5, (start[1] + end[1]) * 0.5];
+    const firstSample = [
+      midpoint[0] - (deltaEast / length) * 0.03,
+      midpoint[1] + (deltaNorth / length) * 0.03,
+    ];
+    const secondSample = [
+      midpoint[0] + (deltaEast / length) * 0.03,
+      midpoint[1] - (deltaNorth / length) * 0.03,
+    ];
+    const firstInside = pointInsidePolygon(firstSample, ALUN_ALUN_PARK_OUTLINE);
+    const secondInside = pointInsidePolygon(
+      secondSample,
+      ALUN_ALUN_PARK_OUTLINE,
+    );
+    if (firstInside === secondInside) {
+      throw new Error(`could not straddle park navigation edge ${index}`);
+    }
+    const inside = firstInside ? firstSample : secondSample;
+    const outside = firstInside ? secondSample : firstSample;
+    const insideLift = liftAtLocalPoint(inside);
+    const outsideLift = liftAtLocalPoint(outside);
+    if (
+      insideLift + 1e-7 < GROUND_EPSILON + expectedCeramicRise ||
+      Math.abs(outsideLift - GROUND_EPSILON) > 1e-7 ||
+      navigation.surfaceTransitionIsBlocked(
+        outside[1],
+        -outside[0],
+        inside[1],
+        -inside[0],
+      )
+    ) {
+      throw new Error(
+        `park navigation does not preserve the walkable curb step at edge ${index}`,
+      );
+    }
+    curbTransitionSamples += 1;
+  });
+
+  const lawnBounds = ALUN_ALUN_PARK_LAWN_OUTLINE.reduce(
+    (bounds, [north, east]) => ({
+      minNorth: Math.min(bounds.minNorth, north),
+      maxNorth: Math.max(bounds.maxNorth, north),
+      minEast: Math.min(bounds.minEast, east),
+      maxEast: Math.max(bounds.maxEast, east),
+    }),
+    {
+      minNorth: Infinity,
+      maxNorth: -Infinity,
+      minEast: Infinity,
+      maxEast: -Infinity,
+    },
+  );
+  let bareLawnSample = null;
+  for (
+    let north = lawnBounds.minNorth + 0.2;
+    north < lawnBounds.maxNorth && !bareLawnSample;
+    north += 0.4
+  ) {
+    for (
+      let east = lawnBounds.minEast + 0.2;
+      east < lawnBounds.maxEast;
+      east += 0.4
+    ) {
+      const point = [north, east];
+      if (
+        pointInsidePolygon(point, ALUN_ALUN_PARK_LAWN_OUTLINE) &&
+        !ALUN_ALUN_INTERIOR_CHECKER_PATH_OUTLINES.some((polygon) =>
+          pointInsidePolygon(point, polygon),
+        )
+      ) {
+        bareLawnSample = point;
+        break;
+      }
+    }
+  }
+  if (
+    !bareLawnSample ||
+    Math.abs(liftAtLocalPoint(bareLawnSample) - GROUND_EPSILON) > 1e-7
+  ) {
+    throw new Error(
+      "raised ceramic navigation must preserve the inset lawn hole",
+    );
+  }
+
+  checkerSurfaces.forEach((surface, index) => {
+    const polygon = surface.points;
+    const faces = THREE.ShapeUtils.triangulateShape(
+      polygon.map(([north, east]) => new THREE.Vector2(north, east)),
+      [],
+    );
+    const point = faces[0].reduce(
+      (sum, vertexIndex) => [
+        sum[0] + polygon[vertexIndex][0] / 3,
+        sum[1] + polygon[vertexIndex][1] / 3,
+      ],
+      [0, 0],
+    );
+    const expectedLift = GROUND_EPSILON + surface.liftOffset;
+    if (Math.abs(liftAtLocalPoint(point) - expectedLift) > 1e-7) {
+      throw new Error(`checker navigation lift ${index} is incorrect`);
+    }
+  });
+
+  return {
+    curbTransitionSamples,
+    surfaceCount: navigation.walkableSurfaces.length,
+  };
 }
 
 function validateSouthApproachSurfaceDefinition() {
@@ -2596,11 +2852,13 @@ function validateSouthApproachSurfaceDefinition() {
 let routes;
 let pedestrianRoutes;
 let productionFleetConfigs;
+let parkNavigationResult;
 let parkSurfaceOwnershipResult;
 try {
   validateSignalTiming();
   validateRoadSurfaceGeometry();
   parkSurfaceOwnershipResult = validateParkSurfaceOwnership();
+  parkNavigationResult = validateParkNavigationSurfaces();
   validateSouthApproachSurfaceDefinition();
   validateCollections(
     ALUN_ALUN_TRAFFIC_ROUTE_DEFINITIONS,
@@ -2992,10 +3250,15 @@ if (
   console.log("Alun-Alun traffic validation passed");
   console.log(
     `Blue-curb surface ownership: ceramic inside / asphalt outside; ` +
+      `ceramic rise ${formatDistance(parkSurfaceOwnershipResult.roadToCeramicRise)}; ` +
       `${parkSurfaceOwnershipResult.curbSamples} curb samples, ` +
       `${parkSurfaceOwnershipResult.ceramicSamples} ceramic samples, ` +
       `${parkSurfaceOwnershipResult.asphaltSamples} asphalt samples, ` +
       `${parkSurfaceOwnershipResult.tactilePaverCount} interior tactile pavers`,
+  );
+  console.log(
+    `Raised park navigation: ${parkNavigationResult.surfaceCount} exact polygons; ` +
+      `${parkNavigationResult.curbTransitionSamples} walkable curb transitions`,
   );
   console.log(
     `Routes: ${routes.length}; collision boxes: ${obstacles.length}; ` +

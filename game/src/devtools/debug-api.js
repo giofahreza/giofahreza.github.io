@@ -233,14 +233,14 @@ export function installDebugApi({
           const localZ = offset.dot(surface.forward);
           return {
             label: surface.label,
+            shape: surface.shape,
             localX,
             localZ,
             halfWidth: surface.halfWidth,
             halfDepth: surface.halfDepth,
             height: surface.height,
-            inside:
-              Math.abs(localX) <= surface.halfWidth + 0.0001 &&
-              Math.abs(localZ) <= surface.halfDepth + 0.0001,
+            liftOffset: surface.liftOffset,
+            inside: surface.contains(localX, localZ),
           };
         })
         .filter((surface) => surface.inside);

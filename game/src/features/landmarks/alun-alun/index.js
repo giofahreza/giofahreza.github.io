@@ -11,6 +11,7 @@ import {
   ALUN_ALUN_SOUTH_MEDIAN_WIDTHS,
   ALUN_ALUN_SOUTH_CROSSING_DEFINITION,
   ALUN_ALUN_PARK_OUTLINE,
+  ALUN_ALUN_ROAD_SURFACE_Y,
   createAlunAlunTrafficFactory,
 } from "./traffic.js";
 import { createAlunAlunWestRoadsideFactory } from "./west-roadside.js";
@@ -26,6 +27,50 @@ import {
 } from "../../../rendering/materials.js";
 
 const freezeTrafficObstacle = (obstacle) => Object.freeze(obstacle);
+
+// Keep the park finish just below the top of the surveyed blue-white curb.
+// The surrounding carriageway is deliberately lower, so the curb has a real
+// vertical face instead of acting as a painted line on one flat plane.
+export const ALUN_ALUN_PARK_SURFACE_HEIGHTS = Object.freeze({
+  ceramic: 0.057,
+  checker: 0.0575,
+  checkerStep: 0.0005,
+  lawn: 0.038,
+  outerCurbCenter: 0.04,
+  outerCurbHeight: 0.04,
+  palePath: 0.059,
+  palePathStep: 0.0005,
+  tactileCenter: 0.067,
+  tactileHeight: 0.018,
+});
+
+export const ALUN_ALUN_PARK_LAWN_OUTLINE = Object.freeze(
+  ALUN_ALUN_PARK_OUTLINE.map(([north, east]) =>
+    Object.freeze([north * 0.77 - 0.1, east * 0.76 + 0.2]),
+  ),
+);
+
+export const ALUN_ALUN_PARK_NAVIGATION_SURFACES = Object.freeze([
+  Object.freeze({
+    shape: "polygon",
+    points: ALUN_ALUN_PARK_OUTLINE,
+    holes: Object.freeze([ALUN_ALUN_PARK_LAWN_OUTLINE]),
+    liftOffset:
+      ALUN_ALUN_PARK_SURFACE_HEIGHTS.ceramic - ALUN_ALUN_ROAD_SURFACE_Y,
+    label: "raised ceramic ring",
+  }),
+  ...ALUN_ALUN_INTERIOR_CHECKER_PATH_OUTLINES.map((points, index) =>
+    Object.freeze({
+      shape: "polygon",
+      points,
+      liftOffset:
+        ALUN_ALUN_PARK_SURFACE_HEIGHTS.checker +
+        index * ALUN_ALUN_PARK_SURFACE_HEIGHTS.checkerStep -
+        ALUN_ALUN_ROAD_SURFACE_Y,
+      label: `raised checker path ${index + 1}`,
+    }),
+  ),
+]);
 
 // Collision objects that belong to the signalised junction are kept separate
 // from the landmark/building list so the traffic validator can audit the exact
@@ -137,16 +182,29 @@ export function createAlunAlunModelFactory({
     return toonMaterial({ map: texture, color: 0xffffff, side: THREE.DoubleSide });
   }
 
-  function createAlunAlunSurfaceGeometry(points, tilePeriod = 1.36) {
-    const shape = new THREE.Shape();
+  function addSurfaceContour(path, points) {
     points.forEach(([north, east], index) => {
       // ShapeGeometry is authored in XY, then folded onto the tangent plane.
       const shapeX = north;
       const shapeY = -east;
-      if (index === 0) shape.moveTo(shapeX, shapeY);
-      else shape.lineTo(shapeX, shapeY);
+      if (index === 0) path.moveTo(shapeX, shapeY);
+      else path.lineTo(shapeX, shapeY);
     });
-    shape.closePath();
+    path.closePath();
+  }
+
+  function createAlunAlunSurfaceGeometry(
+    points,
+    tilePeriod = 1.36,
+    holes = [],
+  ) {
+    const shape = new THREE.Shape();
+    addSurfaceContour(shape, points);
+    holes.forEach((pointsInHole) => {
+      const hole = new THREE.Path();
+      addSurfaceContour(hole, pointsInHole);
+      shape.holes.push(hole);
+    });
     const geometry = new THREE.ShapeGeometry(shape);
     geometry.rotateX(-Math.PI * 0.5);
     const positions = geometry.getAttribute("position");
@@ -162,9 +220,16 @@ export function createAlunAlunModelFactory({
     return geometry;
   }
 
-  function addAlunAlunSurface(group, points, y, material, tilePeriod) {
+  function addAlunAlunSurface(
+    group,
+    points,
+    y,
+    material,
+    tilePeriod,
+    holes,
+  ) {
     const surface = new THREE.Mesh(
-      createAlunAlunSurfaceGeometry(points, tilePeriod),
+      createAlunAlunSurfaceGeometry(points, tilePeriod, holes),
       material,
     );
     surface.position.y = y;
@@ -1017,18 +1082,33 @@ export function createAlunAlunModelFactory({
       emissiveIntensity: 0.06,
     });
 
-    addAlunAlunSurface(group, ALUN_ALUN_PARK_OUTLINE, 0.018, tileMaterial, 0.6);
-    const lawnOutline = ALUN_ALUN_PARK_OUTLINE.map(([north, east]) => [
-      north * 0.77 - 0.1,
-      east * 0.76 + 0.2,
-    ]);
-    addAlunAlunSurface(group, lawnOutline, 0.038, parkGrassMaterial, 2);
+    const lawnOutline = ALUN_ALUN_PARK_LAWN_OUTLINE;
+    // The ceramic base is an outer ring rather than a solid raised polygon.
+    // This preserves the lower inset lawn while lifting the complete
+    // pedestrian finish above the highway outside the blue-white curb.
+    addAlunAlunSurface(
+      group,
+      ALUN_ALUN_PARK_OUTLINE,
+      ALUN_ALUN_PARK_SURFACE_HEIGHTS.ceramic,
+      tileMaterial,
+      0.6,
+      [lawnOutline],
+    );
+    addAlunAlunSurface(
+      group,
+      lawnOutline,
+      ALUN_ALUN_PARK_SURFACE_HEIGHTS.lawn,
+      parkGrassMaterial,
+      2,
+    );
     addAlunAlunCurb(group, ALUN_ALUN_PARK_OUTLINE, curbMaterials, {
       // A short dropped-curb opening aligns with the compact crossing at the
       // signalised north-east corner.
       // Edges are zero-based: edge 9 is the short diagonal corner from
       // (16.13, 11.96) to (17.10, 10.85), directly beside the zebra.
       gaps: [ALUN_ALUN_SOUTH_CROSSING_DEFINITION.parkCurbGap],
+      height: ALUN_ALUN_PARK_SURFACE_HEIGHTS.outerCurbHeight,
+      y: ALUN_ALUN_PARK_SURFACE_HEIGHTS.outerCurbCenter,
     });
     addAlunAlunCurb(group, lawnOutline, lawnCurbMaterials, {
       segmentLength: 0.2,
@@ -1040,14 +1120,28 @@ export function createAlunAlunModelFactory({
     // Broad checker paths remain entirely inside the blue-white park curb.
     // The exterior side is owned by the custom asphalt surface in traffic.js.
     ALUN_ALUN_INTERIOR_CHECKER_PATH_OUTLINES.forEach((points, index) =>
-      addAlunAlunSurface(group, points, 0.052 + index * 0.0005, tileMaterial, 0.6),
+      addAlunAlunSurface(
+        group,
+        points,
+        ALUN_ALUN_PARK_SURFACE_HEIGHTS.checker +
+          index * ALUN_ALUN_PARK_SURFACE_HEIGHTS.checkerStep,
+        tileMaterial,
+        0.6,
+      ),
     );
 
     [
       [[9.4, -10.9], [10.2, -10.9], [10.2, 10.6], [9.4, 10.6]],
       [[-13.7, -9.8], [-12.7, -9.8], [-12.7, 9.6], [-13.7, 9.6]],
     ].forEach((points, index) =>
-      addAlunAlunSurface(group, points, 0.057 + index * 0.0005, paleStoneMaterial, 2),
+      addAlunAlunSurface(
+        group,
+        points,
+        ALUN_ALUN_PARK_SURFACE_HEIGHTS.palePath +
+          index * ALUN_ALUN_PARK_SURFACE_HEIGHTS.palePathStep,
+        paleStoneMaterial,
+        2,
+      ),
     );
 
     // Keep the tactile strip wholly on the ceramic side of the blue curb.
@@ -1056,10 +1150,19 @@ export function createAlunAlunModelFactory({
       const east = tactilePavers.startEast + index * tactilePavers.step;
       if (east > tactilePavers.endEast + 1e-9) break;
       const tactilePaver = new THREE.Mesh(
-        roundedBox(tactilePavers.width, 0.018, tactilePavers.depth, 0.006),
+        roundedBox(
+          tactilePavers.width,
+          ALUN_ALUN_PARK_SURFACE_HEIGHTS.tactileHeight,
+          tactilePavers.depth,
+          0.006,
+        ),
         tactileStoneMaterial,
       );
-      tactilePaver.position.set(tactilePavers.north, 0.067, east);
+      tactilePaver.position.set(
+        tactilePavers.north,
+        ALUN_ALUN_PARK_SURFACE_HEIGHTS.tactileCenter,
+        east,
+      );
       group.add(tactilePaver);
     }
 
@@ -1376,6 +1479,13 @@ export function createAlunAlunModelFactory({
       { north: 24.55, east: -10.15, width: 0.62, depth: 1.0 },
       { north: 15.6, east: 1.2, width: 0.2, depth: 0.95 },
     ];
+
+    // Navigation follows the exact ceramic ownership polygons. Use a relative
+    // lift so crossing the curb raises the rider by the same amount as the
+    // visible road-to-ceramic step without inheriting the landmark's sag.
+    group.userData.navigation = {
+      surfaces: ALUN_ALUN_PARK_NAVIGATION_SURFACES,
+    };
 
     // Batch the static paving, curbs, planter bodies and boulder. Gazebos,
     // foliage, water and people stay separate because they animate or collide.

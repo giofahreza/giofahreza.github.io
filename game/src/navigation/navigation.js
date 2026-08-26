@@ -5,6 +5,44 @@ import {
   surfaceOffsetFromNormal,
 } from "../world/surface.js";
 
+function localPointPolygonRelation(x, z, points, epsilon = 0.0001) {
+  let inside = false;
+  for (
+    let index = 0, previous = points.length - 1;
+    index < points.length;
+    previous = index, index += 1
+  ) {
+    const [startX, startZ] = points[previous];
+    const [endX, endZ] = points[index];
+    const deltaX = endX - startX;
+    const deltaZ = endZ - startZ;
+    const lengthSquared = deltaX * deltaX + deltaZ * deltaZ;
+    const projection =
+      lengthSquared > 0
+        ? THREE.MathUtils.clamp(
+            ((x - startX) * deltaX + (z - startZ) * deltaZ) / lengthSquared,
+            0,
+            1,
+          )
+        : 0;
+    if (
+      Math.hypot(
+        x - (startX + deltaX * projection),
+        z - (startZ + deltaZ * projection),
+      ) <= epsilon
+    ) {
+      return 0;
+    }
+    if (
+      (startZ > z) !== (endZ > z) &&
+      x < ((endX - startX) * (z - startZ)) / (endZ - startZ) + startX
+    ) {
+      inside = !inside;
+    }
+  }
+  return inside ? 1 : -1;
+}
+
 export function createNavigationSystem({
   constants: {
     GROUND_EPSILON,
@@ -70,6 +108,7 @@ export function createNavigationSystem({
     const right = new THREE.Vector3().crossVectors(normal, forward).normalize();
 
     walkableSurfaces.push({
+      shape: "box",
       theta,
       phi,
       radius: Math.hypot(width, depth) * 0.5,
@@ -81,6 +120,52 @@ export function createNavigationSystem({
       normal,
       right,
       forward,
+      contains(localX, localZ) {
+        return (
+          Math.abs(localX) <= this.halfWidth + 0.0001 &&
+          Math.abs(localZ) <= this.halfDepth + 0.0001
+        );
+      },
+    });
+  }
+
+  function addWalkablePolygon(
+    theta,
+    phi,
+    points,
+    holes,
+    liftOffset,
+    yaw = 0,
+    label = "",
+  ) {
+    const { normal, east, north } = surfaceFrame(theta, phi);
+    const forward = east
+      .clone()
+      .multiplyScalar(Math.cos(yaw))
+      .addScaledVector(north, Math.sin(yaw))
+      .normalize();
+    const right = new THREE.Vector3().crossVectors(normal, forward).normalize();
+    walkableSurfaces.push({
+      shape: "polygon",
+      theta,
+      phi,
+      radius: Math.max(...points.map(([x, z]) => Math.hypot(x, z))),
+      points,
+      holes,
+      liftOffset,
+      yaw,
+      label,
+      normal,
+      right,
+      forward,
+      contains(localX, localZ) {
+        return (
+          localPointPolygonRelation(localX, localZ, this.points) >= 0 &&
+          this.holes.every(
+            (hole) => localPointPolygonRelation(localX, localZ, hole) <= 0,
+          )
+        );
+      },
     });
   }
 
@@ -106,6 +191,22 @@ export function createNavigationSystem({
     const baseLift = stop.group.position.length() - PLANET_RADIUS;
 
     (navigation.surfaces ?? []).forEach((surface) => {
+      const label =
+        `${stop.shortName ?? stop.name}: ${surface.label ?? "surface"}`;
+      if (surface.shape === "polygon") {
+        addWalkablePolygon(
+          stop.theta,
+          stop.phi,
+          surface.points.map(([x, z]) => [x * scale, z * scale]),
+          (surface.holes ?? []).map((hole) =>
+            hole.map(([x, z]) => [x * scale, z * scale]),
+          ),
+          surface.liftOffset * scale,
+          yaw + (surface.yaw ?? 0),
+          label,
+        );
+        return;
+      }
       const position = localNavigationPosition(stop, surface.x, surface.z);
       addWalkableBox(
         position.theta,
@@ -114,7 +215,7 @@ export function createNavigationSystem({
         surface.depth * scale,
         baseLift + surface.height * scale,
         yaw + (surface.yaw ?? 0),
-        `${stop.shortName ?? stop.name}: ${surface.label ?? "surface"}`,
+        label,
       );
     });
 
@@ -159,7 +260,8 @@ export function createNavigationSystem({
   }
 
   function navigationSurfaceLiftAt(theta, phi) {
-    let lift = mappedSurfaceLiftAt(theta, phi);
+    const mappedLift = mappedSurfaceLiftAt(theta, phi);
+    let lift = mappedLift;
     if (walkableSurfaces.length === 0) return lift;
 
     const surfacePoint = tempSurfacePoint
@@ -178,11 +280,12 @@ export function createNavigationSystem({
       );
       const localX = offset.dot(surface.right);
       const localZ = offset.dot(surface.forward);
-      if (
-        Math.abs(localX) <= surface.halfWidth + 0.0001 &&
-        Math.abs(localZ) <= surface.halfDepth + 0.0001
-      ) {
-        lift = Math.max(lift, surface.height);
+      if (surface.contains(localX, localZ)) {
+        const surfaceLift =
+          surface.shape === "polygon"
+            ? mappedLift + surface.liftOffset
+            : surface.height;
+        lift = Math.max(lift, surfaceLift);
       }
     });
 
