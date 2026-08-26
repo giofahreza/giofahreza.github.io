@@ -1,0 +1,11 @@
+- generic [active] [ref=e1]:
+  - generic "Google Maps" [ref=e2]:
+    - alert "Tidak ada gambar Street View yang tersedia di sini." [ref=e21]:
+      - generic [ref=e22]: Tidak ada gambar Street View yang tersedia di sini.
+      - button "Tutup" [ref=e23] [cursor=pointer]:
+        - generic [ref=e24]: 
+    - generic [ref=e3]:
+      - application "Street View" [ref=e5]
+      - search [ref=e10]:
+        - generic [ref=e11]
+  - generic [ref=e25]: Tidak ada gambar Street View yang tersedia di sini.

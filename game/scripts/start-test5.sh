@@ -2,7 +2,7 @@
 
 set -u
 
-project_dir="/home/giofahreza/dev/yow/Personal"
+project_dir="/home/giofahreza/dev/yow/giofahreza.github.io/game"
 node_bin="/home/giofahreza/.nvm/versions/node/v24.14.0/bin/node"
 vite_bin="${project_dir}/node_modules/vite/bin/vite.js"
 tunnel_config="/home/giofahreza/.cloudflared/test5-iowb-mobile.yml"

@@ -1,0 +1,56 @@
+[
+  {
+    "label": "sd-front-road-north",
+    "theta": -18.6,
+    "phi": -0.8,
+    "nearestObstacleGap": 0.6720276237628968,
+    "nearestObstacleLabel": "Al-Abror: front fence",
+    "surfaceLift": 0.043713774995238056,
+    "surfaces": [
+      "Al-Abror: front road",
+      "Al-Abror: front sidewalk"
+    ]
+  },
+  {
+    "label": "sd-front-road-center",
+    "theta": -18.2,
+    "phi": -1.8,
+    "nearestObstacleGap": 1.6224742605080331,
+    "nearestObstacleLabel": "Al-Abror: front fence",
+    "surfaceLift": 0.043713774995238056,
+    "surfaces": [
+      "Al-Abror: front road"
+    ]
+  },
+  {
+    "label": "sd-front-road-south",
+    "theta": -17.9,
+    "phi": -2.8,
+    "nearestObstacleGap": 2.3466817038143364,
+    "nearestObstacleLabel": "Alun-Alun: park obstacle",
+    "surfaceLift": 0.036000000000000004,
+    "surfaces": []
+  },
+  {
+    "label": "mosque-front-road-near-sd",
+    "theta": -16.8,
+    "phi": 2.7,
+    "nearestObstacleGap": 1.686690681761115,
+    "nearestObstacleLabel": "Al-Abror: name wall",
+    "surfaceLift": 0.043713774995238056,
+    "surfaces": [
+      "Al-Abror: front road"
+    ]
+  },
+  {
+    "label": "mosque-front-road-center",
+    "theta": -16.5,
+    "phi": 4.2,
+    "nearestObstacleGap": 1.683870668757816,
+    "nearestObstacleLabel": "Al-Abror: name wall",
+    "surfaceLift": 0.043713774995238056,
+    "surfaces": [
+      "Al-Abror: front road"
+    ]
+  }
+]

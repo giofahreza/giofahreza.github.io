@@ -1,0 +1,52 @@
+{
+  "href": "http://127.0.0.1:8101/",
+  "appClass": "",
+  "state": {
+    "theta": -3.0000000000000004,
+    "phi": -20.100000000000673,
+    "heading": 0,
+    "speed": 0,
+    "actualSpeed": 0,
+    "motionBlend": 0,
+    "blockedBlend": 0,
+    "animationState": "idle",
+    "turn": 0,
+    "desiredHeading": 0,
+    "controlHeading": 0,
+    "inputActive": false,
+    "collisionActive": false,
+    "celebration": 0
+  },
+  "probe": {
+    "theta": -3,
+    "phi": -20.1,
+    "mappedSurfaceLift": 0.0008,
+    "surfaceLift": 0.0008,
+    "surfaces": [],
+    "nearestObstacles": [
+      {
+        "label": "Alun-Alun: park obstacle",
+        "gap": 1.7297272833039097
+      },
+      {
+        "label": "Alun-Alun: park obstacle",
+        "gap": 2.700547765803636
+      },
+      {
+        "label": "Alun-Alun: park obstacle",
+        "gap": 3.5985515173845353
+      },
+      {
+        "label": "Alun-Alun: park obstacle",
+        "gap": 4.8711478849483685
+      },
+      {
+        "label": "Alun-Alun: park obstacle",
+        "gap": 5.3158718537664384
+      }
+    ]
+  },
+  "asset": [
+    "http://127.0.0.1:8101/assets/index-BZI_Z6K0.js"
+  ]
+}

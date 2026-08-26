@@ -1,0 +1,181 @@
+{
+  "state": {
+    "started": true,
+    "complete": false,
+    "timeLeft": 892.6287000000141,
+    "deliveries": 0,
+    "targetIndex": 0,
+    "rider": {
+      "theta": -18.2,
+      "phi": -10.8,
+      "heading": 2.95,
+      "speed": 0,
+      "actualSpeed": 0,
+      "motionBlend": 0,
+      "blockedBlend": 0,
+      "animationState": "idle",
+      "turn": 0,
+      "desiredHeading": 2.95,
+      "controlHeading": 2.95,
+      "inputActive": false,
+      "collisionActive": false,
+      "celebration": 0
+    },
+    "controls": {
+      "mode": "camera-relative-directional",
+      "analogX": 0,
+      "analogY": 0,
+      "analogInputRadius": 75,
+      "visualX": 0,
+      "visualY": 0,
+      "visualTargetX": 0,
+      "visualTargetY": 0,
+      "pointerActive": false,
+      "run": false,
+      "brake": false
+    },
+    "camera": {
+      "position": [
+        -17.305776832578424,
+        10.789585291868283,
+        50000.38914898186
+      ],
+      "target": [
+        -18.53387009653859,
+        10.864798327413943,
+        50000.248685697334
+      ],
+      "up": [
+        -0.00036399998347051764,
+        0.0002159999983204392,
+        0.9999999104240024
+      ],
+      "followHeading": 2.95,
+      "recenterTimer": 0,
+      "yawError": 0,
+      "obstructed": false,
+      "compression": 1
+    },
+    "render": {
+      "calls": 1117,
+      "triangles": 2433090
+    },
+    "environment": {
+      "geospatialMap": {
+        "sourceBuildingWays": 3243,
+        "renderedBuildings": 3243,
+        "sourceHighwayWays": 313,
+        "renderedRoadParts": 313,
+        "roadLengthMeters": 47064,
+        "sourceRailwayWays": 2,
+        "sourceWaterwayWays": 17,
+        "sourceBridgeWays": 18,
+        "renderedBridgeParts": 18,
+        "semanticPlaces": 116,
+        "semanticPlaceBuildingMatches": 107,
+        "animatedSemanticBuildings": 102,
+        "placeCounts": {
+          "phone": 5,
+          "food": 9,
+          "retail": 23,
+          "medical": 3,
+          "worship": 10,
+          "education": 26,
+          "finance": 4,
+          "fuel": 0,
+          "workshop": 1,
+          "lodging": 1,
+          "civic": 29,
+          "recreation": 4,
+          "transport": 1
+        },
+        "surveyAreaSquareKilometers": 3.1416,
+        "mappedBuildingsPerSquareKilometer": 1032.28,
+        "radiusMeters": 1000,
+        "areaSquareKilometers": 3.141592653589793,
+        "metersPerWorldUnit": 5,
+        "center": {
+          "name": "Alun-Alun Situbondo",
+          "lat": -7.7068185,
+          "lon": 114.0054037,
+          "osmType": "way",
+          "osmId": 185229377
+        },
+        "riderEastMeters": -91,
+        "riderNorthMeters": 54,
+        "mappedBuildingCollisionCount": 3232,
+        "mappedSurfaceLift": 0.0008,
+        "riderSurfaceLift": 0.0008,
+        "landmarkWalkableSurfaceCount": 19
+      },
+      "skyOffset": 0.04422779999989278,
+      "cloudThetas": [],
+      "animatedFoliageCount": 0,
+      "animatedFlowerCount": 0,
+      "lakeRippleCount": 0,
+      "chimneySmokeCount": 0,
+      "reducedMotion": false,
+      "infill": {
+        "buildings": 216,
+        "gardens": 180,
+        "scenicTrees": 440
+      },
+      "overviewLod": {
+        "hiddenMeshes": 0,
+        "retainedMeshes": 0,
+        "proxyMeshes": 0,
+        "simplifiedProxyMeshes": 0,
+        "proxyInstances": 0,
+        "culledInstances": 0,
+        "retainedTriangles": 0,
+        "proxyTriangles": 0,
+        "detailedRenderMode": true
+      },
+      "latitudeRoadCount": 4,
+      "meridianRoadCount": 11,
+      "minimumWireRoofClearance": null
+    },
+    "interface": {
+      "deliveryToastVisible": false,
+      "boundaryNoticeVisible": false,
+      "nearbyPlaceVisible": true,
+      "nearbyPlaceName": "Masjid Al Abror",
+      "controlHintVisible": false,
+      "targetDistance": "154 m · Nearby"
+    },
+    "obstacleCount": 128,
+    "circleObstacleCount": 9,
+    "boxObstacleCount": 119,
+    "nearestObstacleGap": 4.9602091386278575,
+    "minimumRoadGap": 1.3029437251522855
+  },
+  "probe": {
+    "theta": -18.2,
+    "phi": -10.8,
+    "mappedSurfaceLift": 0.0008,
+    "surfaceLift": 0.0008,
+    "surfaces": [],
+    "nearestObstacles": [
+      {
+        "label": "Alun-Alun: park obstacle",
+        "gap": 4.9602091386278575
+      },
+      {
+        "label": "Alun-Alun: park obstacle",
+        "gap": 7.7887259899243855
+      },
+      {
+        "label": "Alun-Alun: park obstacle",
+        "gap": 9.28999975259025
+      },
+      {
+        "label": "Alun-Alun: park obstacle",
+        "gap": 9.989999718271942
+      },
+      {
+        "label": "Alun-Alun: park obstacle",
+        "gap": 11.189999723957255
+      }
+    ]
+  }
+}

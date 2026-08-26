@@ -1,0 +1,7 @@
+- generic [active] [ref=e1]:
+  - generic "Google Maps" [ref=e2]:
+    - generic [ref=e3]:
+      - application "Street View" [ref=e5]
+      - search [ref=e10]:
+        - generic [ref=e11]
+  - generic [ref=e21]: Tidak ada gambar Street View yang tersedia di sini.

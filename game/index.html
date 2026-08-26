@@ -5,53 +5,109 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta
       name="description"
-      content="A cel-shaded coastal delivery game built with Three.js."
+      content="A meter-scaled delivery game mapped from a 1 km OpenStreetMap development zone around Alun-Alun Situbondo, East Java."
     />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <title>Tiny Messenger</title>
+    <title>Situbondo Messenger</title>
   </head>
   <body>
     <div id="app" class="not-started">
-      <canvas id="scene" aria-label="Tiny Messenger game scene"></canvas>
+      <canvas id="scene" aria-label="Situbondo Messenger game scene"></canvas>
 
       <section class="hud" aria-label="Game status">
-        <div class="brand">
-          <span>Tiny Messenger</span>
-        </div>
         <div class="stats">
           <div>
             <span class="label">Letters</span>
-            <strong id="letters">0/6</strong>
+            <strong id="letters">0/7</strong>
           </div>
           <div>
             <span class="label">Time</span>
-            <strong id="time">180</strong>
+            <strong id="time">900</strong>
           </div>
           <div>
-            <span class="label">Streak</span>
-            <strong id="streak">0</strong>
+            <span class="label">Bonus</span>
+            <strong id="streak">+0s</strong>
           </div>
+        </div>
+        <div class="route-progress" id="route-progress" aria-label="Route progress: 0 of 7 deliveries">
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
         </div>
       </section>
 
       <section class="target" aria-label="Current delivery">
-        <span class="label">Next Stop</span>
-        <strong id="target">Blue Roof</strong>
+        <span class="target-direction" id="target-direction" aria-hidden="true"></span>
+        <span class="target-copy">
+          <span class="label">Next Delivery</span>
+          <strong id="target">Alun-Alun Situbondo</strong>
+          <span class="target-distance" id="target-distance">Finding route…</span>
+        </span>
       </section>
 
+      <div class="delivery-toast" id="delivery-toast" role="status" aria-live="polite">
+        <span class="delivery-check" aria-hidden="true">✓</span>
+        <span class="delivery-copy">
+          <span class="label">Delivered</span>
+          <strong id="delivery-name">Letter delivered</strong>
+        </span>
+        <span class="delivery-bonus">+5s</span>
+      </div>
+
+      <div class="boundary-notice" id="boundary-notice" role="status" aria-live="polite">
+        <span class="boundary-symbol" aria-hidden="true">!</span>
+        <span>
+          <strong>Area pengembangan</strong>
+          <small>Batas peta aktif 1 km. Area di luar masih dibatasi.</small>
+        </span>
+      </div>
+
+      <aside class="nearby-place" id="nearby-place" aria-live="polite" aria-hidden="true">
+        <span class="nearby-live">LIVE</span>
+        <span class="nearby-copy">
+          <span class="label">Di sekitar</span>
+          <strong id="nearby-place-name">Tempat di Situbondo</strong>
+          <small id="nearby-place-type">Bangunan nyata</small>
+        </span>
+      </aside>
+
       <section class="message title-screen" id="message" aria-live="polite">
+        <span class="start-eyebrow">Situbondo · Jawa Timur</span>
         <svg viewBox="0 0 96 64" role="img" aria-label="Envelope">
           <path d="M10 14h76v44H10z" />
           <path d="M11 16l37 26 37-26" />
           <path d="M11 58l27-24" />
           <path d="M85 58L58 34" />
         </svg>
-        <h1>Tiny Messenger</h1>
-        <p>Letters are waiting across the coast.</p>
-        <button id="start" type="button">Begin</button>
+        <h1>Situbondo<br />Messenger</h1>
+        <p>Jelajahi zona nyata 1 km dari Alun-Alun. Area di luar masih dikembangkan.</p>
+        <div class="map-proof" aria-label="Map coverage and scale">
+          <span><strong id="map-radius">1 km</strong> radius</span>
+          <span><strong id="map-building-count">3,243</strong> buildings</span>
+          <span><strong id="map-place-count">102</strong> animated buildings</span>
+          <span><strong>1 unit = 5 m</strong></span>
+          <span><strong id="map-area">3.14 km²</strong> mapped</span>
+          <span class="development-chip"><strong>Restricted</strong> beyond 1 km</span>
+        </div>
+        <div class="start-controls" aria-label="Controls">
+          <span><kbd>WASD</kbd> or arrows to move</span>
+          <span>Drag anywhere on touch screens</span>
+          <span><kbd>Shift</kbd> to run</span>
+          <span><kbd>Space</kbd> to stop</span>
+        </div>
+        <button id="start" type="button">Mulai Rute</button>
+        <small class="map-attribution">Map data © OpenStreetMap contributors · ODbL</small>
       </section>
 
       <div class="controls" aria-label="Movement controls">
+        <div class="control-hint" id="control-hint" aria-hidden="true">
+          <span class="control-hint-desktop"><kbd>WASD</kbd> Move · <kbd>Shift</kbd> Run · <kbd>Space</kbd> Stop</span>
+          <span class="control-hint-touch">Drag anywhere to move</span>
+        </div>
         <div
           class="analog"
           id="analog"
@@ -64,11 +120,29 @@
           <div class="analog-guide vertical"></div>
           <div class="analog-stick" id="analog-stick"></div>
         </div>
-        <button class="brake-control" id="brake" type="button" aria-label="Brake">
-          Brake
+        <button
+          class="run-control"
+          id="run"
+          type="button"
+          aria-label="Hold to run"
+          aria-pressed="false"
+          title="Hold to run"
+        >
+          <span class="run-icon" aria-hidden="true"></span>
+          <span class="run-label" aria-hidden="true">Run</span>
+        </button>
+        <button
+          class="brake-control"
+          id="brake"
+          type="button"
+          aria-label="Stop"
+          title="Stop"
+        >
+          <span class="stop-icon" aria-hidden="true"></span>
+          <span class="stop-label" aria-hidden="true">Stop</span>
         </button>
       </div>
     </div>
-    <script type="module" src="/src/main.js?v=anime-coast-v21"></script>
+    <script type="module" src="/src/main.js?v=situbondo-v30"></script>
   </body>
 </html>

@@ -1,0 +1,24 @@
+[GET] https://streetviewpixels-pa.googleapis.com/v1/thumbnail?cb_client=maps_sv.tactile&w=1200&h=800&pitch=-2&panoid=gHIAR9-7DNO6HM9zetIQZg&yaw=168.4269 => [403] 
+  Request headers:
+    upgrade-insecure-requests: 1
+    user-agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/146.0.0.0 Safari/537.36
+    sec-ch-ua: "Not-A.Brand";v="24", "Chromium";v="146"
+    sec-ch-ua-mobile: ?0
+    sec-ch-ua-platform: "Linux"
+[GET] https://www.google.com/maps/@0,0,0a,82y,168.43h,92t/data=!3m5!1e1!3m3!1sgHIAR9-7DNO6HM9zetIQZg!2e0!6shttps:%2F%2Fstreetviewpixels-pa.googleapis.com%2Fv1%2Fthumbnail%3Fcb_client%3Dmaps_sv.tactile%26w%3D900%26h%3D600%26pitch%3D-2%26panoid%3DgHIAR9-7DNO6HM9zetIQZg%26yaw%3D168.4269?entry=ttu&g_ep=EgoyMDI2MDgwNS4xIKXMDSoASAFQAw%3D%3D => [200] 
+  Request headers:
+    upgrade-insecure-requests: 1
+    user-agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/146.0.0.0 Safari/537.36
+    downlink: 1.45
+    rtt: 50
+    sec-ch-ua: "Not-A.Brand";v="24", "Chromium";v="146"
+    sec-ch-ua-mobile: ?0
+    sec-ch-ua-platform: "Linux"
+[GET] https://streetviewpixels-pa.googleapis.com/v1/tile?cb_client=maps_sv.tactile&panoid=gHIAR9-7DNO6HM9zetIQZg&x=0&y=0&zoom=0&nbt=1&fover=2 => [403] 
+  Request headers:
+    origin: https://www.google.com
+    sec-ch-ua-platform: "Linux"
+    referer: https://www.google.com/
+    user-agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/146.0.0.0 Safari/537.36
+    sec-ch-ua: "Not-A.Brand";v="24", "Chromium";v="146"
+    sec-ch-ua-mobile: ?0

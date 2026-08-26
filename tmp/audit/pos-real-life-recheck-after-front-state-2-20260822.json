@@ -1,0 +1,32 @@
+{
+  "probe": {
+    "theta": -2.2,
+    "phi": -19.1,
+    "mappedSurfaceLift": 0.036000000000000004,
+    "surfaceLift": 0.036000000000000004,
+    "surfaces": [],
+    "nearestObstacles": [
+      {
+        "label": "Alun-Alun: park obstacle",
+        "gap": 1.3299999603571115
+      },
+      {
+        "label": "Alun-Alun: park obstacle",
+        "gap": 3.087732821294476
+      },
+      {
+        "label": "Alun-Alun: park obstacle",
+        "gap": 3.614999898121012
+      },
+      {
+        "label": "Alun-Alun: park obstacle",
+        "gap": 4.241162543149214
+      },
+      {
+        "label": "Alun-Alun: park obstacle",
+        "gap": 4.425044445186768
+      }
+    ]
+  },
+  "nearby": "Kantor Pos Situbondo"
+}

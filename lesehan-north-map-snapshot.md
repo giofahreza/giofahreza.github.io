@@ -1,0 +1,105 @@
+- generic "Google Maps" [ref=e2]:
+  - generic [ref=e3]:
+    - application "Peta·Gunakan tombol panah untuk menggeser peta." [ref=e5]
+    - generic [ref=e8]:
+      - search [ref=e11]:
+        - generic [ref=e12]:
+          - generic [ref=e13]:
+            - generic [ref=e14]: Telusuri Google Maps
+            - combobox "Telusuri Google Maps" [active] [ref=e15]
+          - button "Telusuri" [ref=e17] [cursor=pointer]:
+            - generic [ref=e18]: 
+          - button "Rute" [ref=e20] [cursor=pointer]:
+            - generic [ref=e21]: 
+      - region "Dawuhan" [ref=e53]:
+        - generic [ref=e54]:
+          - heading "Dawuhan" [level=1] [ref=e56]
+          - group "Cuaca Dawuhan" [ref=e57]:
+            - generic [ref=e58]: 25°
+            - img "Cerah" [ref=e59]
+        - region "Lalu Lintas" [ref=e60]:
+          - button "Lalin padat di area ini Jauh lebih lambat dari biasanya" [ref=e61] [cursor=pointer]:
+            - img [ref=e63]
+            - generic [ref=e64]
+            - generic [ref=e67]: 
+    - region "Opsi penelusuran yang tersedia untuk area ini" [ref=e74]:
+      - generic [ref=e77]:
+        - button "Restoran" [ref=e79] [cursor=pointer]:
+          - generic [ref=e80]:
+            - generic [ref=e82]: 
+            - generic [ref=e83]: Restoran
+        - button "Hotel" [ref=e85] [cursor=pointer]:
+          - generic [ref=e86]:
+            - generic [ref=e88]: 
+            - generic [ref=e89]: Hotel
+        - button "Rekomendasi aktivitas" [ref=e91] [cursor=pointer]:
+          - generic [ref=e92]:
+            - generic [ref=e94]: 
+            - generic [ref=e95]: Rekomendasi aktivitas
+        - button "Museum" [ref=e97] [cursor=pointer]:
+          - generic [ref=e98]:
+            - generic [ref=e100]: 
+            - generic [ref=e101]: Museum
+        - button "Transportasi umum" [ref=e103] [cursor=pointer]:
+          - generic [ref=e104]:
+            - generic [ref=e106]: 
+            - generic [ref=e107]: Transportasi umum
+        - button "Apotek" [ref=e109] [cursor=pointer]:
+          - generic [ref=e110]:
+            - generic [ref=e112]: 
+            - generic [ref=e113]: Apotek
+        - button "ATM" [ref=e115] [cursor=pointer]:
+          - generic [ref=e116]:
+            - generic [ref=e118]: 
+            - generic [ref=e119]: ATM
+      - button "Halaman berikutnya" [ref=e120] [cursor=pointer]:
+        - generic [ref=e121]: 
+    - list [ref=e25]:
+      - listitem [ref=e26]:
+        - button "Menu" [ref=e27] [cursor=pointer]:
+          - generic [ref=e29]: 
+      - listitem [ref=e30]:
+        - button "Disimpan" [ref=e31] [cursor=pointer]:
+          - generic [ref=e33]: 
+          - generic [ref=e35]: Disimpan
+      - listitem [ref=e36]:
+        - button "Terbaru" [disabled] [ref=e37]:
+          - generic [ref=e39]: 
+          - generic [ref=e41]: Terbaru
+      - listitem [ref=e43]:
+        - button "Dapatkan aplikasi" [ref=e44] [cursor=pointer]:
+          - generic [ref=e46]: 
+          - generic [ref=e48]: Dapatkan aplikasi
+    - generic [ref=e125]:
+      - button "Aplikasi Google" [ref=e129] [cursor=pointer]:
+        - img [ref=e130]
+      - link "Login" [ref=e133] [cursor=pointer]:
+        - /url: https://accounts.google.com/ServiceLogin?hl=id&passive=true&continue=https%3A%2F%2Fwww.google.com%2Fmaps%2F%40-7.70579%2C114.0042%2C106m%2Fdata%3D!3m1!1e3%3Fved%3D1t%253A314688&service=local&ec=GAZAcQ
+    - generic:
+      - generic:
+        - button "Tampilkan Lokasi Anda" [ref=e136] [cursor=pointer]:
+          - generic [ref=e138]: 
+        - generic [ref=e140] [cursor=pointer]:
+          - button "Perbesar" [ref=e141]:
+            - generic [ref=e143]: 
+          - button "Perkecil" [ref=e144]:
+            - generic [ref=e146]: 
+      - generic [ref=e151] [cursor=pointer]:
+        - button "Telusuri gambar Street View" [ref=e152]
+        - button "Tampilkan citra" [ref=e154]:
+          - generic [ref=e157]: 
+      - generic [ref=e158]:
+        - generic "Peta interaktif" [ref=e159]
+        - generic [ref=e163] [cursor=pointer]:
+          - generic [ref=e164]: 
+          - generic [ref=e165]: Lapisan
+        - button "Lapisan" [ref=e166] [cursor=pointer]
+    - generic [ref=e168]:
+      - contentinfo [ref=e171]:
+        - text: Citra ©2026 Airbus,Maxar Technologies,Data peta ©2026
+        - button "Indonesia" [ref=e172] [cursor=pointer]
+        - button "Tampilan 3D Earth tidak tersedia" [ref=e173] [cursor=pointer]
+        - button "Persyaratan" [ref=e174] [cursor=pointer]
+        - button "Privasi" [ref=e175] [cursor=pointer]
+        - button "Kirim Masukan Produk" [ref=e176] [cursor=pointer]
+      - button "10 m" [ref=e178] [cursor=pointer]: 10 m

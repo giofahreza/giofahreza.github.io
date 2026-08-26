@@ -1,0 +1,6 @@
+Total messages: 4 (Errors: 0, Warnings: 4)
+
+[WARNING] [.WebGL-0x2c9c008f5600]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels @ https://test.qif.us/?v=alabror-road-yaw-positive-20260823:0
+[WARNING] [.WebGL-0x2c9c008f5600]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels @ https://test.qif.us/?v=alabror-road-yaw-positive-20260823:0
+[WARNING] [.WebGL-0x2c9c008f5600]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels @ https://test.qif.us/?v=alabror-road-yaw-positive-20260823:0
+[WARNING] [.WebGL-0x2c9c008f5600]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat) @ https://test.qif.us/?v=alabror-road-yaw-positive-20260823:0

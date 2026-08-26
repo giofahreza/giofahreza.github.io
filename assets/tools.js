@@ -363,7 +363,7 @@
       case "sitemap":
         return textTool("URLs", "Sitemap XML", "https://giofahreza.com/\nhttps://giofahreza.com/tools") + `<div class="tool-actions">${action("Generate", "generate", true)}</div>`;
       case "gitignore":
-        return `<div class="inline-grid two"><div class="inline-field"><label for="template">Template</label><select id="template">${gitignoreOptions()}</select></div>${field("Extra Patterns", "extra", ".env.local\n.DS_Store")}</div><div class="tool-actions">${action("Generate", "generate", true)}</div>${outputArea(".gitignore")}`;
+        return `<div class="inline-grid two"><div class="inline-field"><label for="template">Template</label><select id="template">${gitignoreOptions()}</select></div><div class="inline-field"><label for="extra">Extra Patterns</label><textarea id="extra" rows="4">${escapeHtml(".env.local\n.DS_Store")}</textarea></div></div><div class="tool-actions">${action("Generate", "generate", true)}</div>${outputArea(".gitignore")}`;
       case "regex":
         return `<div class="inline-grid two">${field("Pattern", "pattern", "\\b\\w+@\\w+\\.\\w+\\b")}${field("Flags", "flags", "gi")}</div><div class="field"><label for="input">Text</label><textarea id="input">hello@giofahreza.com and invalid-email</textarea></div><div class="tool-actions">${action("Test", "test", true)}</div><div id="output" class="output-box"></div>`;
       case "diff":
@@ -541,7 +541,7 @@
         break;
       case "js-format":
         bind("beautify", "click", () => setOutput(formatJs($("#input").value)));
-        bind("minify", "click", () => setOutput($("#input").value.replace(/\/\/.*$/gm, "").replace(/\s+/g, " ").replace(/\s*([{}();,:=+\-*/<>])\s*/g, "$1").trim()));
+        bind("minify", "click", () => setOutput(minifyJs($("#input").value)));
         break;
       case "sql-format":
         bind("format", "click", () => setOutput(formatSql($("#input").value)));
@@ -1073,9 +1073,109 @@ ${urls.map((url) => `  <url><loc>${escapeHtml(url)}</loc></url>`).join("\n")}
     return input.replace(/\s*{\s*/g, " {\n  ").replace(/;\s*/g, ";\n  ").replace(/\s*}\s*/g, "\n}\n").replace(/,\s*/g, ",\n").trim();
   }
 
+  function protectJavaScriptLiterals(input) {
+    const protectedValues = [];
+    let output = "";
+    let index = 0;
+    let previousSignificant = "";
+
+    const protect = (value) => {
+      const placeholder = `\u0000${protectedValues.length}\u0000`;
+      protectedValues.push(value);
+      output += placeholder;
+    };
+    const canStartRegex = () =>
+      previousSignificant === "" || /[([{=,:;!&|?+\-*%^~<>]/.test(previousSignificant);
+
+    while (index < input.length) {
+      const char = input[index];
+      const next = input[index + 1];
+
+      if (char === "'" || char === '"' || char === "`") {
+        const quote = char;
+        let value = char;
+        index += 1;
+        while (index < input.length) {
+          const current = input[index];
+          value += current;
+          index += 1;
+          if (current === "\\" && index < input.length) {
+            value += input[index];
+            index += 1;
+          } else if (current === quote) {
+            break;
+          }
+        }
+        protect(value);
+        previousSignificant = "literal";
+        continue;
+      }
+
+      if (char === "/" && next === "/") {
+        const lineEnd = input.indexOf("\n", index);
+        const end = lineEnd === -1 ? input.length : lineEnd + 1;
+        protect(input.slice(index, end));
+        index = end;
+        previousSignificant = "comment";
+        continue;
+      }
+
+      if (char === "/" && next === "*") {
+        const commentEnd = input.indexOf("*/", index + 2);
+        const end = commentEnd === -1 ? input.length : commentEnd + 2;
+        protect(input.slice(index, end));
+        index = end;
+        previousSignificant = "comment";
+        continue;
+      }
+
+      if (char === "/" && canStartRegex()) {
+        let value = char;
+        let inCharacterClass = false;
+        index += 1;
+        while (index < input.length) {
+          const current = input[index];
+          value += current;
+          index += 1;
+          if (current === "\\" && index < input.length) {
+            value += input[index];
+            index += 1;
+          } else if (current === "[") {
+            inCharacterClass = true;
+          } else if (current === "]") {
+            inCharacterClass = false;
+          } else if (current === "/" && !inCharacterClass) {
+            while (/[a-z]/i.test(input[index] || "")) {
+              value += input[index];
+              index += 1;
+            }
+            break;
+          }
+        }
+        protect(value);
+        previousSignificant = "literal";
+        continue;
+      }
+
+      output += char;
+      if (!/\s/.test(char)) previousSignificant = char;
+      index += 1;
+    }
+
+    return {
+      output,
+      restore(value) {
+        return value.replace(/\u0000(\d+)\u0000/g, (_, literalIndex) =>
+          protectedValues[Number(literalIndex)] ?? ""
+        );
+      },
+    };
+  }
+
   function formatJs(input) {
+    const protectedInput = protectJavaScriptLiterals(input);
     let level = 0;
-    return input.replace(/([{};])/g, "$1\n").split("\n").map((line) => {
+    const formatted = protectedInput.output.replace(/([{};])/g, "$1\n").split("\n").map((line) => {
       const trimmed = line.trim();
       if (!trimmed) return "";
       if (trimmed.startsWith("}")) level = Math.max(0, level - 1);
@@ -1083,6 +1183,16 @@ ${urls.map((url) => `  <url><loc>${escapeHtml(url)}</loc></url>`).join("\n")}
       if (trimmed.endsWith("{")) level++;
       return out;
     }).filter(Boolean).join("\n");
+    return protectedInput.restore(formatted);
+  }
+
+  function minifyJs(input) {
+    const protectedInput = protectJavaScriptLiterals(input);
+    const minified = protectedInput.output
+      .replace(/\s+/g, " ")
+      .replace(/\s*([{}();,:=+\-*/<>])\s*/g, "$1")
+      .trim();
+    return protectedInput.restore(minified);
   }
 
   function formatSql(input) {
@@ -1122,7 +1232,10 @@ ${urls.map((url) => `  <url><loc>${escapeHtml(url)}</loc></url>`).join("\n")}
   }
 
   function hexToRgb(hex) {
-    const clean = hex.replace("#", "");
+    const clean = String(hex).trim().replace(/^#/, "");
+    if (!/^(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(clean)) {
+      throw new Error("Enter a valid 3- or 6-digit HEX color.");
+    }
     const full = clean.length === 3 ? clean.split("").map((x) => x + x).join("") : clean;
     const number = parseInt(full, 16);
     return { r: (number >> 16) & 255, g: (number >> 8) & 255, b: number & 255 };
@@ -1135,10 +1248,14 @@ ${urls.map((url) => `  <url><loc>${escapeHtml(url)}</loc></url>`).join("\n")}
   function convertColor() {
     const hex = $("#hex").value || $("#colorInput").value;
     const rgb = hexToRgb(hex);
-    $("#swatch").style.background = hex;
+    const normalizedHex = rgbToHex(rgb.r, rgb.g, rgb.b);
     const alpha = Number($("#alpha").value || 1);
+    if (!Number.isFinite(alpha) || alpha < 0 || alpha > 1) {
+      throw new Error("Alpha must be a number from 0 to 1.");
+    }
+    $("#swatch").style.background = normalizedHex;
     const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
-    setOutput(`HEX: ${rgbToHex(rgb.r, rgb.g, rgb.b)}
+    setOutput(`HEX: ${normalizedHex}
 RGB: rgb(${rgb.r}, ${rgb.g}, ${rgb.b})
 RGBA: rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})
 HSL: hsl(${hsl.h}, ${hsl.s}%, ${hsl.l}%)
@@ -1284,9 +1401,9 @@ ${(px / viewport) * 100}vw`);
 
   function parseUserAgent() {
     const ua = $("#input").value;
-    const browser = ua.includes("Firefox") ? "Firefox" : ua.includes("Edg") ? "Edge" : ua.includes("Chrome") ? "Chrome" : ua.includes("Safari") ? "Safari" : "Unknown";
-    const os = ua.includes("Windows") ? "Windows" : ua.includes("Mac OS") ? "macOS" : ua.includes("Linux") ? "Linux" : ua.includes("Android") ? "Android" : ua.includes("iPhone") ? "iOS" : "Unknown";
-    const device = /Mobile|Android|iPhone/.test(ua) ? "Mobile" : "Desktop";
+    const browser = /FxiOS|Firefox/i.test(ua) ? "Firefox" : /EdgiOS|EdgA|Edg/i.test(ua) ? "Edge" : /CriOS|Chrome/i.test(ua) ? "Chrome" : /Safari/i.test(ua) ? "Safari" : "Unknown";
+    const os = /Android/i.test(ua) ? "Android" : /iPhone|iPad|iPod/i.test(ua) ? "iOS" : /Windows/i.test(ua) ? "Windows" : /Mac OS|Macintosh/i.test(ua) ? "macOS" : /Linux/i.test(ua) ? "Linux" : "Unknown";
+    const device = /Mobile|Android|iPhone|iPad|iPod/i.test(ua) ? "Mobile" : "Desktop";
     setOutput(`Browser: ${browser}\nOS: ${os}\nDevice: ${device}\nRaw: ${ua}`);
   }
 

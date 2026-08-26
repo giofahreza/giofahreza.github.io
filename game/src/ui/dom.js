@@ -1,0 +1,35 @@
+export function getUiElements(root = document) {
+  const routeProgressNode = root.querySelector("#route-progress");
+
+  return {
+    app: root.querySelector("#app"),
+    canvas: root.querySelector("#scene"),
+    hud: root.querySelector(".hud"),
+    targetPanel: root.querySelector(".target"),
+    message: root.querySelector("#message"),
+    startButton: root.querySelector("#start"),
+    lettersNode: root.querySelector("#letters"),
+    timeNode: root.querySelector("#time"),
+    streakNode: root.querySelector("#streak"),
+    targetNode: root.querySelector("#target"),
+    targetDirectionNode: root.querySelector("#target-direction"),
+    targetDistanceNode: root.querySelector("#target-distance"),
+    routeProgressNode,
+    routeProgressSteps: [...routeProgressNode.children],
+    deliveryToast: root.querySelector("#delivery-toast"),
+    deliveryNameNode: root.querySelector("#delivery-name"),
+    controlHint: root.querySelector("#control-hint"),
+    analog: root.querySelector("#analog"),
+    analogStick: root.querySelector("#analog-stick"),
+    runButton: root.querySelector("#run"),
+    brakeButton: root.querySelector("#brake"),
+    mapBuildingCountNode: root.querySelector("#map-building-count"),
+    mapPlaceCountNode: root.querySelector("#map-place-count"),
+    mapRadiusNode: root.querySelector("#map-radius"),
+    mapAreaNode: root.querySelector("#map-area"),
+    boundaryNotice: root.querySelector("#boundary-notice"),
+    nearbyPlace: root.querySelector("#nearby-place"),
+    nearbyPlaceName: root.querySelector("#nearby-place-name"),
+    nearbyPlaceType: root.querySelector("#nearby-place-type"),
+  };
+}

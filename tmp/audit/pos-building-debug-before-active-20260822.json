@@ -1,0 +1,49 @@
+{
+  "appClass": "",
+  "state": {
+    "theta": -18.8,
+    "phi": -20.60000000000395,
+    "heading": 0,
+    "speed": 0,
+    "actualSpeed": 0,
+    "motionBlend": 0,
+    "blockedBlend": 0,
+    "animationState": "idle",
+    "turn": 0,
+    "desiredHeading": 0,
+    "controlHeading": 0,
+    "inputActive": false,
+    "collisionActive": false,
+    "celebration": 0
+  },
+  "probe": {
+    "theta": -18.8,
+    "phi": -20.6,
+    "mappedSurfaceLift": 0.0008,
+    "surfaceLift": 0.0008,
+    "surfaces": [],
+    "nearestObstacles": [
+      {
+        "label": "Alun-Alun: park obstacle",
+        "gap": 6.165407007216038
+      },
+      {
+        "label": "Alun-Alun: park obstacle",
+        "gap": 8.199424077108006
+      },
+      {
+        "label": "Alun-Alun: park obstacle",
+        "gap": 10.202855561293898
+      },
+      {
+        "label": "Alun-Alun: park obstacle",
+        "gap": 10.947387029360463
+      },
+      {
+        "label": "Alun-Alun: park obstacle",
+        "gap": 12.268556276970788
+      }
+    ]
+  },
+  "nearestPlace": "lesehan situbondo"
+}

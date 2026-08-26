@@ -1,0 +1,14 @@
+Total messages: 3 (Errors: 1, Warnings: 0)
+
+[DEBUG] [vite] connecting... @ http://127.0.0.1:8104/@vite/client:732
+[DEBUG] [vite] connected. @ http://127.0.0.1:8104/@vite/client:826
+ReferenceError: addAlunAlunTree is not defined
+    at http://127.0.0.1:8104/src/features/landmarks/alun-alun-traffic.js:530:7
+    at Array.forEach (<anonymous>)
+    at addAlunAlunRoadContext (http://127.0.0.1:8104/src/features/landmarks/alun-alun-traffic.js:529:7)
+    at addAlunAlunModel (http://127.0.0.1:8104/src/features/landmarks/alun-alun.js?t=1787385056258:1207:5)
+    at createSitubondoLandmark (http://127.0.0.1:8104/src/features/landmarks/populate-stops.js?t=1787385056258:137:31)
+    at createHouse (http://127.0.0.1:8104/src/features/landmarks/populate-stops.js?t=1787385056258:207:7)
+    at Array.forEach (<anonymous>)
+    at populateStops (http://127.0.0.1:8104/src/features/landmarks/populate-stops.js?t=1787385056258:441:9)
+    at http://127.0.0.1:8104/src/app/game.js?t=1787385056258:658:29

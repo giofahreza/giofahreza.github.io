@@ -1,0 +1,16 @@
+{
+  "theta": -3.000000000000001,
+  "phi": -20.100000000000673,
+  "heading": 0,
+  "speed": 0,
+  "actualSpeed": 0,
+  "motionBlend": 0,
+  "blockedBlend": 0,
+  "animationState": "idle",
+  "turn": 0,
+  "desiredHeading": 0,
+  "controlHeading": 0,
+  "inputActive": false,
+  "collisionActive": false,
+  "celebration": 0
+}

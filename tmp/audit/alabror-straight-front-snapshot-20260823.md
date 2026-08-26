@@ -1,0 +1,39 @@
+- generic [ref=e2]:
+  - generic "Situbondo Messenger game scene" [ref=e3]
+  - region "Game status":
+    - generic:
+      - generic
+      - generic
+      - generic
+    - 'generic "Route progress: 0 of 7 deliveries"'
+  - 'region "Current delivery: Alun-Alun Situbondo, 85 meters away"':
+    - generic:
+      - generic: Next Delivery
+      - strong: Alun-Alun
+      - generic: 85 m · Nearby
+  - generic [ref=e4]:
+    - generic [ref=e5]: Situbondo · Jawa Timur
+    - img "Envelope" [ref=e6]
+    - heading "Situbondo Messenger" [level=1] [ref=e11]:
+      - text: Situbondo
+      - text: Messenger
+    - paragraph [ref=e12]: Jelajahi zona nyata 1 km dari Alun-Alun. Area di luar masih dikembangkan.
+    - generic "Map coverage and scale" [ref=e13]:
+      - generic [ref=e14]
+      - generic [ref=e16]
+      - generic [ref=e18]
+      - strong [ref=e21]: 1 unit = 5 m
+      - generic [ref=e22]
+      - generic [ref=e24]
+    - generic "Controls" [ref=e26]:
+      - generic [ref=e27]
+      - generic [ref=e29]: Drag anywhere on touch screens
+      - generic [ref=e30]
+      - generic [ref=e32]
+    - button "Mulai Rute" [ref=e34] [cursor=pointer]
+    - generic [ref=e35]: Map data © OpenStreetMap contributors · ODbL
+  - generic "Movement controls":
+    - generic:
+      - generic
+    - button "Stop" [ref=e36] [cursor=pointer]:
+      - generic [ref=e38]: Stop

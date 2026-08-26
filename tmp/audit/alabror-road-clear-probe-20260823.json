@@ -1,0 +1,118 @@
+{
+  "href": "https://test.qif.us/?v=alabror-road-clear-20260823",
+  "bundle": "https://test.qif.us/assets/index-8g24Ar_0.js",
+  "results": [
+    {
+      "name": "west-road-south",
+      "theta": -29.05,
+      "phi": 0,
+      "nearestObstacleGap": 1.982064329194574,
+      "nearest": [
+        {
+          "label": "Al-Abror: prayer hall",
+          "gap": 1.982064329194574
+        },
+        {
+          "label": "Alun-Alun: park obstacle",
+          "gap": 3.3562004999515405
+        },
+        {
+          "label": "Alun-Alun: park obstacle",
+          "gap": 4.190000078832295
+        }
+      ],
+      "surfaces": [],
+      "surfaceLift": 0.024
+    },
+    {
+      "name": "west-road-school",
+      "theta": -28.8,
+      "phi": -4.5,
+      "nearestObstacleGap": 3.9873507140276367,
+      "nearest": [
+        {
+          "label": "Alun-Alun: park obstacle",
+          "gap": 3.9873507140276367
+        },
+        {
+          "label": "Alun-Alun: park obstacle",
+          "gap": 4.4145529572915265
+        },
+        {
+          "label": "Alun-Alun: park obstacle",
+          "gap": 4.48999979205733
+        }
+      ],
+      "surfaces": [],
+      "surfaceLift": 0.024
+    },
+    {
+      "name": "diagonal-road-north",
+      "theta": -19,
+      "phi": -12,
+      "nearestObstacleGap": 5.660828360011333,
+      "nearest": [
+        {
+          "label": "Alun-Alun: park obstacle",
+          "gap": 5.660828360011333
+        },
+        {
+          "label": "Alun-Alun: park obstacle",
+          "gap": 10.091107970540618
+        },
+        {
+          "label": "Alun-Alun: park obstacle",
+          "gap": 10.81255685187453
+        }
+      ],
+      "surfaces": [],
+      "surfaceLift": 0.036000000000000004
+    },
+    {
+      "name": "diagonal-road-mid",
+      "theta": -17.5,
+      "phi": -3.6,
+      "nearestObstacleGap": 2.751565477551439,
+      "nearest": [
+        {
+          "label": "Alun-Alun: park obstacle",
+          "gap": 2.751565477551439
+        },
+        {
+          "label": "Al-Abror: minaret",
+          "gap": 4.783090560114666
+        },
+        {
+          "label": "Al-Abror: front fence",
+          "gap": 5.0960997897096325
+        }
+      ],
+      "surfaces": [],
+      "surfaceLift": 0.024
+    },
+    {
+      "name": "diagonal-road-south",
+      "theta": -15.7,
+      "phi": 5.8,
+      "nearestObstacleGap": 2.8118640259103183,
+      "nearest": [
+        {
+          "label": "Al-Abror: name wall",
+          "gap": 2.8118640259103183
+        },
+        {
+          "label": "Al-Abror: front fence",
+          "gap": 2.9253048592605375
+        },
+        {
+          "label": "Al-Abror: front palm",
+          "gap": 4.284062173182882
+        }
+      ],
+      "surfaces": [
+        "Al-Abror: front road"
+      ],
+      "surfaceLift": 0.043713774995238056
+    }
+  ]
+}

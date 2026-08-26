@@ -1,0 +1,23 @@
+{
+  "href": "http://127.0.0.1:8101/",
+  "appClass": "",
+  "asset": [
+    "http://127.0.0.1:8101/assets/index-T23imuYl.js"
+  ],
+  "rider": {
+    "theta": 13.222600465249386,
+    "phi": 11.070573770655121,
+    "heading": 0.6500000022791307,
+    "speed": 5.935921708651261,
+    "actualSpeed": 5.935915775269151,
+    "motionBlend": 0.9886665868453326,
+    "blockedBlend": 0,
+    "animationState": "run",
+    "turn": -1.6103722668728343e-9,
+    "desiredHeading": 0.6500000005833587,
+    "controlHeading": 0.6500000005833587,
+    "inputActive": true,
+    "collisionActive": false,
+    "celebration": 0
+  }
+}

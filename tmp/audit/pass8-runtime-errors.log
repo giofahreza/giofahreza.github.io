@@ -1,0 +1,95 @@
+Total messages: 3 (Errors: 1, Warnings: 0)
+Returning 12 messages for level "error"
+
+ReferenceError: blueGlow is not defined
+    at addMosqueModel (http://127.0.0.1:8104/src/main.js?t=1787160482707&v=situbondo-v30:11564:58)
+    at createSitubondoLandmark (http://127.0.0.1:8104/src/main.js?t=1787160482707&v=situbondo-v30:12775:31)
+    at createHouse (http://127.0.0.1:8104/src/main.js?t=1787160482707&v=situbondo-v30:12843:5)
+    at Array.forEach (<anonymous>)
+    at http://127.0.0.1:8104/src/main.js?t=1787160482707&v=situbondo-v30:13077:7
+ReferenceError: blueGlow is not defined
+    at addMosqueModel (http://127.0.0.1:8104/src/main.js?t=1787160497013&v=situbondo-v30:11573:58)
+    at createSitubondoLandmark (http://127.0.0.1:8104/src/main.js?t=1787160497013&v=situbondo-v30:12784:31)
+    at createHouse (http://127.0.0.1:8104/src/main.js?t=1787160497013&v=situbondo-v30:12852:5)
+    at Array.forEach (<anonymous>)
+    at http://127.0.0.1:8104/src/main.js?t=1787160497013&v=situbondo-v30:13086:7
+ReferenceError: x is not defined
+    at http://127.0.0.1:8104/src/main.js?t=1787162299833&v=situbondo-v30:12630:25
+    at Array.forEach (<anonymous>)
+    at addGazeboSitubondoModel (http://127.0.0.1:8104/src/main.js?t=1787162299833&v=situbondo-v30:12623:11)
+    at createSitubondoLandmark (http://127.0.0.1:8104/src/main.js?t=1787162299833&v=situbondo-v30:12985:31)
+    at createHouse (http://127.0.0.1:8104/src/main.js?t=1787162299833&v=situbondo-v30:13054:5)
+    at Array.forEach (<anonymous>)
+    at http://127.0.0.1:8104/src/main.js?t=1787162299833&v=situbondo-v30:13288:7
+ReferenceError: x is not defined
+    at http://127.0.0.1:8104/src/main.js?t=1787162370648&v=situbondo-v30:12647:25
+    at Array.forEach (<anonymous>)
+    at addGazeboSitubondoModel (http://127.0.0.1:8104/src/main.js?t=1787162370648&v=situbondo-v30:12640:11)
+    at createSitubondoLandmark (http://127.0.0.1:8104/src/main.js?t=1787162370648&v=situbondo-v30:13002:31)
+    at createHouse (http://127.0.0.1:8104/src/main.js?t=1787162370648&v=situbondo-v30:13071:5)
+    at Array.forEach (<anonymous>)
+    at http://127.0.0.1:8104/src/main.js?t=1787162370648&v=situbondo-v30:13305:7
+ReferenceError: x is not defined
+    at http://127.0.0.1:8104/src/main.js?t=1787162383877&v=situbondo-v30:12653:25
+    at Array.forEach (<anonymous>)
+    at addGazeboSitubondoModel (http://127.0.0.1:8104/src/main.js?t=1787162383877&v=situbondo-v30:12646:11)
+    at createSitubondoLandmark (http://127.0.0.1:8104/src/main.js?t=1787162383877&v=situbondo-v30:13008:31)
+    at createHouse (http://127.0.0.1:8104/src/main.js?t=1787162383877&v=situbondo-v30:13077:5)
+    at Array.forEach (<anonymous>)
+    at http://127.0.0.1:8104/src/main.js?t=1787162383877&v=situbondo-v30:13311:7
+ReferenceError: x is not defined
+    at http://127.0.0.1:8104/src/main.js?t=1787162412543&v=situbondo-v30:12657:25
+    at Array.forEach (<anonymous>)
+    at addGazeboSitubondoModel (http://127.0.0.1:8104/src/main.js?t=1787162412543&v=situbondo-v30:12650:11)
+    at createSitubondoLandmark (http://127.0.0.1:8104/src/main.js?t=1787162412543&v=situbondo-v30:13012:31)
+    at createHouse (http://127.0.0.1:8104/src/main.js?t=1787162412543&v=situbondo-v30:13081:5)
+    at Array.forEach (<anonymous>)
+    at http://127.0.0.1:8104/src/main.js?t=1787162412543&v=situbondo-v30:13315:7
+ReferenceError: x is not defined
+    at http://127.0.0.1:8104/src/main.js?t=1787162436536&v=situbondo-v30:12669:25
+    at Array.forEach (<anonymous>)
+    at addGazeboSitubondoModel (http://127.0.0.1:8104/src/main.js?t=1787162436536&v=situbondo-v30:12662:11)
+    at createSitubondoLandmark (http://127.0.0.1:8104/src/main.js?t=1787162436536&v=situbondo-v30:13024:31)
+    at createHouse (http://127.0.0.1:8104/src/main.js?t=1787162436536&v=situbondo-v30:13093:5)
+    at Array.forEach (<anonymous>)
+    at http://127.0.0.1:8104/src/main.js?t=1787162436536&v=situbondo-v30:13327:7
+ReferenceError: x is not defined
+    at http://127.0.0.1:8104/src/main.js?t=1787162504375&v=situbondo-v30:12716:25
+    at Array.forEach (<anonymous>)
+    at addGazeboSitubondoModel (http://127.0.0.1:8104/src/main.js?t=1787162504375&v=situbondo-v30:12709:11)
+    at createSitubondoLandmark (http://127.0.0.1:8104/src/main.js?t=1787162504375&v=situbondo-v30:13071:31)
+    at createHouse (http://127.0.0.1:8104/src/main.js?t=1787162504375&v=situbondo-v30:13140:5)
+    at Array.forEach (<anonymous>)
+    at http://127.0.0.1:8104/src/main.js?t=1787162504375&v=situbondo-v30:13374:7
+ReferenceError: x is not defined
+    at http://127.0.0.1:8104/src/main.js?t=1787162531395&v=situbondo-v30:12728:25
+    at Array.forEach (<anonymous>)
+    at addGazeboSitubondoModel (http://127.0.0.1:8104/src/main.js?t=1787162531395&v=situbondo-v30:12721:11)
+    at createSitubondoLandmark (http://127.0.0.1:8104/src/main.js?t=1787162531395&v=situbondo-v30:13083:31)
+    at createHouse (http://127.0.0.1:8104/src/main.js?t=1787162531395&v=situbondo-v30:13152:5)
+    at Array.forEach (<anonymous>)
+    at http://127.0.0.1:8104/src/main.js?t=1787162531395&v=situbondo-v30:13386:7
+ReferenceError: x is not defined
+    at http://127.0.0.1:8104/src/main.js?t=1787162542397&v=situbondo-v30:12729:25
+    at Array.forEach (<anonymous>)
+    at addGazeboSitubondoModel (http://127.0.0.1:8104/src/main.js?t=1787162542397&v=situbondo-v30:12722:11)
+    at createSitubondoLandmark (http://127.0.0.1:8104/src/main.js?t=1787162542397&v=situbondo-v30:13084:31)
+    at createHouse (http://127.0.0.1:8104/src/main.js?t=1787162542397&v=situbondo-v30:13153:5)
+    at Array.forEach (<anonymous>)
+    at http://127.0.0.1:8104/src/main.js?t=1787162542397&v=situbondo-v30:13387:7
+ReferenceError: x is not defined
+    at http://127.0.0.1:8104/src/main.js?t=1787162561269&v=situbondo-v30:12741:25
+    at Array.forEach (<anonymous>)
+    at addGazeboSitubondoModel (http://127.0.0.1:8104/src/main.js?t=1787162561269&v=situbondo-v30:12734:11)
+    at createSitubondoLandmark (http://127.0.0.1:8104/src/main.js?t=1787162561269&v=situbondo-v30:13096:31)
+    at createHouse (http://127.0.0.1:8104/src/main.js?t=1787162561269&v=situbondo-v30:13165:5)
+    at Array.forEach (<anonymous>)
+    at http://127.0.0.1:8104/src/main.js?t=1787162561269&v=situbondo-v30:13399:7
+ReferenceError: x is not defined
+    at http://127.0.0.1:8104/src/main.js?t=1787162561269&v=situbondo-v30:12741:25
+    at Array.forEach (<anonymous>)
+    at addGazeboSitubondoModel (http://127.0.0.1:8104/src/main.js?t=1787162561269&v=situbondo-v30:12734:11)
+    at createSitubondoLandmark (http://127.0.0.1:8104/src/main.js?t=1787162561269&v=situbondo-v30:13096:31)
+    at createHouse (http://127.0.0.1:8104/src/main.js?t=1787162561269&v=situbondo-v30:13165:5)
+    at Array.forEach (<anonymous>)
+    at http://127.0.0.1:8104/src/main.js?t=1787162561269&v=situbondo-v30:13399:7

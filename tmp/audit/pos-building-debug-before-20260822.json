@@ -1,0 +1,194 @@
+{
+  "state": {
+    "theta": -18.8,
+    "phi": -20.6,
+    "heading": 0,
+    "speed": 0,
+    "actualSpeed": 0,
+    "motionBlend": 0,
+    "blockedBlend": 0,
+    "animationState": "idle",
+    "turn": 0,
+    "desiredHeading": 0,
+    "controlHeading": 0,
+    "inputActive": false,
+    "collisionActive": false,
+    "celebration": 0
+  },
+  "probes": [
+    {
+      "theta": -18.8,
+      "phi": -20.6,
+      "mappedSurfaceLift": 0.0008,
+      "surfaceLift": 0.0008,
+      "surfaces": [],
+      "nearestObstacles": [
+        {
+          "label": "Alun-Alun: park obstacle",
+          "gap": 6.165407007216038
+        },
+        {
+          "label": "Alun-Alun: park obstacle",
+          "gap": 8.199424077108006
+        },
+        {
+          "label": "Alun-Alun: park obstacle",
+          "gap": 10.202855561293898
+        },
+        {
+          "label": "Alun-Alun: park obstacle",
+          "gap": 10.947387029360463
+        },
+        {
+          "label": "Alun-Alun: park obstacle",
+          "gap": 12.268556276970788
+        }
+      ]
+    },
+    {
+      "theta": -21.8,
+      "phi": -20.6,
+      "mappedSurfaceLift": 0.0008,
+      "surfaceLift": 0.0008,
+      "surfaces": [],
+      "nearestObstacles": [
+        {
+          "label": "Alun-Alun: park obstacle",
+          "gap": 9.00618353128886
+        },
+        {
+          "label": "Alun-Alun: park obstacle",
+          "gap": 9.268614278198854
+        },
+        {
+          "label": "Alun-Alun: park obstacle",
+          "gap": 10.384215646683254
+        },
+        {
+          "label": "Alun-Alun: park obstacle",
+          "gap": 11.17023044452335
+        },
+        {
+          "label": "Alun-Alun: park obstacle",
+          "gap": 13.18296760561604
+        }
+      ]
+    },
+    {
+      "theta": -23.2,
+      "phi": -20.6,
+      "mappedSurfaceLift": 0.0008,
+      "surfaceLift": 0.0008,
+      "surfaces": [],
+      "nearestObstacles": [
+        {
+          "label": "Alun-Alun: park obstacle",
+          "gap": 7.868641370016379
+        },
+        {
+          "label": "Alun-Alun: park obstacle",
+          "gap": 9.121790681877236
+        },
+        {
+          "label": "Alun-Alun: park obstacle",
+          "gap": 10.36246031394106
+        },
+        {
+          "label": "Alun-Alun: park obstacle",
+          "gap": 12.561333933043601
+        },
+        {
+          "label": "Alun-Alun: park obstacle",
+          "gap": 14.576467629364956
+        }
+      ]
+    },
+    {
+      "theta": -22.6,
+      "phi": -21.14,
+      "mappedSurfaceLift": 0.0008,
+      "surfaceLift": 0.0008,
+      "surfaces": [],
+      "nearestObstacles": [
+        {
+          "label": "Alun-Alun: park obstacle",
+          "gap": 8.46527971676914
+        },
+        {
+          "label": "Alun-Alun: park obstacle",
+          "gap": 9.661547202325645
+        },
+        {
+          "label": "Alun-Alun: park obstacle",
+          "gap": 9.905195975433994
+        },
+        {
+          "label": "Alun-Alun: park obstacle",
+          "gap": 11.91674711895964
+        },
+        {
+          "label": "Alun-Alun: park obstacle",
+          "gap": 13.93787792606481
+        }
+      ]
+    },
+    {
+      "theta": -16,
+      "phi": -20.6,
+      "mappedSurfaceLift": 0.0008,
+      "surfaceLift": 0.0008,
+      "surfaces": [],
+      "nearestObstacles": [
+        {
+          "label": "Alun-Alun: park obstacle",
+          "gap": 3.741538885737162
+        },
+        {
+          "label": "Alun-Alun: park obstacle",
+          "gap": 5.455260089482082
+        },
+        {
+          "label": "Alun-Alun: park obstacle",
+          "gap": 7.435746380141013
+        },
+        {
+          "label": "Alun-Alun: park obstacle",
+          "gap": 8.467753627812824
+        },
+        {
+          "label": "Alun-Alun: park obstacle",
+          "gap": 11.047119379443652
+        }
+      ]
+    },
+    {
+      "theta": -12,
+      "phi": -20.6,
+      "mappedSurfaceLift": 0.0008,
+      "surfaceLift": 0.0008,
+      "surfaces": [],
+      "nearestObstacles": [
+        {
+          "label": "Alun-Alun: park obstacle",
+          "gap": 1.8421301791659652
+        },
+        {
+          "label": "Alun-Alun: park obstacle",
+          "gap": 2.349999940358601
+        },
+        {
+          "label": "Alun-Alun: park obstacle",
+          "gap": 3.571283740831273
+        },
+        {
+          "label": "Alun-Alun: park obstacle",
+          "gap": 5.482796568920502
+        },
+        {
+          "label": "Alun-Alun: park obstacle",
+          "gap": 7.079195647932229
+        }
+      ]
+    }
+  ]
+}

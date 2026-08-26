@@ -1,0 +1,13 @@
+Total messages: 4 (Errors: 1, Warnings: 1)
+
+[DEBUG] [vite] connecting... @ http://127.0.0.1:8104/@vite/client:732
+[DEBUG] [vite] connected. @ http://127.0.0.1:8104/@vite/client:826
+[WARNING] [.WebGL-0xd4c00149a00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels @ http://127.0.0.1:8104/:0
+ReferenceError: placeOnPlanet is not defined
+    at addAlunAlunLesehanBlock (http://127.0.0.1:8104/src/features/landmarks/alun-alun-lesehan.js:744:5)
+    at addAlunAlunModel (http://127.0.0.1:8104/src/features/landmarks/alun-alun.js?t=1787384977237:1193:5)
+    at createSitubondoLandmark (http://127.0.0.1:8104/src/features/landmarks/populate-stops.js?t=1787384977265:131:31)
+    at createHouse (http://127.0.0.1:8104/src/features/landmarks/populate-stops.js?t=1787384977265:201:7)
+    at Array.forEach (<anonymous>)
+    at populateStops (http://127.0.0.1:8104/src/features/landmarks/populate-stops.js?t=1787384977265:435:9)
+    at http://127.0.0.1:8104/src/app/game.js?t=1787384977265:658:29

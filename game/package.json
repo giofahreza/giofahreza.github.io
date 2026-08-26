@@ -1,12 +1,16 @@
 {
-  "name": "tiny-messenger",
+  "name": "situbondo-messenger",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
-    "preview": "vite preview --host 0.0.0.0"
+    "preview": "vite preview --host 0.0.0.0",
+    "map:refresh": "node scripts/fetch-situbondo-map.mjs",
+    "map:validate": "node scripts/validate-situbondo-map.mjs",
+    "postmap:validate": "npm run traffic:validate",
+    "traffic:validate": "node scripts/validate-alun-alun-traffic.mjs"
   },
   "dependencies": {
     "vite": "^7.0.6",
