@@ -13,6 +13,7 @@ import {
   ALUN_ALUN_NORTH_PARK_ROADSIDE_SEAM,
   ALUN_ALUN_NORTH_PARK_ASPHALT_FILL_OUTLINE,
   ALUN_ALUN_PARK_OUTLINE,
+  ALUN_ALUN_PERIMETER_LOCAL_ROAD_OUTER_WIDTH,
   ALUN_ALUN_PEDESTRIAN_ROUTE_DEFINITIONS,
   ALUN_ALUN_ROAD_SURFACE_Y,
   ALUN_ALUN_SOUTH_APPROACH_DEFINITION,
@@ -21,9 +22,13 @@ import {
   ALUN_ALUN_TRAFFIC_MINIMUM_SPEED,
   ALUN_ALUN_TRAFFIC_ROUTE_DEFINITIONS,
   ALUN_ALUN_TRAFFIC_SIGNAL_TIMING,
+  ALUN_ALUN_SOUTH_LOCAL_ROAD_PATH,
   ALUN_ALUN_WEST_PARK_SIDE_CARRIAGEWAY_PATH,
   ALUN_ALUN_WEST_ROAD_OUTER_WIDTH,
   ALUN_ALUN_WEST_SHARED_ROAD_PATH,
+  ALUN_ALUN_WEST_LOCAL_ROAD_PATH,
+  ALUN_ALUN_WEST_SOUTH_PARK_ASPHALT_FILL_OUTLINE,
+  ALUN_ALUN_WEST_SOUTH_PARK_ROADSIDE_SEAM,
   createAlunAlunTrafficFactory,
   createAlunAlunRoadRibbonGeometry,
   createAlunAlunRoadsideBandGeometry,
@@ -2027,7 +2032,10 @@ function validateRoadSurfaceGeometry() {
 
 function validateParkSurfaceOwnership() {
   const asphaltFill = ALUN_ALUN_NORTH_PARK_ASPHALT_FILL_OUTLINE;
+  const perimeterAsphaltFill =
+    ALUN_ALUN_WEST_SOUTH_PARK_ASPHALT_FILL_OUTLINE;
   const roadSeam = ALUN_ALUN_NORTH_PARK_ROADSIDE_SEAM;
+  const perimeterRoadSeam = ALUN_ALUN_WEST_SOUTH_PARK_ROADSIDE_SEAM;
   const parkOutline = ALUN_ALUN_PARK_OUTLINE;
   const southOutline = ALUN_ALUN_SOUTH_APPROACH_DEFINITION.surfaceOutline;
   const surfaceHeights = ALUN_ALUN_PARK_SURFACE_HEIGHTS;
@@ -2184,6 +2192,18 @@ function validateParkSurfaceOwnership() {
     throw new Error("north park asphalt fill does not cover the complete curb strip");
   }
   validateSimplePolygon(
+    "west-south park asphalt fill",
+    perimeterAsphaltFill,
+  );
+  if (
+    perimeterAsphaltFill.length !== 22 ||
+    polygonArea(perimeterAsphaltFill) < 40
+  ) {
+    throw new Error(
+      "west-south park asphalt fill does not cover the complete curb strip",
+    );
+  }
+  validateSimplePolygon(
     "raised ceramic lawn hole",
     ALUN_ALUN_PARK_LAWN_OUTLINE,
   );
@@ -2219,6 +2239,42 @@ function validateParkSurfaceOwnership() {
   ) {
     throw new Error(
       "north park asphalt fill must share the south-approach asphalt edge",
+    );
+  }
+  perimeterRoadSeam.forEach((point, index) => {
+    if (!samePoint(point, perimeterAsphaltFill[index + 1])) {
+      throw new Error(
+        "west-south park asphalt fill must preserve the surveyed road seam",
+      );
+    }
+  });
+  const expectedPerimeterCurbReturn = [7, 6, 5, 4, 3, 2, 1, 0, 14, 13]
+    .map((index) => parkOutline[index]);
+  expectedPerimeterCurbReturn.forEach((point, index) => {
+    if (!samePoint(point, perimeterAsphaltFill[index + 12])) {
+      throw new Error(
+        "west-south park asphalt fill must return along the unchanged blue curb",
+      );
+    }
+  });
+  if (
+    !samePoint(perimeterAsphaltFill[0], asphaltFill[0]) ||
+    !samePoint(perimeterAsphaltFill.at(-1), asphaltFill.at(-1))
+  ) {
+    throw new Error(
+      "west-south park asphalt fill must share the north asphalt edge",
+    );
+  }
+  if (
+    !pointOnSegment(
+      perimeterAsphaltFill[11],
+      southOutline[0],
+      southOutline[1],
+    ) ||
+    !samePoint(perimeterAsphaltFill[12], southOutline[1])
+  ) {
+    throw new Error(
+      "west-south park asphalt fill must share the south-approach asphalt edge",
     );
   }
 
@@ -2289,27 +2345,33 @@ function validateParkSurfaceOwnership() {
     tactilePaverCount += 1;
   }
 
-  asphaltFill.forEach((point, pointIndex) => {
-    if (
-      pointInsidePolygon(point, parkOutline) &&
-      !pointOnBoundary(point, parkOutline)
-    ) {
-      throw new Error(
-        "north park asphalt vertex " + pointIndex + " enters the ceramic park",
-      );
-    }
-  });
-  const asphaltSamples = samplePolygonInteriors(
-    asphaltFill,
-    18,
-    (point, faceIndex) => {
-      if (pointInsidePolygon(point, parkOutline)) {
+  let asphaltSamples = 0;
+  [
+    ["north park asphalt", asphaltFill],
+    ["west-south park asphalt", perimeterAsphaltFill],
+  ].forEach(([label, polygon]) => {
+    polygon.forEach((point, pointIndex) => {
+      if (
+        pointInsidePolygon(point, parkOutline) &&
+        !pointOnBoundary(point, parkOutline)
+      ) {
         throw new Error(
-          "north park asphalt enters the ceramic park in triangle " + faceIndex,
+          label + " vertex " + pointIndex + " enters the ceramic park",
         );
       }
-    },
-  );
+    });
+    asphaltSamples += samplePolygonInteriors(
+      polygon,
+      18,
+      (point, faceIndex) => {
+        if (pointInsidePolygon(point, parkOutline)) {
+          throw new Error(
+            label + " enters the ceramic park in triangle " + faceIndex,
+          );
+        }
+      },
+    );
+  });
 
   const roadGeometries = [
     createAlunAlunRoadRibbonGeometry(
@@ -2319,6 +2381,14 @@ function validateParkSurfaceOwnership() {
     createAlunAlunRoadRibbonGeometry(
       ALUN_ALUN_WEST_PARK_SIDE_CARRIAGEWAY_PATH,
       ALUN_ALUN_WEST_ROAD_OUTER_WIDTH,
+    ),
+    createAlunAlunRoadRibbonGeometry(
+      ALUN_ALUN_WEST_LOCAL_ROAD_PATH,
+      ALUN_ALUN_PERIMETER_LOCAL_ROAD_OUTER_WIDTH,
+    ),
+    createAlunAlunRoadRibbonGeometry(
+      ALUN_ALUN_SOUTH_LOCAL_ROAD_PATH,
+      ALUN_ALUN_PERIMETER_LOCAL_ROAD_OUTER_WIDTH,
     ),
   ];
   const pointInsideTriangle = (point, triangle) => {
@@ -2342,61 +2412,85 @@ function validateParkSurfaceOwnership() {
     }
     return false;
   });
-  const pointInsideExistingAsphalt = (point) =>
+  const pointInsideRoadContext = (point) =>
     pointInsideRoadRibbon(point) || pointInsidePolygon(point, southOutline);
+  const pointInsidePreexistingAsphalt = (point) =>
+    pointInsideRoadContext(point) || pointInsidePolygon(point, asphaltFill);
+  const pointInsideCompleteAsphalt = (point) =>
+    pointInsidePreexistingAsphalt(point) ||
+    pointInsidePolygon(point, perimeterAsphaltFill);
 
   try {
-    // The first nine fill edges meet the existing road ribbons or the unified
-    // south approach. Samples immediately across each edge must have exactly
-    // one owner on either side, never an overlap or a bare-ground crack.
-    for (let segmentIndex = 0; segmentIndex < 9; segmentIndex += 1) {
-      const start = asphaltFill[segmentIndex];
-      const end = asphaltFill[segmentIndex + 1];
-      const deltaNorth = end[0] - start[0];
-      const deltaEast = end[1] - start[1];
-      const length = Math.hypot(deltaNorth, deltaEast);
-      const normal = [-deltaEast / length, deltaNorth / length];
-      const sampleCount = Math.ceil(length / SAMPLE_SPACING);
-      for (let sampleIndex = 0; sampleIndex < sampleCount; sampleIndex += 1) {
-        const amount = (sampleIndex + 0.5) / sampleCount;
-        const midpoint = [
-          start[0] + deltaNorth * amount,
-          start[1] + deltaEast * amount,
-        ];
-        const firstSample = [
-          midpoint[0] + normal[0] * 0.002,
-          midpoint[1] + normal[1] * 0.002,
-        ];
-        const secondSample = [
-          midpoint[0] - normal[0] * 0.002,
-          midpoint[1] - normal[1] * 0.002,
-        ];
-        const firstInFill = pointInsidePolygon(firstSample, asphaltFill);
-        const secondInFill = pointInsidePolygon(secondSample, asphaltFill);
-        const firstInRoad = pointInsideExistingAsphalt(firstSample);
-        const secondInRoad = pointInsideExistingAsphalt(secondSample);
-        if (
-          firstInFill === secondInFill ||
-          firstInRoad === secondInRoad ||
-          firstInFill === firstInRoad ||
-          secondInFill === secondInRoad
-        ) {
-          throw new Error(
-            "north park asphalt joins an existing road incorrectly at segment " +
-              segmentIndex +
-              ", sample " +
-              sampleIndex,
-          );
+    const validateAsphaltJoin = (
+      label,
+      fill,
+      existingAsphaltContains,
+      segmentCount,
+    ) => {
+      // Samples immediately across every road-facing edge must have exactly
+      // one owner on either side, never an overlap or a bare-ground crack.
+      for (let segmentIndex = 0; segmentIndex < segmentCount; segmentIndex += 1) {
+        const start = fill[segmentIndex];
+        const end = fill[segmentIndex + 1];
+        const deltaNorth = end[0] - start[0];
+        const deltaEast = end[1] - start[1];
+        const length = Math.hypot(deltaNorth, deltaEast);
+        const normal = [-deltaEast / length, deltaNorth / length];
+        const sampleCount = Math.ceil(length / SAMPLE_SPACING);
+        for (let sampleIndex = 0; sampleIndex < sampleCount; sampleIndex += 1) {
+          const amount = (sampleIndex + 0.5) / sampleCount;
+          const midpoint = [
+            start[0] + deltaNorth * amount,
+            start[1] + deltaEast * amount,
+          ];
+          const firstSample = [
+            midpoint[0] + normal[0] * 0.002,
+            midpoint[1] + normal[1] * 0.002,
+          ];
+          const secondSample = [
+            midpoint[0] - normal[0] * 0.002,
+            midpoint[1] - normal[1] * 0.002,
+          ];
+          const firstInFill = pointInsidePolygon(firstSample, fill);
+          const secondInFill = pointInsidePolygon(secondSample, fill);
+          const firstInRoad = existingAsphaltContains(firstSample);
+          const secondInRoad = existingAsphaltContains(secondSample);
+          if (
+            firstInFill === secondInFill ||
+            firstInRoad === secondInRoad ||
+            firstInFill === firstInRoad ||
+            secondInFill === secondInRoad
+          ) {
+            throw new Error(
+              label +
+                " joins existing asphalt incorrectly at segment " +
+                segmentIndex +
+                ", sample " +
+                sampleIndex,
+            );
+          }
         }
       }
-    }
+    };
+    validateAsphaltJoin(
+      "north park asphalt",
+      asphaltFill,
+      pointInsideRoadContext,
+      9,
+    );
+    validateAsphaltJoin(
+      "west-south park asphalt",
+      perimeterAsphaltFill,
+      pointInsidePreexistingAsphalt,
+      12,
+    );
 
-    // Dense samples across the full visible blue diagonal encode the requested
+    // Dense samples around all fifteen blue curb edges encode the requested
     // ownership rule: ceramic on the park side, asphalt on the exterior side.
     let curbSamples = 0;
-    [11, 12].forEach((edgeIndex) => {
+    parkOutline.forEach((_, edgeIndex) => {
       const curbStart = parkOutline[edgeIndex];
-      const curbEnd = parkOutline[edgeIndex + 1];
+      const curbEnd = parkOutline[(edgeIndex + 1) % parkOutline.length];
       const deltaNorth = curbEnd[0] - curbStart[0];
       const deltaEast = curbEnd[1] - curbStart[1];
       const curbLength = Math.hypot(deltaNorth, deltaEast);
@@ -2429,10 +2523,8 @@ function validateParkSurfaceOwnership() {
         const ceramicSample = firstInPark ? firstSample : secondSample;
         const roadSample = firstInPark ? secondSample : firstSample;
         if (
-          pointInsidePolygon(ceramicSample, asphaltFill) ||
-          pointInsideExistingAsphalt(ceramicSample) ||
-          (!pointInsidePolygon(roadSample, asphaltFill) &&
-            !pointInsideExistingAsphalt(roadSample))
+          pointInsideCompleteAsphalt(ceramicSample) ||
+          !pointInsideCompleteAsphalt(roadSample)
         ) {
           throw new Error(
             "blue curb ownership is not ceramic-inside/asphalt-outside at edge " +
@@ -2464,6 +2556,15 @@ function validateParkSurfaceOwnership() {
     if (/polygonOffset\s*:/.test(trafficSource.slice(asphaltStart, asphaltEnd))) {
       throw new Error(
         "custom asphalt must not use a camera-dependent polygon depth offset",
+      );
+    }
+    if (
+      !/const perimeterAsphaltFill = addRoadSurface\(\s*ALUN_ALUN_WEST_SOUTH_PARK_ASPHALT_FILL_OUTLINE,\s*\)/s.test(
+        trafficSource,
+      )
+    ) {
+      throw new Error(
+        "west-south park asphalt fill must render at the shared road surface height",
       );
     }
 

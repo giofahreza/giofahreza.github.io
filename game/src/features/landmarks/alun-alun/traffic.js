@@ -390,6 +390,49 @@ export const ALUN_ALUN_NORTH_PARK_ROADSIDE_SEAM = freezePath([
   [16.9364727922, -1.3327769802],
 ]);
 
+// These two local-road ribbons run around the non-signalised half of the
+// Alun-Alun. Keep their independently surveyed endpoint frames unchanged: a
+// single combined path would move both road edges by roughly 0.13 world units
+// at the south-west bend. The shared exports let the curb infill and validator
+// follow the exact rendered shoulder envelope instead of approximating it.
+export const ALUN_ALUN_PERIMETER_LOCAL_ROAD_CORE_WIDTH = 1.04;
+export const ALUN_ALUN_PERIMETER_LOCAL_ROAD_OUTER_WIDTH =
+  ALUN_ALUN_PERIMETER_LOCAL_ROAD_CORE_WIDTH +
+  Math.min(0.28, ALUN_ALUN_PERIMETER_LOCAL_ROAD_CORE_WIDTH * 0.18);
+export const ALUN_ALUN_WEST_LOCAL_ROAD_PATH = freezePath([
+  [13.32, -19.4],
+  [12.36, -19.26],
+  [-6.32, -15.5],
+  [-17.66, -12.68],
+]);
+export const ALUN_ALUN_SOUTH_LOCAL_ROAD_PATH = freezePath([
+  [-17.66, -12.68],
+  [-18.74, -11.62],
+  [-19.06, -10.52],
+  [-19.06, -7.7],
+  [-17.88, -2.54],
+  [-15.36, 9.92],
+  [-14.44, 13.78],
+  [-12.84, 20.78],
+]);
+
+// Exact park-side union boundary of the two separate local-road shoulders.
+// The middle corner is their clipped envelope intersection, so the infill
+// neither overlaps the road nor leaves a camera-dependent ground sliver.
+export const ALUN_ALUN_WEST_SOUTH_PARK_ROADSIDE_SEAM = freezePath([
+  [12.697182151809947, -18.689704386703575],
+  [12.479511715823326, -18.65815125672561],
+  [-6.188625523299314, -14.90062890721055],
+  [-17.353058449129374, -12.124044805610474],
+  [-18.225095727448945, -11.286265749272465],
+  [-18.448434319731245, -10.470076270998469],
+  [-18.45300027383373, -7.789756851738872],
+  [-17.279496843586397, -2.6660988466929814],
+  [-14.759593097532946, 9.793443643107436],
+  [-13.84228097111075, 13.64130276677708],
+  [-12.622829245777579, 18.97639265543822],
+]);
+
 // Checker paths belong strictly inside the blue-white park curb. The north
 // end of the first path is clipped at its two exact intersections with the
 // long diagonal curb instead of retaining a small ceramic triangle outside.
@@ -576,6 +619,26 @@ export const ALUN_ALUN_NORTH_PARK_ASPHALT_FILL_OUTLINE = freezePath([
   [18.6, 8.7],
   ALUN_ALUN_PARK_OUTLINE[11],
   ALUN_ALUN_PARK_OUTLINE[12],
+  ALUN_ALUN_PARK_OUTLINE[13],
+]);
+
+// Complete the same ceramic-inside/asphalt-outside ownership rule around the
+// nine non-signalised curb edges. The road-facing half follows the existing
+// shoulder union; the return follows the unchanged blue-white curb exactly.
+// The first and final joins are shared with the existing north and south
+// asphalt surfaces, respectively, so this adds no coplanar road overlap.
+export const ALUN_ALUN_WEST_SOUTH_PARK_ASPHALT_FILL_OUTLINE = freezePath([
+  ALUN_ALUN_NORTH_PARK_ASPHALT_FILL_OUTLINE[0],
+  ...ALUN_ALUN_WEST_SOUTH_PARK_ROADSIDE_SEAM,
+  ALUN_ALUN_PARK_OUTLINE[7],
+  ALUN_ALUN_PARK_OUTLINE[6],
+  ALUN_ALUN_PARK_OUTLINE[5],
+  ALUN_ALUN_PARK_OUTLINE[4],
+  ALUN_ALUN_PARK_OUTLINE[3],
+  ALUN_ALUN_PARK_OUTLINE[2],
+  ALUN_ALUN_PARK_OUTLINE[1],
+  ALUN_ALUN_PARK_OUTLINE[0],
+  ALUN_ALUN_PARK_OUTLINE[14],
   ALUN_ALUN_PARK_OUTLINE[13],
 ]);
 
@@ -1142,7 +1205,6 @@ export function createAlunAlunTrafficFactory({
     // 6.2-metre width left only about 5 mm at the eastbound swept envelope.
     const MAIN_CARRIAGEWAY_WIDTH = ALUN_ALUN_WEST_SHARED_ROAD_CORE_WIDTH;
     const NORTH_CROSS_STREET_WIDTH = 1.7;
-    const LOCAL_STREET_WIDTH = 1.04;
     const addExistingRoadPath = (
       points,
       {
@@ -1185,30 +1247,16 @@ export function createAlunAlunTrafficFactory({
         points: ALUN_ALUN_WEST_SHARED_ROAD_PATH,
       },
       {
-        width: LOCAL_STREET_WIDTH,
+        width: ALUN_ALUN_PERIMETER_LOCAL_ROAD_CORE_WIDTH,
         centerLine: false,
         edgeLines: false,
-        points: [
-        [13.32, -19.4],
-        [12.36, -19.26],
-        [-6.32, -15.5],
-        [-17.66, -12.68],
-        ],
+        points: ALUN_ALUN_WEST_LOCAL_ROAD_PATH,
       },
       {
-        width: LOCAL_STREET_WIDTH,
+        width: ALUN_ALUN_PERIMETER_LOCAL_ROAD_CORE_WIDTH,
         centerLine: false,
         edgeLines: false,
-        points: [
-        [-17.66, -12.68],
-        [-18.74, -11.62],
-        [-19.06, -10.52],
-        [-19.06, -7.7],
-        [-17.88, -2.54],
-        [-15.36, 9.92],
-        [-14.44, 13.78],
-        [-12.84, 20.78],
-        ],
+        points: ALUN_ALUN_SOUTH_LOCAL_ROAD_PATH,
       },
       {
         width: MAIN_CARRIAGEWAY_WIDTH,
@@ -1277,6 +1325,11 @@ export function createAlunAlunTrafficFactory({
       ALUN_ALUN_NORTH_PARK_ASPHALT_FILL_OUTLINE,
     );
     parkSideAsphaltFill.name = "North park curb-aligned asphalt fill";
+    const perimeterAsphaltFill = addRoadSurface(
+      ALUN_ALUN_WEST_SOUTH_PARK_ASPHALT_FILL_OUTLINE,
+    );
+    perimeterAsphaltFill.name =
+      "West-south park curb-aligned asphalt fill";
     addExistingRoadPath(
       ALUN_ALUN_JUNCTION_LOOP_PATH,
       {
