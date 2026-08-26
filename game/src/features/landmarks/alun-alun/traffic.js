@@ -361,10 +361,9 @@ export const ALUN_ALUN_SOUTH_CROSSING_DEFINITION = Object.freeze({
 export const ALUN_ALUN_SOUTH_CROSSING_REFUGE =
   ALUN_ALUN_SOUTH_CROSSING_DEFINITION.refuge;
 
-// The north-west checker apron and asphalt share this surveyed road edge.
-// Previously the apron used an independent three-point wedge that covered the
-// entire undivided carriageway; a negative asphalt depth offset then made the
-// buried square road cap pop through only after the camera crossed it.
+// The park-side edge of the western asphalt follows this surveyed road seam.
+// Keep it explicit so the asphalt infill can terminate at the unchanged blue
+// park curb instead of allowing checker paving to spill onto the carriageway.
 export const ALUN_ALUN_WEST_SHARED_ROAD_CORE_WIDTH = 1.32;
 export const ALUN_ALUN_WEST_ROAD_OUTER_WIDTH =
   ALUN_ALUN_WEST_SHARED_ROAD_CORE_WIDTH +
@@ -381,43 +380,46 @@ export const ALUN_ALUN_WEST_PARK_SIDE_CARRIAGEWAY_PATH = freezePath([
   [19.7, 7.96],
   [20.46, 12.08],
 ]);
-// Clip only the part of the original checker apron that intersected the two
-// asphalt ribbons. The middle point is the exact meeting of their independently
-// mitred outer boundaries; the points on either side are where those boundaries
-// enter and leave the original apron. Following the road all the way around the
-// corner would turn the carriageway itself into checker paving.
-export const ALUN_ALUN_NORTH_APRON_ROADSIDE_SEAM = freezePath([
+// Exact park-side boundary chain where the shared western ribbon meets the
+// split carriageway. The middle point is the intersection of their separately
+// mitred outer edges; retaining the two collinear neighbours keeps the asphalt
+// fill locked to both generated ribbon geometries.
+export const ALUN_ALUN_NORTH_PARK_ROADSIDE_SEAM = freezePath([
   [14.234241339, -12.6501676756],
   [16.7921987068, -2.5992356382],
   [16.9364727922, -1.3327769802],
 ]);
-export const ALUN_ALUN_NORTH_PARK_APRON_OUTLINE = freezePath([
-  [13.9, -12.8],
-  ...ALUN_ALUN_NORTH_APRON_ROADSIDE_SEAM,
-  [17.1, 10.85],
-  [16.9, 11.08],
-  [16.48, 11.56],
-  [16.35, 11.71],
-  [15.7, 12.05],
-  [13.8, 9.8],
+
+// Checker paths belong strictly inside the blue-white park curb. The north
+// end of the first path is clipped at its two exact intersections with the
+// long diagonal curb instead of retaining a small ceramic triangle outside.
+export const ALUN_ALUN_INTERIOR_CHECKER_PATH_OUTLINES = Object.freeze([
+  freezePath([
+    [-15, -1.15],
+    [16.2576759062, -1.15],
+    [16.6, 0.2245719178],
+    [16.6, 1.15],
+    [-15, 1.15],
+  ]),
+  freezePath([
+    [-1.2, -13.5],
+    [1.2, -13.5],
+    [1.2, 14.2],
+    [-1.2, 14.2],
+  ]),
 ]);
 
-// Continue the checker footway only through the residual ground strip after
-// the clipped apron leaves the road. Every edge is shared with an existing
-// owner: west-road shoulder, south-approach asphalt, park curb, or the apron
-// above. Keeping this as a separate simple polygon avoids the concave apron
-// triangulation that previously laid checker paving across the carriageway.
-export const ALUN_ALUN_NORTH_PARK_CONTINUATION_BAND_OUTLINE = freezePath([
-  [16.9364727922, -1.3327769802],
-  [17.3563237698, 2.352735246],
-  [18.9421650721, 8.1394872198],
-  [19.4747273835, 11.0303555953],
-  [19.25, 10.65],
-  [18.6, 8.7],
-  [18.01, 9.28],
-  [18.25, 6.85],
-  [16.9777360736, 1.7413374875],
-]);
+// The former tactile row began on the carriageway side of the blue curb.
+// Preserve its original 0.145-unit grid phase, but start at the first paver whose
+// complete footprint is inside the park outline.
+export const ALUN_ALUN_INTERIOR_TACTILE_PAVER_DEFINITION = Object.freeze({
+  north: 14.48,
+  startEast: -7.94,
+  endEast: 10.55,
+  step: 0.145,
+  width: 0.085,
+  depth: 0.13,
+});
 
 // Surveyed east-side park curb. Street View shows the carriageway meeting this
 // checker-paved edge directly, apart from the physical curb/drain itself. Keep
@@ -556,6 +558,26 @@ export const ALUN_ALUN_SOUTH_APPROACH_DEFINITION = Object.freeze({
   junctionWestJoin: southApproachWestBoundary.at(-1),
   junctionEastJoin: southApproachEastBoundary.at(-1),
 });
+
+// The blue-white outline is the ownership boundary: checker ceramic remains
+// on the park side, while this single asphalt polygon fills the complete
+// former exterior apron and continuation wedge. Its road-facing vertices are
+// the exact west-ribbon, split-carriageway and south-approach seams; its final
+// vertices run back along the unchanged park curb. The west cap reaches park
+// outline point 13 so the complete visible diagonal has asphalt outside it,
+// including the strip that the former checker apron left as bare map ground.
+export const ALUN_ALUN_NORTH_PARK_ASPHALT_FILL_OUTLINE = freezePath([
+  [13.2290109128, -16.6],
+  ...ALUN_ALUN_NORTH_PARK_ROADSIDE_SEAM,
+  [17.3563237698, 2.352735246],
+  [18.9421650721, 8.1394872198],
+  [19.4747273835, 11.0303555953],
+  [19.25, 10.65],
+  [18.6, 8.7],
+  ALUN_ALUN_PARK_OUTLINE[11],
+  ALUN_ALUN_PARK_OUTLINE[12],
+  ALUN_ALUN_PARK_OUTLINE[13],
+]);
 
 // Keep the compact junction's custom loop and masking polygon available to
 // validation. The generic OSM loop bends farther west at its south-west nose
@@ -1251,6 +1273,10 @@ export function createAlunAlunTrafficFactory({
       ALUN_ALUN_SOUTH_APPROACH_DEFINITION.surfaceOutline,
     );
     southApproachSurface.name = "South approach unified asphalt surface";
+    const parkSideAsphaltFill = addRoadSurface(
+      ALUN_ALUN_NORTH_PARK_ASPHALT_FILL_OUTLINE,
+    );
+    parkSideAsphaltFill.name = "North park curb-aligned asphalt fill";
     addExistingRoadPath(
       ALUN_ALUN_JUNCTION_LOOP_PATH,
       {

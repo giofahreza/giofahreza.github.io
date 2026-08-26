@@ -3,8 +3,8 @@ import { createAlunAlunCivicFactory } from "./civic.js";
 import { createAlunAlunEastSchoolsFactory } from "./east-schools.js";
 import { createAlunAlunLesehanFactory } from "./lesehan.js";
 import {
-  ALUN_ALUN_NORTH_PARK_APRON_OUTLINE,
-  ALUN_ALUN_NORTH_PARK_CONTINUATION_BAND_OUTLINE,
+  ALUN_ALUN_INTERIOR_CHECKER_PATH_OUTLINES,
+  ALUN_ALUN_INTERIOR_TACTILE_PAVER_DEFINITION,
   ALUN_ALUN_WEST_MEDIAN_PATH,
   ALUN_ALUN_WEST_MEDIAN_WIDTHS,
   ALUN_ALUN_SOUTH_MEDIAN_PATH,
@@ -1037,25 +1037,10 @@ export function createAlunAlunModelFactory({
       y: 0.07,
     });
 
-    // Broad checker paths and the shallow north entry apron reproduce the
-    // Street View frontage while leaving every route walkable.
-    [
-      [[-15, -1.15], [16.6, -1.15], [16.6, 1.15], [-15, 1.15]],
-      [[-1.2, -13.5], [1.2, -13.5], [1.2, 14.2], [-1.2, 14.2]],
-      ALUN_ALUN_NORTH_PARK_APRON_OUTLINE,
-    ].forEach((points, index) =>
+    // Broad checker paths remain entirely inside the blue-white park curb.
+    // The exterior side is owned by the custom asphalt surface in traffic.js.
+    ALUN_ALUN_INTERIOR_CHECKER_PATH_OUTLINES.forEach((points, index) =>
       addAlunAlunSurface(group, points, 0.052 + index * 0.0005, tileMaterial, 0.6),
-    );
-    // This separately triangulated strip fills only the ground between the
-    // apron and the exact road/curb boundaries. Keep it coplanar with the
-    // adjoining apron: their interiors never overlap and their shared edge
-    // therefore cannot z-fight.
-    addAlunAlunSurface(
-      group,
-      ALUN_ALUN_NORTH_PARK_CONTINUATION_BAND_OUTLINE,
-      0.053,
-      tileMaterial,
-      0.6,
     );
 
     [
@@ -1065,14 +1050,16 @@ export function createAlunAlunModelFactory({
       addAlunAlunSurface(group, points, 0.057 + index * 0.0005, paleStoneMaterial, 2),
     );
 
-    // The Street View frontage is checker-paved from lawn to curb. A narrow
-    // segmented tactile strip runs parallel to the road through that apron.
-    for (let east = -12.0; east <= 10.55; east += 0.145) {
+    // Keep the tactile strip wholly on the ceramic side of the blue curb.
+    const tactilePavers = ALUN_ALUN_INTERIOR_TACTILE_PAVER_DEFINITION;
+    for (let index = 0; ; index += 1) {
+      const east = tactilePavers.startEast + index * tactilePavers.step;
+      if (east > tactilePavers.endEast + 1e-9) break;
       const tactilePaver = new THREE.Mesh(
-        roundedBox(0.085, 0.018, 0.13, 0.006),
+        roundedBox(tactilePavers.width, 0.018, tactilePavers.depth, 0.006),
         tactileStoneMaterial,
       );
-      tactilePaver.position.set(14.48, 0.067, east);
+      tactilePaver.position.set(tactilePavers.north, 0.067, east);
       group.add(tactilePaver);
     }
 

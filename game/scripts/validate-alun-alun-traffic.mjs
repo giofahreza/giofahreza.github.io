@@ -2,9 +2,10 @@ import { readFileSync } from "node:fs";
 import * as THREE from "three";
 import { createAmbientAnimationSystem } from "../src/animation/ambient.js";
 import {
-  ALUN_ALUN_NORTH_APRON_ROADSIDE_SEAM,
-  ALUN_ALUN_NORTH_PARK_APRON_OUTLINE,
-  ALUN_ALUN_NORTH_PARK_CONTINUATION_BAND_OUTLINE,
+  ALUN_ALUN_INTERIOR_CHECKER_PATH_OUTLINES,
+  ALUN_ALUN_INTERIOR_TACTILE_PAVER_DEFINITION,
+  ALUN_ALUN_NORTH_PARK_ROADSIDE_SEAM,
+  ALUN_ALUN_NORTH_PARK_ASPHALT_FILL_OUTLINE,
   ALUN_ALUN_PARK_OUTLINE,
   ALUN_ALUN_PEDESTRIAN_ROUTE_DEFINITIONS,
   ALUN_ALUN_SOUTH_APPROACH_DEFINITION,
@@ -2014,44 +2015,26 @@ function validateRoadSurfaceGeometry() {
   }
 }
 
-function validateWestApronRoadSeam() {
-  const seam = ALUN_ALUN_NORTH_APRON_ROADSIDE_SEAM;
-  const apron = ALUN_ALUN_NORTH_PARK_APRON_OUTLINE;
-  const continuation = ALUN_ALUN_NORTH_PARK_CONTINUATION_BAND_OUTLINE;
+function validateParkSurfaceOwnership() {
+  const asphaltFill = ALUN_ALUN_NORTH_PARK_ASPHALT_FILL_OUTLINE;
+  const roadSeam = ALUN_ALUN_NORTH_PARK_ROADSIDE_SEAM;
+  const parkOutline = ALUN_ALUN_PARK_OUTLINE;
+  const southOutline = ALUN_ALUN_SOUTH_APPROACH_DEFINITION.surfaceOutline;
   const samePoint = (first, second, epsilon = 1e-8) =>
     Math.hypot(first[0] - second[0], first[1] - second[1]) <= epsilon;
-  if (
-    seam.length !== 3 ||
-    apron.length < 8 ||
-    polygonArea(apron) < 1 ||
-    continuation.length !== 9 ||
-    polygonArea(continuation) < 1
-  ) {
-    throw new Error("north-west checker apron needs one usable 3-point road seam");
-  }
-  const seamStartIndex = apron.findIndex((point) => samePoint(point, seam[0]));
-  if (
-    seamStartIndex < 1 ||
-    seamStartIndex + seam.length >= apron.length ||
-    seam.some(
-      (point, index) => !samePoint(point, apron[seamStartIndex + index]),
-    )
-  ) {
-    throw new Error("north-west checker apron must contain the complete road seam");
-  }
-  if (!samePoint(continuation[0], seam.at(-1))) {
-    throw new Error("north-west continuation must begin at the clipped apron exit");
-  }
-
   const cross = (start, end, point) =>
     (end[0] - start[0]) * (point[1] - start[1]) -
     (end[1] - start[1]) * (point[0] - start[0]);
-  const pointOnSegment = (point, start, end) =>
-    Math.abs(cross(start, end, point)) <= 1e-8 &&
-    point[0] >= Math.min(start[0], end[0]) - 1e-9 &&
-    point[0] <= Math.max(start[0], end[0]) + 1e-9 &&
-    point[1] >= Math.min(start[1], end[1]) - 1e-9 &&
-    point[1] <= Math.max(start[1], end[1]) + 1e-9;
+  const pointOnSegment = (point, start, end, epsilon = 1e-8) =>
+    Math.abs(cross(start, end, point)) <= epsilon &&
+    point[0] >= Math.min(start[0], end[0]) - epsilon &&
+    point[0] <= Math.max(start[0], end[0]) + epsilon &&
+    point[1] >= Math.min(start[1], end[1]) - epsilon &&
+    point[1] <= Math.max(start[1], end[1]) + epsilon;
+  const pointOnBoundary = (point, polygon, epsilon = 1e-8) =>
+    polygon.some((start, index) =>
+      pointOnSegment(point, start, polygon[(index + 1) % polygon.length], epsilon),
+    );
   const segmentsIntersect = (firstStart, firstEnd, secondStart, secondEnd) => {
     const firstCross = cross(firstStart, firstEnd, secondStart);
     const secondCross = cross(firstStart, firstEnd, secondEnd);
@@ -2072,10 +2055,20 @@ function validateWestApronRoadSeam() {
       pointOnSegment(firstEnd, secondStart, secondEnd)
     );
   };
-  [
-    ["north-west checker apron", apron],
-    ["north-west continuation band", continuation],
-  ].forEach(([label, polygon]) => {
+  const validateSimplePolygon = (label, polygon) => {
+    if (
+      !Array.isArray(polygon) ||
+      polygon.length < 3 ||
+      polygonArea(polygon) < 0.01 ||
+      polygon.some(
+        (point) =>
+          !Array.isArray(point) ||
+          point.length !== 2 ||
+          !point.every(Number.isFinite),
+      )
+    ) {
+      throw new Error(label + " must be one finite, usable polygon");
+    }
     for (let first = 0; first < polygon.length; first += 1) {
       const firstEnd = (first + 1) % polygon.length;
       for (let second = first + 1; second < polygon.length; second += 1) {
@@ -2094,39 +2087,162 @@ function validateWestApronRoadSeam() {
           )
         ) {
           throw new Error(
-            `${label} self-intersects at edges ${first}/${second}`,
+            label + " self-intersects at edges " + first + "/" + second,
           );
         }
       }
     }
+  };
+  const samplePolygonInteriors = (polygon, subdivisions, callback) => {
+    const vertices = polygon.map(
+      ([north, east]) => new THREE.Vector2(north, east),
+    );
+    const faces = THREE.ShapeUtils.triangulateShape(vertices, []);
+    let sampleCount = 0;
+    faces.forEach((face, faceIndex) => {
+      const triangle = face.map((vertexIndex) => polygon[vertexIndex]);
+      for (let firstWeight = 1; firstWeight < subdivisions; firstWeight += 1) {
+        for (
+          let secondWeight = 1;
+          secondWeight < subdivisions - firstWeight;
+          secondWeight += 1
+        ) {
+          const thirdWeight = subdivisions - firstWeight - secondWeight;
+          const point = [
+            (triangle[0][0] * firstWeight +
+              triangle[1][0] * secondWeight +
+              triangle[2][0] * thirdWeight) /
+              subdivisions,
+            (triangle[0][1] * firstWeight +
+              triangle[1][1] * secondWeight +
+              triangle[2][1] * thirdWeight) /
+              subdivisions,
+          ];
+          callback(point, faceIndex);
+          sampleCount += 1;
+        }
+      }
+    });
+    return sampleCount;
+  };
+
+  validateSimplePolygon("north park asphalt fill", asphaltFill);
+  if (asphaltFill.length !== 12 || polygonArea(asphaltFill) < 15) {
+    throw new Error("north park asphalt fill does not cover the complete curb strip");
+  }
+  roadSeam.forEach((point, index) => {
+    if (!samePoint(point, asphaltFill[index + 1])) {
+      throw new Error("north park asphalt fill must preserve the surveyed road seam");
+    }
+  });
+  if (
+    !samePoint(asphaltFill[9], parkOutline[11]) ||
+    !samePoint(asphaltFill[10], parkOutline[12]) ||
+    !samePoint(asphaltFill[11], parkOutline[13])
+  ) {
+    throw new Error(
+      "north park asphalt fill must return along the unchanged blue curb",
+    );
+  }
+  if (
+    !pointOnSegment(asphaltFill[6], southOutline[7], southOutline[8]) ||
+    !samePoint(asphaltFill[7], southOutline[7]) ||
+    !samePoint(asphaltFill[8], southOutline[6]) ||
+    !samePoint(asphaltFill[9], southOutline[5])
+  ) {
+    throw new Error(
+      "north park asphalt fill must share the south-approach asphalt edge",
+    );
+  }
+
+  let ceramicSamples = 0;
+  ALUN_ALUN_INTERIOR_CHECKER_PATH_OUTLINES.forEach((polygon, polygonIndex) => {
+    const label = "interior checker path " + polygonIndex;
+    validateSimplePolygon(label, polygon);
+    polygon.forEach((point, pointIndex) => {
+      if (
+        !pointInsidePolygon(point, parkOutline) &&
+        !pointOnBoundary(point, parkOutline)
+      ) {
+        throw new Error(
+          label + " vertex " + pointIndex + " crosses outside the blue curb",
+        );
+      }
+    });
+    ceramicSamples += samplePolygonInteriors(
+      polygon,
+      16,
+      (point, faceIndex) => {
+        if (
+          !pointInsidePolygon(point, parkOutline) &&
+          !pointOnBoundary(point, parkOutline)
+        ) {
+          throw new Error(
+            label + " leaves the blue curb in triangle " + faceIndex,
+          );
+        }
+      },
+    );
   });
 
-  const apronExitEdge = [seam.at(-1), apron[seamStartIndex + seam.length]];
+  const tactilePavers = ALUN_ALUN_INTERIOR_TACTILE_PAVER_DEFINITION;
   if (
-    !pointOnSegment(continuation.at(-1), ...apronExitEdge) ||
-    !samePoint(continuation[6], ALUN_ALUN_PARK_OUTLINE[11]) ||
-    !samePoint(continuation[7], ALUN_ALUN_PARK_OUTLINE[12]) ||
-    !pointOnSegment(
-      continuation[8],
-      ALUN_ALUN_PARK_OUTLINE[12],
-      ALUN_ALUN_PARK_OUTLINE[13],
-    )
+    !Object.values(tactilePavers).every(Number.isFinite) ||
+    tactilePavers.step <= 0 ||
+    tactilePavers.width <= 0 ||
+    tactilePavers.depth <= 0 ||
+    tactilePavers.startEast > tactilePavers.endEast
   ) {
-    throw new Error(
-      "north-west continuation must terminate on the apron and park curb",
-    );
+    throw new Error("interior tactile paver definition is invalid");
   }
-  const southOutline = ALUN_ALUN_SOUTH_APPROACH_DEFINITION.surfaceOutline;
-  if (
-    !pointOnSegment(continuation[3], southOutline[7], southOutline[8]) ||
-    !samePoint(continuation[4], southOutline[7]) ||
-    !samePoint(continuation[5], southOutline[6]) ||
-    !samePoint(continuation[6], southOutline[5])
-  ) {
-    throw new Error(
-      "north-west continuation must share the south-approach asphalt edge",
+  let tactilePaverCount = 0;
+  for (let index = 0; ; index += 1) {
+    const east = tactilePavers.startEast + index * tactilePavers.step;
+    if (east > tactilePavers.endEast + 1e-9) break;
+    const corners = [-1, 1].flatMap((northSide) =>
+      [-1, 1].map((eastSide) => [
+        tactilePavers.north + northSide * tactilePavers.width * 0.5,
+        east + eastSide * tactilePavers.depth * 0.5,
+      ]),
     );
+    corners.forEach((corner, cornerIndex) => {
+      if (
+        !pointInsidePolygon(corner, parkOutline) &&
+        !pointOnBoundary(corner, parkOutline)
+      ) {
+        throw new Error(
+          "tactile paver " +
+            index +
+            " corner " +
+            cornerIndex +
+            " crosses outside the blue curb",
+        );
+      }
+    });
+    tactilePaverCount += 1;
   }
+
+  asphaltFill.forEach((point, pointIndex) => {
+    if (
+      pointInsidePolygon(point, parkOutline) &&
+      !pointOnBoundary(point, parkOutline)
+    ) {
+      throw new Error(
+        "north park asphalt vertex " + pointIndex + " enters the ceramic park",
+      );
+    }
+  });
+  const asphaltSamples = samplePolygonInteriors(
+    asphaltFill,
+    18,
+    (point, faceIndex) => {
+      if (pointInsidePolygon(point, parkOutline)) {
+        throw new Error(
+          "north park asphalt enters the ceramic park in triangle " + faceIndex,
+        );
+      }
+    },
+  );
 
   const roadGeometries = [
     createAlunAlunRoadRibbonGeometry(
@@ -2147,7 +2263,7 @@ function validateWestApronRoadSeam() {
       (first <= 1e-8 && second <= 1e-8 && third <= 1e-8)
     );
   };
-  const pointInsideRoad = (point) => roadGeometries.some((geometry) => {
+  const pointInsideRoadRibbon = (point) => roadGeometries.some((geometry) => {
     const positions = geometry.getAttribute("position");
     const indices = geometry.getIndex();
     for (let offset = 0; offset < indices.count; offset += 3) {
@@ -2159,16 +2275,23 @@ function validateWestApronRoadSeam() {
     }
     return false;
   });
+  const pointInsideExistingAsphalt = (point) =>
+    pointInsideRoadRibbon(point) || pointInsidePolygon(point, southOutline);
 
   try {
-    seam.slice(0, -1).forEach((start, segmentIndex) => {
-      const end = seam[segmentIndex + 1];
+    // The first nine fill edges meet the existing road ribbons or the unified
+    // south approach. Samples immediately across each edge must have exactly
+    // one owner on either side, never an overlap or a bare-ground crack.
+    for (let segmentIndex = 0; segmentIndex < 9; segmentIndex += 1) {
+      const start = asphaltFill[segmentIndex];
+      const end = asphaltFill[segmentIndex + 1];
       const deltaNorth = end[0] - start[0];
       const deltaEast = end[1] - start[1];
       const length = Math.hypot(deltaNorth, deltaEast);
       const normal = [-deltaEast / length, deltaNorth / length];
-      for (let sampleIndex = 1; sampleIndex < 10; sampleIndex += 1) {
-        const amount = sampleIndex / 10;
+      const sampleCount = Math.ceil(length / SAMPLE_SPACING);
+      for (let sampleIndex = 0; sampleIndex < sampleCount; sampleIndex += 1) {
+        const amount = (sampleIndex + 0.5) / sampleCount;
         const midpoint = [
           start[0] + deltaNorth * amount,
           start[1] + deltaEast * amount,
@@ -2181,118 +2304,108 @@ function validateWestApronRoadSeam() {
           midpoint[0] - normal[0] * 0.002,
           midpoint[1] - normal[1] * 0.002,
         ];
-        const firstInApron = pointInsidePolygon(firstSample, apron);
-        const secondInApron = pointInsidePolygon(secondSample, apron);
-        const firstInRoad = pointInsideRoad(firstSample);
-        const secondInRoad = pointInsideRoad(secondSample);
+        const firstInFill = pointInsidePolygon(firstSample, asphaltFill);
+        const secondInFill = pointInsidePolygon(secondSample, asphaltFill);
+        const firstInRoad = pointInsideExistingAsphalt(firstSample);
+        const secondInRoad = pointInsideExistingAsphalt(secondSample);
         if (
-          firstInApron === secondInApron ||
+          firstInFill === secondInFill ||
           firstInRoad === secondInRoad ||
-          firstInApron === firstInRoad ||
-          secondInApron === secondInRoad
+          firstInFill === firstInRoad ||
+          secondInFill === secondInRoad
         ) {
           throw new Error(
-            `north-west asphalt/checker seam overlaps or gaps at segment ` +
-              `${segmentIndex}, sample ${sampleIndex}`,
+            "north park asphalt joins an existing road incorrectly at segment " +
+              segmentIndex +
+              ", sample " +
+              sampleIndex,
           );
         }
       }
-    });
+    }
 
-    const continuationRoadEdge = continuation.slice(0, 4);
-    continuationRoadEdge.slice(0, -1).forEach((start, segmentIndex) => {
-      const end = continuationRoadEdge[segmentIndex + 1];
-      const deltaNorth = end[0] - start[0];
-      const deltaEast = end[1] - start[1];
-      const length = Math.hypot(deltaNorth, deltaEast);
-      const normal = [-deltaEast / length, deltaNorth / length];
-      for (let sampleIndex = 1; sampleIndex < 10; sampleIndex += 1) {
-        const amount = sampleIndex / 10;
+    // Dense samples across the full visible blue diagonal encode the requested
+    // ownership rule: ceramic on the park side, asphalt on the exterior side.
+    let curbSamples = 0;
+    [11, 12].forEach((edgeIndex) => {
+      const curbStart = parkOutline[edgeIndex];
+      const curbEnd = parkOutline[edgeIndex + 1];
+      const deltaNorth = curbEnd[0] - curbStart[0];
+      const deltaEast = curbEnd[1] - curbStart[1];
+      const curbLength = Math.hypot(deltaNorth, deltaEast);
+      const normal = [-deltaEast / curbLength, deltaNorth / curbLength];
+      const sampleCount = Math.ceil(curbLength / SAMPLE_SPACING);
+      for (let sampleIndex = 0; sampleIndex < sampleCount; sampleIndex += 1) {
+        const amount = (sampleIndex + 0.5) / sampleCount;
         const midpoint = [
-          start[0] + deltaNorth * amount,
-          start[1] + deltaEast * amount,
+          curbStart[0] + deltaNorth * amount,
+          curbStart[1] + deltaEast * amount,
         ];
         const firstSample = [
-          midpoint[0] + normal[0] * 0.002,
-          midpoint[1] + normal[1] * 0.002,
+          midpoint[0] + normal[0] * 0.01,
+          midpoint[1] + normal[1] * 0.01,
         ];
         const secondSample = [
-          midpoint[0] - normal[0] * 0.002,
-          midpoint[1] - normal[1] * 0.002,
+          midpoint[0] - normal[0] * 0.01,
+          midpoint[1] - normal[1] * 0.01,
         ];
-        const firstInBand = pointInsidePolygon(firstSample, continuation);
-        const secondInBand = pointInsidePolygon(secondSample, continuation);
-        const firstInRoad = pointInsideRoad(firstSample);
-        const secondInRoad = pointInsideRoad(secondSample);
-        if (
-          firstInBand === secondInBand ||
-          firstInRoad === secondInRoad ||
-          firstInBand === firstInRoad ||
-          secondInBand === secondInRoad
-        ) {
+        const firstInPark = pointInsidePolygon(firstSample, parkOutline);
+        const secondInPark = pointInsidePolygon(secondSample, parkOutline);
+        if (firstInPark === secondInPark) {
           throw new Error(
-            `north-west continuation/road edge overlaps or gaps at segment ` +
-              `${segmentIndex}, sample ${sampleIndex}`,
+            "blue curb does not separate park and road at edge " +
+              edgeIndex +
+              ", sample " +
+              sampleIndex,
           );
         }
+        const ceramicSample = firstInPark ? firstSample : secondSample;
+        const roadSample = firstInPark ? secondSample : firstSample;
+        if (
+          pointInsidePolygon(ceramicSample, asphaltFill) ||
+          pointInsideExistingAsphalt(ceramicSample) ||
+          (!pointInsidePolygon(roadSample, asphaltFill) &&
+            !pointInsideExistingAsphalt(roadSample))
+        ) {
+          throw new Error(
+            "blue curb ownership is not ceramic-inside/asphalt-outside at edge " +
+              edgeIndex +
+              ", sample " +
+              sampleIndex,
+          );
+        }
+        curbSamples += 1;
       }
     });
 
-    const continuationVertices = continuation.map(
-      ([north, east]) => new THREE.Vector2(north, east),
-    );
-    const continuationTriangles = THREE.ShapeUtils.triangulateShape(
-      continuationVertices,
-      [],
-    );
-    continuationTriangles.forEach((face, faceIndex) => {
-      const triangle = face.map((vertexIndex) => continuation[vertexIndex]);
-      const subdivisions = 10;
-      for (let firstWeight = 1; firstWeight < subdivisions; firstWeight += 1) {
-        for (
-          let secondWeight = 1;
-          secondWeight < subdivisions - firstWeight;
-          secondWeight += 1
-        ) {
-          const thirdWeight = subdivisions - firstWeight - secondWeight;
-          const point = [
-            (triangle[0][0] * firstWeight +
-              triangle[1][0] * secondWeight +
-              triangle[2][0] * thirdWeight) /
-              subdivisions,
-            (triangle[0][1] * firstWeight +
-              triangle[1][1] * secondWeight +
-              triangle[2][1] * thirdWeight) /
-              subdivisions,
-          ];
-          if (
-            pointInsideRoad(point) ||
-            pointInsidePolygon(point, apron) ||
-            pointInsidePolygon(point, ALUN_ALUN_PARK_OUTLINE) ||
-            pointInsidePolygon(point, southOutline)
-          ) {
-            throw new Error(
-              `north-west continuation overlaps an owned surface in triangle ` +
-                `${faceIndex}`,
-            );
-          }
-        }
-      }
-    });
+    const landmarkSource = readFileSync(PRODUCTION_FLEET_SOURCE_URL, "utf8");
+    if (
+      !/addAlunAlunSurface\(group, ALUN_ALUN_PARK_OUTLINE, [^\n]+tileMaterial/.test(
+        landmarkSource,
+      )
+    ) {
+      throw new Error("the park interior must retain its ceramic base surface");
+    }
+    const trafficSource = readFileSync(TRAFFIC_SOURCE_URL, "utf8");
+    const asphaltStart = trafficSource.indexOf("const asphaltSurface =");
+    const asphaltEnd = trafficSource.indexOf("const asphaltTrim =", asphaltStart);
+    if (asphaltStart < 0 || asphaltEnd < 0) {
+      throw new Error("could not locate the custom asphalt material definition");
+    }
+    if (/polygonOffset\s*:/.test(trafficSource.slice(asphaltStart, asphaltEnd))) {
+      throw new Error(
+        "custom asphalt must not use a camera-dependent polygon depth offset",
+      );
+    }
+
+    return {
+      asphaltSamples,
+      ceramicSamples,
+      curbSamples,
+      tactilePaverCount,
+    };
   } finally {
     roadGeometries.forEach((geometry) => geometry.dispose());
-  }
-
-  const trafficSource = readFileSync(TRAFFIC_SOURCE_URL, "utf8");
-  const asphaltStart = trafficSource.indexOf("const asphaltSurface =");
-  const asphaltEnd = trafficSource.indexOf("const asphaltTrim =", asphaltStart);
-  if (asphaltStart < 0 || asphaltEnd < 0) {
-    throw new Error("could not locate the custom asphalt material definition");
-  }
-  if (/polygonOffset\s*:/.test(trafficSource.slice(asphaltStart, asphaltEnd))) {
-    throw new Error(
-      "custom asphalt must not use a camera-dependent polygon depth offset",
-    );
   }
 }
 
@@ -2483,10 +2596,11 @@ function validateSouthApproachSurfaceDefinition() {
 let routes;
 let pedestrianRoutes;
 let productionFleetConfigs;
+let parkSurfaceOwnershipResult;
 try {
   validateSignalTiming();
   validateRoadSurfaceGeometry();
-  validateWestApronRoadSeam();
+  parkSurfaceOwnershipResult = validateParkSurfaceOwnership();
   validateSouthApproachSurfaceDefinition();
   validateCollections(
     ALUN_ALUN_TRAFFIC_ROUTE_DEFINITIONS,
@@ -2876,6 +2990,13 @@ if (
   const closestLabel =
     closestClearanceDetail?.obstacle.definition.label ?? "unknown obstacle";
   console.log("Alun-Alun traffic validation passed");
+  console.log(
+    `Blue-curb surface ownership: ceramic inside / asphalt outside; ` +
+      `${parkSurfaceOwnershipResult.curbSamples} curb samples, ` +
+      `${parkSurfaceOwnershipResult.ceramicSamples} ceramic samples, ` +
+      `${parkSurfaceOwnershipResult.asphaltSamples} asphalt samples, ` +
+      `${parkSurfaceOwnershipResult.tactilePaverCount} interior tactile pavers`,
+  );
   console.log(
     `Routes: ${routes.length}; collision boxes: ${obstacles.length}; ` +
       `route samples: ${checkedSamples.toLocaleString("en-US")}`,
