@@ -64,6 +64,27 @@ function offsetAlunAlunRoadPath(points, offsetOrOffsets) {
   });
 }
 
+function intersectAlunAlunLines(startA, endA, startB, endB) {
+  const deltaANorth = endA[0] - startA[0];
+  const deltaAEast = endA[1] - startA[1];
+  const deltaBNorth = endB[0] - startB[0];
+  const deltaBEast = endB[1] - startB[1];
+  const denominator =
+    deltaANorth * deltaBEast - deltaAEast * deltaBNorth;
+  if (Math.abs(denominator) < 1e-12) {
+    throw new Error("Cannot miter parallel Alun-Alun frontage lines");
+  }
+  const startDeltaNorth = startB[0] - startA[0];
+  const startDeltaEast = startB[1] - startA[1];
+  const amountA =
+    (startDeltaNorth * deltaBEast - startDeltaEast * deltaBNorth) /
+    denominator;
+  return [
+    startA[0] + deltaANorth * amountA,
+    startA[1] + deltaAEast * amountA,
+  ];
+}
+
 // Keep this geometry builder exported so the offline traffic validator can
 // catch a reversed triangle winding before it becomes a gameplay-only road
 // glitch. The first implementation wound every triangle toward -Y, so the
@@ -361,13 +382,15 @@ export const ALUN_ALUN_SOUTH_CROSSING_DEFINITION = Object.freeze({
 export const ALUN_ALUN_SOUTH_CROSSING_REFUGE =
   ALUN_ALUN_SOUTH_CROSSING_DEFINITION.refuge;
 
-// The park-side edge of the western asphalt follows this surveyed road seam.
-// Keep it explicit so the asphalt infill can terminate at the unchanged blue
-// park curb instead of allowing checker paving to spill onto the carriageway.
-export const ALUN_ALUN_WEST_SHARED_ROAD_CORE_WIDTH = 1.32;
+// Google satellite imagery and the OSM source both show Jalan Jenderal Achmad
+// Yani continuing past road 102 at its full 11-metre width. The split
+// carriageways beside the park remain separate 6.6-metre ribbons; conflating
+// these two widths was the source of the visible 11 m -> 6.6 m pinch.
+export const ALUN_ALUN_WEST_SHARED_ROAD_CORE_WIDTH = 2.2;
+export const ALUN_ALUN_WEST_SPLIT_CARRIAGEWAY_CORE_WIDTH = 1.32;
 export const ALUN_ALUN_WEST_ROAD_OUTER_WIDTH =
-  ALUN_ALUN_WEST_SHARED_ROAD_CORE_WIDTH +
-  Math.min(0.28, ALUN_ALUN_WEST_SHARED_ROAD_CORE_WIDTH * 0.18);
+  ALUN_ALUN_WEST_SPLIT_CARRIAGEWAY_CORE_WIDTH +
+  Math.min(0.28, ALUN_ALUN_WEST_SPLIT_CARRIAGEWAY_CORE_WIDTH * 0.18);
 export const ALUN_ALUN_WEST_SHARED_ROAD_PATH = freezePath([
   [11.08, -29.16],
   [11.28, -28.46],
@@ -390,116 +413,255 @@ export const ALUN_ALUN_NORTH_PARK_ROADSIDE_SEAM = freezePath([
   [16.9364727922, -1.3327769802],
 ]);
 
-// The commercial side of the western approach used to inherit the bends of
-// two independently generated OSM ribbons. That left a saw-tooth asphalt edge
-// in front of Kantor Pos, the motor-service frontage and the pos 90 row. Keep
-// the traffic centre lines untouched and straighten only their exposed outer
-// edge with clipped infill polygons. One world unit is five metres, so the
-// 0.20-wide pedestrian band below is exactly one surveyed metre.
+// Street View shows a one-metre *clear* red/cream tiled tread behind a normal
+// 15 cm curb. Keep the curb outside that clear tread: the complete roadside
+// band is therefore 0.23 world units (15 cm curb + 1.00 m tread), rather than
+// centring an oversized curb over the nominal one-metre sidewalk.
 export const ALUN_ALUN_FRONTAGE_SIDEWALK_WIDTH = 0.2;
-export const ALUN_ALUN_FRONTAGE_SIDEWALK_Y = 0.061;
-export const ALUN_ALUN_FRONTAGE_APRON_Y = 0.058;
+export const ALUN_ALUN_FRONTAGE_CURB_DEPTH = 0.03;
+export const ALUN_ALUN_FRONTAGE_CURB_HEIGHT = 0.03;
+export const ALUN_ALUN_FRONTAGE_ROADSIDE_BAND_WIDTH =
+  ALUN_ALUN_FRONTAGE_CURB_DEPTH + ALUN_ALUN_FRONTAGE_SIDEWALK_WIDTH;
+export const ALUN_ALUN_FRONTAGE_SIDEWALK_Y = 0.073;
+export const ALUN_ALUN_FRONTAGE_APRON_Y = 0.069;
+
+export const ALUN_ALUN_ROAD_102_PARK_EDGE = Object.freeze([
+  10.0119389271,
+  -28.8968545183,
+]);
+export const ALUN_ALUN_ROAD_102_SHOP_EDGE = Object.freeze([
+  12.1480610729,
+  -29.4231454817,
+]);
+export const ALUN_ALUN_ROAD_102_SHOP_SIDEWALK_OUTER = Object.freeze([
+  12.5908209358,
+  -29.5322312451,
+]);
+export const ALUN_ALUN_ROAD_3_WEST_INTERSECTION = Object.freeze([
+  12.3265948589,
+  -28.7957773295,
+]);
+export const ALUN_ALUN_ROAD_3_EAST_INTERSECTION = Object.freeze([
+  12.6007829347,
+  -27.6876849414,
+]);
 
 const westFrontageRoadsideSeam = freezePath([
-  // The first two points taper cleanly from road 3's retained 1.45 m generic
-  // sidewalk to the new 1.00 m frontage standard over five real metres.
-  [22.4657032285, -25.8686213547],
-  [21.4822827568, -26.0499612998],
-  [12.2545910559, -27.7515214716],
-  [18.295786756, -3.0097092814],
-  [20.4488601679, 1.3056055838],
-  [23.6124898665, 10.927624572],
+  // The retained style-3 sidewalk is 1.45 m wide. Taper its complete envelope
+  // to the 1.15 m custom curb+tread stack over the next five real metres.
+  [22.4629640099, -25.8691340522],
+  [21.4795435382, -26.0504739973],
+  ALUN_ALUN_ROAD_3_EAST_INTERSECTION,
+  [18.637329559028817, -3.0152576341412196],
+  [20.34890119431536, 1.3432203067572948],
+  [23.453096368834025, 10.809912681355291],
 ]);
-const westFrontageSidewalkOuterBoundary = freezePath([
-  [22.4021299084, -25.5488604003],
-  [21.4460147677, -25.8532772055],
-  [12.5221713958, -27.4988086074],
-  [18.4847597232, -3.0789341505],
-  [20.6343128406, 1.2293251358],
-  [23.9534851563, 11.324419091],
-]);
-const WEST_FRONTAGE_ROAD_NAVIGATION_DEPTH = 0.44;
-const westFrontageRoadNavigationInnerBoundary = freezePath(
-  westFrontageRoadsideSeam.map((point, index) => {
-    const outerPoint = westFrontageSidewalkOuterBoundary[index];
-    const deltaNorth = outerPoint[0] - point[0];
-    const deltaEast = outerPoint[1] - point[1];
-    const length = Math.hypot(deltaNorth, deltaEast) || 1;
-    return [
-      point[0] -
-        deltaNorth / length * WEST_FRONTAGE_ROAD_NAVIGATION_DEPTH,
-      point[1] - deltaEast / length * WEST_FRONTAGE_ROAD_NAVIGATION_DEPTH,
-    ];
-  }),
+const branchFrontageRoadsideSeam = freezePath(
+  westFrontageRoadsideSeam.slice(0, 3),
 );
+const ahmadYaniFrontageRoadsideSeam = freezePath(
+  westFrontageRoadsideSeam.slice(2),
+);
+const branchFrontageSidewalkOuterPoints = offsetAlunAlunRoadPath(
+  branchFrontageRoadsideSeam,
+  branchFrontageRoadsideSeam.map((_, index) =>
+    -(index === 0
+      ? 0.326
+      : ALUN_ALUN_FRONTAGE_ROADSIDE_BAND_WIDTH),
+  ),
+);
+const ahmadYaniFrontageSidewalkOuterPoints = offsetAlunAlunRoadPath(
+  ahmadYaniFrontageRoadsideSeam,
+  -ALUN_ALUN_FRONTAGE_ROADSIDE_BAND_WIDTH,
+);
+// Both pedestrian bands meet at an acute outside corner. Their independent
+// endpoint frames crossed each other and put two coplanar surfaces over the
+// carriageway. Clip both offsets to their exact shared miter instead.
+const frontageSidewalkMiter = intersectAlunAlunLines(
+  branchFrontageSidewalkOuterPoints.at(-2),
+  branchFrontageSidewalkOuterPoints.at(-1),
+  ahmadYaniFrontageSidewalkOuterPoints[0],
+  ahmadYaniFrontageSidewalkOuterPoints[1],
+);
+branchFrontageSidewalkOuterPoints[branchFrontageSidewalkOuterPoints.length - 1] =
+  frontageSidewalkMiter;
+ahmadYaniFrontageSidewalkOuterPoints[0] = frontageSidewalkMiter;
+const branchFrontageSidewalkOuterBoundary = freezePath(
+  branchFrontageSidewalkOuterPoints,
+);
+const ahmadYaniFrontageSidewalkOuterBoundary = freezePath(
+  ahmadYaniFrontageSidewalkOuterPoints,
+);
+
+const branchFrontageCurbCenterlinePoints = offsetAlunAlunRoadPath(
+  branchFrontageRoadsideSeam,
+  -ALUN_ALUN_FRONTAGE_CURB_DEPTH * 0.5,
+);
+const ahmadYaniFrontageCurbCenterlinePoints = offsetAlunAlunRoadPath(
+  ahmadYaniFrontageRoadsideSeam,
+  -ALUN_ALUN_FRONTAGE_CURB_DEPTH * 0.5,
+);
+const frontageCurbMiter = intersectAlunAlunLines(
+  branchFrontageCurbCenterlinePoints.at(-2),
+  branchFrontageCurbCenterlinePoints.at(-1),
+  ahmadYaniFrontageCurbCenterlinePoints[0],
+  ahmadYaniFrontageCurbCenterlinePoints[1],
+);
+branchFrontageCurbCenterlinePoints[
+  branchFrontageCurbCenterlinePoints.length - 1
+] = frontageCurbMiter;
+ahmadYaniFrontageCurbCenterlinePoints[0] = frontageCurbMiter;
+const branchFrontageCurbCenterline = freezePath(
+  branchFrontageCurbCenterlinePoints,
+);
+const ahmadYaniFrontageCurbCenterline = freezePath(
+  ahmadYaniFrontageCurbCenterlinePoints,
+);
+
+const defineFrontageApron = (id, label, material, outline) =>
+  Object.freeze({
+    id,
+    label,
+    material,
+    height: ALUN_ALUN_FRONTAGE_APRON_Y,
+    outline: freezePath(outline),
+  });
+
+// Satellite and Street View show separate property finishes, not one invented
+// grey slab. The gaps between these surveyed aprons intentionally retain the
+// tree/landscaped frontage visible west of Kantor Pos.
+const westFrontagePropertyAprons = Object.freeze([
+  defineFrontageApron(
+    "pegadaian",
+    "Pegadaian and Lesehan concrete frontage",
+    "concrete",
+    [
+      [19.36, -26.207432519114214],
+      [21.4378355132, -25.8242872588],
+      [22.40384718779289, -25.548538978401357],
+      [22.5931969225, -25.5781935749],
+      [22.31, -25.46],
+      [19.36, -25.46],
+    ],
+  ),
+  defineFrontageApron(
+    "roadside-kiosk",
+    "Bicau Story kiosk pad",
+    "paleConcrete",
+    [
+      [16.406672137283426, -13.1],
+      [16.773670590397796, -11.6],
+      [22.95, -11.6],
+      [22.95, -13.1],
+    ],
+  ),
+  defineFrontageApron(
+    "post-west-annex",
+    "Kantor Pos west-annex driveway",
+    "concrete",
+    [
+      [18.461863474723902, -4.7],
+      [18.859551120066246, -3.0745668055237974],
+      [19.230786191506567, -2.13],
+      [20.39, -2.13],
+      [20.39, -4.7],
+    ],
+  ),
+  defineFrontageApron(
+    "post-office-entry",
+    "Kantor Pos gated entry paving",
+    "paleConcrete",
+    [
+      [20.04434071553552, -0.06],
+      [20.421641364360543, 0.9],
+      [22.42, 0.9],
+      [22.42, -0.06],
+    ],
+  ),
+  defineFrontageApron(
+    "planet-ban",
+    "Planet Ban red-tile forecourt",
+    "redTile",
+    [
+      [21.153861909517673, 3.06],
+      [22.26220225240527, 6.44],
+      [24.14, 6.44],
+      [24.14, 3.06],
+    ],
+  ),
+  defineFrontageApron(
+    "blue-office",
+    "Blue-office concrete forecourt",
+    "paleConcrete",
+    [
+      [22.26220225240527, 6.44],
+      [22.66553320558626, 7.67],
+      [24.25, 7.67],
+      [24.25, 6.44],
+    ],
+  ),
+  defineFrontageApron(
+    "pos-90-west-bay",
+    "pos 90 west-bay tan threshold",
+    "tanPaver",
+    [
+      [22.66553320558626, 7.67],
+      [23.200028696387086, 9.3],
+      [24.33, 9.3],
+      [24.33, 7.67],
+    ],
+  ),
+  defineFrontageApron(
+    "pos-90-centre-bay",
+    "pos 90 centre-bay concrete threshold",
+    "concrete",
+    [
+      [23.200028696387086, 9.3],
+      [23.659104578056503, 10.7],
+      [24.33, 10.7],
+      [24.33, 9.3],
+    ],
+  ),
+  defineFrontageApron(
+    "pos-90-east-bay",
+    "pos 90 east-bay muted-red threshold",
+    "redTile",
+    [
+      [23.659104578056503, 10.7],
+      [23.671646691689897, 10.738248489602412],
+      [24.33, 10.7393226919],
+      [24.33, 10.7],
+    ],
+  ),
+]);
 
 export const ALUN_ALUN_WEST_FRONTAGE_DEFINITION = Object.freeze({
   sidewalkWidth: ALUN_ALUN_FRONTAGE_SIDEWALK_WIDTH,
-  roadsideSeam: westFrontageRoadsideSeam,
-  sidewalkOuterBoundary: westFrontageSidewalkOuterBoundary,
-  sidewalkOutline: freezePath([
-    ...westFrontageRoadsideSeam,
-    ...[...westFrontageSidewalkOuterBoundary].reverse(),
+  curbDepth: ALUN_ALUN_FRONTAGE_CURB_DEPTH,
+  curbHeight: ALUN_ALUN_FRONTAGE_CURB_HEIGHT,
+  roadsideBandWidth: ALUN_ALUN_FRONTAGE_ROADSIDE_BAND_WIDTH,
+  branchRoadsideSeam: branchFrontageRoadsideSeam,
+  branchSidewalkOuterBoundary: branchFrontageSidewalkOuterBoundary,
+  branchCurbCenterline: branchFrontageCurbCenterline,
+  ahmadYaniRoadsideSeam: ahmadYaniFrontageRoadsideSeam,
+  ahmadYaniSidewalkOuterBoundary:
+    ahmadYaniFrontageSidewalkOuterBoundary,
+  ahmadYaniCurbCenterline: ahmadYaniFrontageCurbCenterline,
+  // The Pegadaian branch turns sharply into Ahmad Yani. Both exact bands share
+  // the road corner and the outer miter, so their only contact is one edge.
+  branchSidewalkOutline: freezePath([
+    ...branchFrontageRoadsideSeam,
+    ...[...branchFrontageSidewalkOuterBoundary].reverse(),
   ]),
-  // Source-map navigation ends at the 6.6 m carriageway core, while the
-  // visible custom shoulder and asymmetric infill continue to this seam. Own
-  // that complete road-side strip so walking outward never falls briefly to
-  // raw map-ground height before reaching the sidewalk.
-  roadNavigationOutline: freezePath([
-    ...westFrontageRoadNavigationInnerBoundary,
-    ...[...westFrontageRoadsideSeam].reverse(),
+  ahmadYaniSidewalkOutline: freezePath([
+    ...ahmadYaniFrontageRoadsideSeam,
+    ...[...ahmadYaniFrontageSidewalkOuterBoundary].reverse(),
   ]),
-  // These polygons add asphalt only outside the existing curved ribbons. They
-  // terminate at exact old/new edge intersections and therefore neither move
-  // traffic nor create coplanar road layers.
-  asphaltInfillOutlines: Object.freeze([
-    freezePath([
-      [12.2370773887, -27.7547509422],
-      [14.0765737701, -19.584731076],
-      [18.3147407547, -2.9320828811],
-      [18.295786756, -3.0097092814],
-      [12.2545910559, -27.7515214716],
-    ]),
-    freezePath([
-      [20.4488601679, 1.3056055838],
-      [22.1398301453, 7.2167289658],
-      [23.5386865382, 10.8417443354],
-      [23.6124898665, 10.927624572],
-    ]),
-  ]),
-  // A single paved apron replaces the two disconnected Kantor Pos patches and
-  // the raw map ground behind them. Its return follows collision-cleared shop
-  // facades from the junction back around Pegadaian.
-  propertyApronOutline: freezePath([
-    [22.4021299084, -25.5488604003],
-    [21.4460147677, -25.8532772055],
-    [12.5221713958, -27.4988086074],
-    [18.4847597232, -3.0789341505],
-    [20.6343128406, 1.2293251358],
-    [23.9534851563, 11.324419091],
-    [24.33, 11.324419091],
-    [24.33, 7.68],
-    [24.25, 7.66],
-    [24.25, 6.46],
-    [23.46, 6.44],
-    [23.34, 3.7],
-    [22.73, 3.06],
-    [22.73, -2.1],
-    [20.39, -2.13],
-    [20.39, -4.7],
-    [22.95, -11.6],
-    [22.95, -13.1],
-    [22.31, -13.42],
-    [22.31, -18.18],
-    [19.36, -19.7],
-    [19.36, -19.96],
-    [19.36, -25.46],
-    [22.31, -25.46],
-  ]),
+  propertyAprons: westFrontagePropertyAprons,
   // Keep the footway continuous through vehicle entrances; curb blocks are
   // lowered flush across these measured driveway spans.
   loweredCurbEastSpans: Object.freeze([
-    Object.freeze([-6.1, -5]),
+    Object.freeze([-0.06, 0.9]),
     Object.freeze([3.65, 6.05]),
     Object.freeze([9.3, 10.7]),
   ]),
@@ -511,15 +673,28 @@ export const ALUN_ALUN_WEST_FRONTAGE_DEFINITION = Object.freeze({
 // restore both pedestrian sides, and clip its end exactly at the shared-road
 // boundary so there is no squared asphalt cap in the junction.
 const pegadaianOppositeSidewalkInnerBoundary = freezePath([
-  [22.6542967715, -26.8913786453],
-  [21.6708762997, -27.0727185905],
-  [11.9747084627, -28.8606644328],
+  [22.6570359901, -26.8908659478],
+  [21.6736155183, -27.072205893],
+  ALUN_ALUN_ROAD_3_WEST_INTERSECTION,
+  ALUN_ALUN_ROAD_102_SHOP_EDGE,
 ]);
-const pegadaianOppositeSidewalkOuterBoundary = freezePath([
-  [22.7178700916, -27.2111395997],
-  [21.7071442887, -27.2694026848],
-  [11.9137150241, -29.0752832584],
-]);
+const pegadaianOppositeSidewalkOuterPoints = offsetAlunAlunRoadPath(
+  pegadaianOppositeSidewalkInnerBoundary,
+  [0.326, ALUN_ALUN_FRONTAGE_ROADSIDE_BAND_WIDTH,
+    ALUN_ALUN_FRONTAGE_ROADSIDE_BAND_WIDTH, 0.456],
+);
+pegadaianOppositeSidewalkOuterPoints[
+  pegadaianOppositeSidewalkOuterPoints.length - 1
+] = [...ALUN_ALUN_ROAD_102_SHOP_SIDEWALK_OUTER];
+const pegadaianOppositeSidewalkOuterBoundary = freezePath(
+  pegadaianOppositeSidewalkOuterPoints,
+);
+const pegadaianOppositeCurbCenterline = freezePath(
+  offsetAlunAlunRoadPath(
+    pegadaianOppositeSidewalkInnerBoundary,
+    ALUN_ALUN_FRONTAGE_CURB_DEPTH * 0.5,
+  ),
+);
 export const ALUN_ALUN_PEGADAIAN_ROAD_DEFINITION = Object.freeze({
   coreWidth: 1.04,
   path: freezePath([
@@ -527,13 +702,14 @@ export const ALUN_ALUN_PEGADAIAN_ROAD_DEFINITION = Object.freeze({
     [11.28, -28.46],
   ]),
   surfaceOutline: freezePath([
-    [22.6542967715, -26.8913786453],
-    [11.9747084627, -28.8606644328],
-    [12.2370773887, -27.7547509422],
-    [22.4657032285, -25.8686213547],
+    [22.6570359901, -26.8908659478],
+    ALUN_ALUN_ROAD_3_WEST_INTERSECTION,
+    ALUN_ALUN_ROAD_3_EAST_INTERSECTION,
+    [22.4629640099, -25.8691340522],
   ]),
   oppositeSidewalkInnerBoundary: pegadaianOppositeSidewalkInnerBoundary,
   oppositeSidewalkOuterBoundary: pegadaianOppositeSidewalkOuterBoundary,
+  oppositeCurbCenterline: pegadaianOppositeCurbCenterline,
   oppositeSidewalkOutline: freezePath([
     ...pegadaianOppositeSidewalkInnerBoundary,
     ...[...pegadaianOppositeSidewalkOuterBoundary].reverse(),
@@ -570,8 +746,7 @@ export const ALUN_ALUN_SOUTH_LOCAL_ROAD_PATH = freezePath([
 // The middle corner is their clipped envelope intersection, so the infill
 // neither overlaps the road nor leaves a camera-dependent ground sliver.
 export const ALUN_ALUN_WEST_SOUTH_PARK_ROADSIDE_SEAM = freezePath([
-  [12.697182151809947, -18.689704386703575],
-  [12.479511715823326, -18.65815125672561],
+  [12.3789405679, -18.6379082978],
   [-6.188625523299314, -14.90062890721055],
   [-17.353058449129374, -12.124044805610474],
   [-18.225095727448945, -11.286265749272465],
@@ -640,6 +815,51 @@ export const ALUN_ALUN_PARK_OUTLINE = freezePath([
   [18.25, 6.85],
   [12.41, -16.6],
   [11.4, -17.34],
+]);
+
+// One clipped polygon owns the complete western Ahmad Yani surface. It joins
+// road 102 at the source-map 11 m edges, stays 11 m wide along the shared
+// section, then opens around the two unchanged 6.6 m split carriageways. The
+// park-side return follows the existing blue-white curb, preventing the wide
+// road from recreating the old buried square cap under the ceramic apron.
+export const ALUN_ALUN_WESTERN_ASPHALT_UNION_OUTLINE = freezePath([
+  ALUN_ALUN_ROAD_102_PARK_EDGE,
+  [10.2078742315, -28.2139383482],
+  [12.2513929801, -19.1390804011],
+  [12.8975853325, -16.6],
+  ALUN_ALUN_PARK_OUTLINE[13],
+  ALUN_ALUN_PARK_OUTLINE[12],
+  ALUN_ALUN_PARK_OUTLINE[11],
+  [18.6, 8.7],
+  [19.25, 10.65],
+  [19.4747273835, 11.0303555953],
+  [18.9421650721, 8.1394872198],
+  [17.3563237698, 2.352735246],
+  [16.9364727922, -1.3327769802],
+  [16.7982481471, -2.5461327817],
+  [16.9144402105, -2.5757038711],
+  [17.472816754, 2.3294366492],
+  [19.0577670103, 8.1121078134],
+  [19.782384989, 12.0446992394],
+  [19.5118124957, 12.6556900677],
+  [19.5397059499, 13.7000735125],
+  [20.0107840182, 14.6398798446],
+  [20.4992831392, 15.0181963085],
+  [20.55, 15.36],
+  [21.4, 15.86],
+  [23.7, 15.66],
+  [24.72, 15],
+  [25, 13.7],
+  [24.62, 12.1],
+  [23.52, 10.82],
+  [23.453096368834025, 10.809912681355291],
+  [20.34890119431536, 1.3432203067572948],
+  [18.637329559028817, -3.0152576341412196],
+  ALUN_ALUN_ROAD_3_EAST_INTERSECTION,
+  [22.4629640099, -25.8691340522],
+  [22.6570359901, -26.8908659478],
+  ALUN_ALUN_ROAD_3_WEST_INTERSECTION,
+  ALUN_ALUN_ROAD_102_SHOP_EDGE,
 ]);
 
 // The south approach used to be rendered as one wide ribbon followed by two
@@ -778,7 +998,6 @@ export const ALUN_ALUN_NORTH_PARK_ASPHALT_FILL_OUTLINE = freezePath([
 // The first and final joins are shared with the existing north and south
 // asphalt surfaces, respectively, so this adds no coplanar road overlap.
 export const ALUN_ALUN_WEST_SOUTH_PARK_ASPHALT_FILL_OUTLINE = freezePath([
-  ALUN_ALUN_NORTH_PARK_ASPHALT_FILL_OUTLINE[0],
   ...ALUN_ALUN_WEST_SOUTH_PARK_ROADSIDE_SEAM,
   ALUN_ALUN_PARK_OUTLINE[7],
   ALUN_ALUN_PARK_OUTLINE[6],
@@ -790,6 +1009,7 @@ export const ALUN_ALUN_WEST_SOUTH_PARK_ASPHALT_FILL_OUTLINE = freezePath([
   ALUN_ALUN_PARK_OUTLINE[0],
   ALUN_ALUN_PARK_OUTLINE[14],
   ALUN_ALUN_PARK_OUTLINE[13],
+  [12.8975853325, -16.6],
 ]);
 
 // Keep the compact junction's custom loop and masking polygon available to
@@ -983,6 +1203,7 @@ export function createAlunAlunTrafficFactory({
     addAlunAlunParkedVehicle,
     addAlunAlunPostOffice,
     addAlunAlunRoadBarrier,
+    addAlunAlunTyreShop,
     addAlunAlunVendorCart,
     addAlunAlunWestRoadsideContext,
   },
@@ -1083,11 +1304,6 @@ export function createAlunAlunTrafficFactory({
         // pavement as the chase camera crosses it.
       }),
     );
-    // Match generated style 3 at the retained end of the Pegadaian branch so
-    // the straight custom suffix does not introduce a visible colour seam.
-    const localRoadSurface = hideMaterialOutline(
-      toonMaterial({ color: 0x6a6960 }),
-    );
     const asphaltTrim = toonMaterial({ color: 0x303635 });
     const roadWhite = toonMaterial({ color: 0xe7e4d8 });
     const roadYellow = toonMaterial({ color: 0xf0c047 });
@@ -1114,6 +1330,10 @@ export function createAlunAlunTrafficFactory({
     pedestrianTexture.colorSpace = THREE.SRGBColorSpace;
     pedestrianTexture.wrapS = THREE.RepeatWrapping;
     pedestrianTexture.wrapT = THREE.RepeatWrapping;
+    // The canvas contains a 2x2 checker. Five repeats across the former
+    // 0.8-world UV span make each square roughly 0.08 world / 40 cm, matching
+    // the Street View paving instead of the previous two-metre blocks.
+    pedestrianTexture.repeat.set(5, 5);
     pedestrianTexture.minFilter = THREE.LinearMipmapLinearFilter;
     pedestrianTexture.magFilter = THREE.NearestFilter;
     const pedestrianStone = hideMaterialOutline(
@@ -1129,6 +1349,48 @@ export function createAlunAlunTrafficFactory({
         side: THREE.DoubleSide,
       }),
     );
+    const pedestrianPaleConcrete = hideMaterialOutline(
+      new THREE.MeshBasicMaterial({
+        color: 0xd0c8b8,
+        side: THREE.DoubleSide,
+      }),
+    );
+    const planetBanTileCanvas = document.createElement("canvas");
+    planetBanTileCanvas.width = 64;
+    planetBanTileCanvas.height = 64;
+    const planetBanTileDrawing = planetBanTileCanvas.getContext("2d");
+    for (let row = 0; row < 4; row += 1) {
+      for (let column = 0; column < 4; column += 1) {
+        planetBanTileDrawing.fillStyle =
+          (row + column) % 2 === 0 ? "#bd7867" : "#b66f60";
+        planetBanTileDrawing.fillRect(column * 16, row * 16, 16, 16);
+        planetBanTileDrawing.strokeStyle = "rgba(91,57,51,.32)";
+        planetBanTileDrawing.lineWidth = 1;
+        planetBanTileDrawing.strokeRect(column * 16, row * 16, 16, 16);
+      }
+    }
+    const planetBanTileTexture = new THREE.CanvasTexture(planetBanTileCanvas);
+    planetBanTileTexture.colorSpace = THREE.SRGBColorSpace;
+    planetBanTileTexture.wrapS = THREE.RepeatWrapping;
+    planetBanTileTexture.wrapT = THREE.RepeatWrapping;
+    // ShapeGeometry UVs are in local world coordinates. Four cells over a
+    // 0.32-world repeat make each forecourt paver about 40 cm square.
+    planetBanTileTexture.repeat.set(3.125, 3.125);
+    planetBanTileTexture.minFilter = THREE.LinearMipmapLinearFilter;
+    planetBanTileTexture.magFilter = THREE.NearestFilter;
+    const planetBanRedTile = hideMaterialOutline(
+      new THREE.MeshBasicMaterial({
+        map: planetBanTileTexture,
+        color: 0xffffff,
+        side: THREE.DoubleSide,
+      }),
+    );
+    const pos90TanPaver = hideMaterialOutline(
+      new THREE.MeshBasicMaterial({
+        color: 0xc8c0ae,
+        side: THREE.DoubleSide,
+      }),
+    );
     const drainMaterial = toonMaterial({ color: 0x343a39 });
     const medianSoil = hideMaterialOutline(
       toonMaterial({ color: 0x514a3b }),
@@ -1136,22 +1398,23 @@ export function createAlunAlunTrafficFactory({
     const medianDark = toonMaterial({ color: 0x292d2c });
     const medianBlue = toonMaterial({ color: 0x3978a9 });
     const medianWhite = toonMaterial({ color: 0xe7e6dc });
-    // Shop-side curbs in Street View are weathered. Reserve the saturated
-    // blue/white paint for the park edge and physical medians so footways do
-    // not read as additional traffic islands.
-    const sidewalkCurbBlue = toonMaterial({ color: 0x6f8e9d });
-    const sidewalkCurbWhite = toonMaterial({ color: 0xd3d1c8 });
+    // Ahmad Yani's public footway has the same clearly legible, weathered
+    // blue-white curb visible in Street View.
+    const sidewalkCurbBlue = toonMaterial({ color: 0x4d82a5 });
+    const sidewalkCurbWhite = toonMaterial({ color: 0xe1ddd0 });
     const medianGrass = hideMaterialOutline(
       toonMaterial({ color: 0x657f51 }),
     );
     const flatSurfaceMaterials = new Set([
       asphaltSurface,
-      localRoadSurface,
       gutterMaterial,
       roadWhite,
       roadYellow,
       pedestrianStone,
       pedestrianConcrete,
+      pedestrianPaleConcrete,
+      planetBanRedTile,
+      pos90TanPaver,
       medianSoil,
       medianGrass,
     ]);
@@ -1320,6 +1583,9 @@ export function createAlunAlunTrafficFactory({
         lowered = () => false,
         loweredMaterial = null,
         skip = () => false,
+        depth = 0.075,
+        normalHeight = 0.065,
+        normalCenterY = 0.082,
       } = {},
     ) => {
       let curbIndex = 0;
@@ -1338,15 +1604,15 @@ export function createAlunAlunTrafficFactory({
           const isLowered = lowered(north, east);
           const curbHeight = isLowered
             ? ALUN_ALUN_FRONTAGE_SIDEWALK_Y - ROAD_SURFACE_Y
-            : 0.065;
+            : normalHeight;
           const curbCenterY = isLowered
             ? ROAD_SURFACE_Y + curbHeight * 0.5
-            : 0.082;
+            : normalCenterY;
           const curb = new THREE.Mesh(
             new THREE.BoxGeometry(
               length / segmentCount + 0.01,
               curbHeight,
-              0.075,
+              depth,
             ),
             isLowered && loweredMaterial
               ? loweredMaterial
@@ -1382,15 +1648,15 @@ export function createAlunAlunTrafficFactory({
     // road widths are metres. The old 8.8-unit value made every approach about
     // 44 metres wide and buried the Alun-Alun pedestrian apron. These widths
     // follow the OSM centre lines and the proportions visible in Street View.
-    // The undivided western approach carries two 3.3 metre lanes. The former
-    // 12.1 metre ribbon ended as a broad square cap at the split and extended
-    // under the checker pavement, where it popped into view after walking past
-    // the seam. Match the surveyed 6.6 metre carriageway instead.
+    // The shared Ahmad Yani approach remains 11 metres wide, while each split
+    // carriageway remains 6.6 metres. The shared surface is rendered by the
+    // clipped union below, so its wide endpoint can never sit beneath the park.
     const MAIN_SHARED_ROAD_WIDTH = ALUN_ALUN_WEST_SHARED_ROAD_CORE_WIDTH;
     // 6.6 metres keeps the widest production vehicle and its lane variation
     // inside each carriageway with a useful rendered shoulder margin. The old
     // 6.2-metre width left only about 5 mm at the eastbound swept envelope.
-    const MAIN_CARRIAGEWAY_WIDTH = ALUN_ALUN_WEST_SHARED_ROAD_CORE_WIDTH;
+    const MAIN_CARRIAGEWAY_WIDTH =
+      ALUN_ALUN_WEST_SPLIT_CARRIAGEWAY_CORE_WIDTH;
     const NORTH_CROSS_STREET_WIDTH = 1.7;
     const addExistingRoadPath = (
       points,
@@ -1429,11 +1695,6 @@ export function createAlunAlunTrafficFactory({
     // paths. Street View shows plain asphalt here, without invented edge lines.
     [
       {
-        width: MAIN_SHARED_ROAD_WIDTH,
-        centerLine: false,
-        points: ALUN_ALUN_WEST_SHARED_ROAD_PATH,
-      },
-      {
         width: ALUN_ALUN_PERIMETER_LOCAL_ROAD_CORE_WIDTH,
         centerLine: false,
         edgeLines: false,
@@ -1444,21 +1705,6 @@ export function createAlunAlunTrafficFactory({
         centerLine: false,
         edgeLines: false,
         points: ALUN_ALUN_SOUTH_LOCAL_ROAD_PATH,
-      },
-      {
-        width: MAIN_CARRIAGEWAY_WIDTH,
-        centerLine: false,
-        points: [...ALUN_ALUN_WEST_PARK_SIDE_CARRIAGEWAY_PATH].reverse(),
-      },
-      {
-        width: MAIN_CARRIAGEWAY_WIDTH,
-        centerLine: false,
-        points: [
-        [17.56, -2.74],
-        [19.72, 1.58],
-        [21.4, 7.46],
-          [23.12, 11.92],
-        ],
       },
       {
         width: NORTH_CROSS_STREET_WIDTH,
@@ -1504,46 +1750,20 @@ export function createAlunAlunTrafficFactory({
         ],
       },
     ].forEach(({ points, ...options }) => addExistingRoadPath(points, options));
-    ALUN_ALUN_WEST_FRONTAGE_DEFINITION.asphaltInfillOutlines.forEach(
-      (outline, index) => {
-        const infill = addRoadSurface(outline);
-        infill.name = `Straight west-frontage asphalt infill ${index + 1}`;
-      },
+    const westernAsphaltUnion = addRoadSurface(
+      ALUN_ALUN_WESTERN_ASPHALT_UNION_OUTLINE,
     );
-    const pegadaianRoadSurface = addRoadSurface(
-      ALUN_ALUN_PEGADAIAN_ROAD_DEFINITION.surfaceOutline,
-      ROAD_SURFACE_Y,
-      localRoadSurface,
-    );
-    pegadaianRoadSurface.name = "Straight Pegadaian branch asphalt";
+    westernAsphaltUnion.name =
+      "Full-width Jalan Jenderal Achmad Yani western asphalt union";
     const southApproachSurface = addRoadSurface(
       ALUN_ALUN_SOUTH_APPROACH_DEFINITION.surfaceOutline,
     );
     southApproachSurface.name = "South approach unified asphalt surface";
-    const parkSideAsphaltFill = addRoadSurface(
-      ALUN_ALUN_NORTH_PARK_ASPHALT_FILL_OUTLINE,
-    );
-    parkSideAsphaltFill.name = "North park curb-aligned asphalt fill";
     const perimeterAsphaltFill = addRoadSurface(
       ALUN_ALUN_WEST_SOUTH_PARK_ASPHALT_FILL_OUTLINE,
     );
     perimeterAsphaltFill.name =
       "West-south park curb-aligned asphalt fill";
-    addExistingRoadPath(
-      ALUN_ALUN_JUNCTION_LOOP_PATH,
-      {
-        centerLine: false,
-        edgeLines: false,
-        width: ALUN_ALUN_JUNCTION_LOOP_CORE_WIDTH,
-      },
-    );
-    // The mask begins at the exact terminal edge of the unified south surface.
-    // Sharing that edge, instead of extending the old mask 25 metres down the
-    // approach, removes the last coplanar asphalt overlap at this junction.
-    const junctionAsphaltSurface = addRoadSurface(
-      ALUN_ALUN_JUNCTION_ASPHALT_OUTLINE,
-    );
-    junctionAsphaltSurface.name = "Clipped junction asphalt union";
     // Reintroduce only the pedestrian strips that really border the junction.
     // The asphalt union above intentionally masks the generic OSM sidewalk
     // wedges, so these surveyed ribbons keep a continuous walkable-looking
@@ -1608,32 +1828,46 @@ export function createAlunAlunTrafficFactory({
       );
     });
     // The western approach has the surveyed double-yellow centre marking. Its
-    // very thin raised geometry stays below the checker pedestrian paving.
-    [-0.06, 0.06].forEach((offset) =>
-      addRoadMark(
-        14.58 + offset,
-        -19.12,
-        17.68 + offset,
-        -2.95,
+    // complete path now follows the same 11 m source centreline instead of
+    // beginning halfway along an otherwise blank asphalt slab.
+    [-0.035, 0.035].forEach((offset) =>
+      addRoadPathMark(
+        ALUN_ALUN_WEST_SHARED_ROAD_PATH,
         roadYellow,
-        0.026,
+        0.022,
+        offset,
       ),
     );
-    const westFrontageApron = addPavedApron(
-      ALUN_ALUN_WEST_FRONTAGE_DEFINITION.propertyApronOutline,
-      ALUN_ALUN_FRONTAGE_APRON_Y,
+    const frontageApronMaterials = {
+      concrete: pedestrianConcrete,
+      paleConcrete: pedestrianPaleConcrete,
+      redTile: planetBanRedTile,
+      tanPaver: pos90TanPaver,
+    };
+    ALUN_ALUN_WEST_FRONTAGE_DEFINITION.propertyAprons.forEach((definition) => {
+      const apron = addPavedApron(
+        definition.outline,
+        definition.height,
+        frontageApronMaterials[definition.material],
+      );
+      apron.name = definition.label;
+    });
+    const branchFrontageSidewalk = addRoadsideBand(
+      ALUN_ALUN_WEST_FRONTAGE_DEFINITION.branchRoadsideSeam,
+      ALUN_ALUN_WEST_FRONTAGE_DEFINITION.branchSidewalkOuterBoundary,
+      ALUN_ALUN_FRONTAGE_SIDEWALK_Y,
       pedestrianConcrete,
     );
-    westFrontageApron.name =
-      "Pegadaian-Pos-Planet Ban unified property apron";
-    const westFrontageSidewalk = addRoadsideBand(
-      ALUN_ALUN_WEST_FRONTAGE_DEFINITION.roadsideSeam,
-      ALUN_ALUN_WEST_FRONTAGE_DEFINITION.sidewalkOuterBoundary,
+    branchFrontageSidewalk.name =
+      "Pegadaian weathered one-metre sidewalk";
+    const ahmadYaniFrontageSidewalk = addRoadsideBand(
+      ALUN_ALUN_WEST_FRONTAGE_DEFINITION.ahmadYaniRoadsideSeam,
+      ALUN_ALUN_WEST_FRONTAGE_DEFINITION.ahmadYaniSidewalkOuterBoundary,
       ALUN_ALUN_FRONTAGE_SIDEWALK_Y,
       pedestrianStone,
     );
-    westFrontageSidewalk.name =
-      "Pegadaian-Pos-Planet Ban one-metre sidewalk";
+    ahmadYaniFrontageSidewalk.name =
+      "Ahmad Yani red-cream one-metre clear sidewalk";
     const oppositePegadaianSidewalk = addRoadsideBand(
       ALUN_ALUN_PEGADAIAN_ROAD_DEFINITION.oppositeSidewalkInnerBoundary,
       ALUN_ALUN_PEGADAIAN_ROAD_DEFINITION.oppositeSidewalkOuterBoundary,
@@ -1647,16 +1881,35 @@ export function createAlunAlunTrafficFactory({
         ([start, end]) => east >= start && east <= end,
       );
     addSegmentedCurbAlongPath(
-      ALUN_ALUN_WEST_FRONTAGE_DEFINITION.roadsideSeam,
+      ALUN_ALUN_WEST_FRONTAGE_DEFINITION.ahmadYaniCurbCenterline,
       [sidewalkCurbBlue, sidewalkCurbWhite],
       {
         lowered: curbIsLowered,
-        loweredMaterial: pedestrianConcrete,
+        depth: ALUN_ALUN_FRONTAGE_CURB_DEPTH,
+        normalHeight: ALUN_ALUN_FRONTAGE_CURB_HEIGHT,
+        normalCenterY:
+          ROAD_SURFACE_Y + ALUN_ALUN_FRONTAGE_CURB_HEIGHT * 0.5,
       },
     );
     addSegmentedCurbAlongPath(
-      ALUN_ALUN_PEGADAIAN_ROAD_DEFINITION.oppositeSidewalkInnerBoundary,
-      [sidewalkCurbBlue, sidewalkCurbWhite],
+      ALUN_ALUN_WEST_FRONTAGE_DEFINITION.branchCurbCenterline,
+      [sidewalkCurbWhite],
+      {
+        depth: ALUN_ALUN_FRONTAGE_CURB_DEPTH,
+        normalHeight: ALUN_ALUN_FRONTAGE_CURB_HEIGHT,
+        normalCenterY:
+          ROAD_SURFACE_Y + ALUN_ALUN_FRONTAGE_CURB_HEIGHT * 0.5,
+      },
+    );
+    addSegmentedCurbAlongPath(
+      ALUN_ALUN_PEGADAIAN_ROAD_DEFINITION.oppositeCurbCenterline,
+      [sidewalkCurbWhite],
+      {
+        depth: ALUN_ALUN_FRONTAGE_CURB_DEPTH,
+        normalHeight: ALUN_ALUN_FRONTAGE_CURB_HEIGHT,
+        normalCenterY:
+          ROAD_SURFACE_Y + ALUN_ALUN_FRONTAGE_CURB_HEIGHT * 0.5,
+      },
     );
     // Exact ribbons replace the former straight asphalt boxes. The park's
     // checker apron remains the highest layer and therefore wraps the corner
@@ -2236,6 +2489,7 @@ export function createAlunAlunTrafficFactory({
     context.add(trafficSign);
 
     addAlunAlunPostOffice(context);
+    addAlunAlunTyreShop(context);
     addAlunAlunWestRoadsideContext(context);
     addAlunAlunEastJunctionFrontage(context);
     const postFlag = addIndonesianFlag(context, 22.1, -2.45, 1.8);

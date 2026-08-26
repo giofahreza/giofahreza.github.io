@@ -5,12 +5,12 @@ import { createAlunAlunLesehanFactory } from "./lesehan.js";
 import {
   ALUN_ALUN_INTERIOR_CHECKER_PATH_OUTLINES,
   ALUN_ALUN_INTERIOR_TACTILE_PAVER_DEFINITION,
-  ALUN_ALUN_FRONTAGE_APRON_Y,
   ALUN_ALUN_FRONTAGE_SIDEWALK_Y,
   ALUN_ALUN_PEGADAIAN_ROAD_DEFINITION,
   ALUN_ALUN_WEST_MEDIAN_PATH,
   ALUN_ALUN_WEST_MEDIAN_WIDTHS,
   ALUN_ALUN_WEST_FRONTAGE_DEFINITION,
+  ALUN_ALUN_WESTERN_ASPHALT_UNION_OUTLINE,
   ALUN_ALUN_SOUTH_MEDIAN_PATH,
   ALUN_ALUN_SOUTH_MEDIAN_WIDTHS,
   ALUN_ALUN_SOUTH_CROSSING_DEFINITION,
@@ -83,30 +83,21 @@ export const ALUN_ALUN_PARK_NAVIGATION_SURFACES = Object.freeze([
 export const ALUN_ALUN_FRONTAGE_NAVIGATION_SURFACES = Object.freeze([
   Object.freeze({
     shape: "polygon",
-    points: ALUN_ALUN_WEST_FRONTAGE_DEFINITION.roadNavigationOutline,
+    points: ALUN_ALUN_WESTERN_ASPHALT_UNION_OUTLINE,
     height: ALUN_ALUN_ROAD_SURFACE_Y,
-    label: "straight frontage road-side ownership strip",
-  }),
-  ...ALUN_ALUN_WEST_FRONTAGE_DEFINITION.asphaltInfillOutlines.map(
-    (points, index) =>
-      Object.freeze({
-        shape: "polygon",
-        points,
-        height: ALUN_ALUN_ROAD_SURFACE_Y,
-        label: `straight frontage asphalt infill ${index + 1}`,
-      }),
-  ),
-  Object.freeze({
-    shape: "polygon",
-    points: ALUN_ALUN_PEGADAIAN_ROAD_DEFINITION.surfaceOutline,
-    height: ALUN_ALUN_ROAD_SURFACE_Y,
-    label: "straight Pegadaian road suffix",
+    label: "full-width Ahmad Yani western asphalt union",
   }),
   Object.freeze({
     shape: "polygon",
-    points: ALUN_ALUN_WEST_FRONTAGE_DEFINITION.sidewalkOutline,
+    points: ALUN_ALUN_WEST_FRONTAGE_DEFINITION.branchSidewalkOutline,
     height: ALUN_ALUN_FRONTAGE_SIDEWALK_Y,
-    label: "Pegadaian-Pos-Planet Ban one-metre sidewalk",
+    label: "Pegadaian one-metre clear sidewalk",
+  }),
+  Object.freeze({
+    shape: "polygon",
+    points: ALUN_ALUN_WEST_FRONTAGE_DEFINITION.ahmadYaniSidewalkOutline,
+    height: ALUN_ALUN_FRONTAGE_SIDEWALK_Y,
+    label: "Ahmad Yani one-metre clear sidewalk",
   }),
   Object.freeze({
     shape: "polygon",
@@ -114,21 +105,25 @@ export const ALUN_ALUN_FRONTAGE_NAVIGATION_SURFACES = Object.freeze([
     height: ALUN_ALUN_FRONTAGE_SIDEWALK_Y,
     label: "Pegadaian opposite one-metre sidewalk",
   }),
-  Object.freeze({
-    shape: "polygon",
-    points: ALUN_ALUN_WEST_FRONTAGE_DEFINITION.propertyApronOutline,
-    height: ALUN_ALUN_FRONTAGE_APRON_Y,
-    label: "commercial property frontage apron",
-  }),
+  ...ALUN_ALUN_WEST_FRONTAGE_DEFINITION.propertyAprons.map((apron) =>
+    Object.freeze({
+      shape: "polygon",
+      points: apron.outline,
+      height: apron.height,
+      label: apron.label,
+    }),
+  ),
 ]);
 
 // Collision objects that belong to the signalised junction are kept separate
 // from the landmark/building list so the traffic validator can audit the exact
 // same envelopes used by player navigation.
 export const ALUN_ALUN_TRAFFIC_COLLISION_OBSTACLES = Object.freeze([
-  freezeTrafficObstacle({ label: "frontage service annex", north: 25.45, east: 4.85, width: 2.9, depth: 2.35 }),
-  freezeTrafficObstacle({ label: "frontage blue office", north: 25.7, east: 6.75, width: 2.8, depth: 1.8 }),
-  freezeTrafficObstacle({ label: "frontage beige row", north: 25.85, east: 9.65, width: 2.95, depth: 4.5 }),
+  // The detailed Planet Ban architecture scales its 2.92 x 3.34 shell by
+  // 1.64 x 0.96 in plan; keep collision aligned with the actual rendered body.
+  freezeTrafficObstacle({ label: "Planet Ban", north: 26.04, east: 4.7, width: 4.8, depth: 3.21 }),
+  freezeTrafficObstacle({ label: "frontage blue office", north: 25.7, east: 6.9, width: 2.8, depth: 1.09 }),
+  freezeTrafficObstacle({ label: "frontage beige row", north: 25.85, east: 9.65, width: 2.95, depth: 4.4 }),
   freezeTrafficObstacle({ label: "frontage ARUM shop", north: 26.35, east: 16.25, width: 2.7, depth: 1.85 }),
   freezeTrafficObstacle({ label: "park vendor cart", north: 16.2, east: 9.45, width: 0.7, depth: 0.9 }),
   ...ALUN_ALUN_SOUTH_MEDIAN_PATH.slice(0, -1).map((start, index) => {
@@ -1097,6 +1092,7 @@ export function createAlunAlunModelFactory({
       addAlunAlunParkedVehicle,
       addAlunAlunPostOffice,
       addAlunAlunRoadBarrier,
+      addAlunAlunTyreShop,
       addAlunAlunVendorCart,
       addAlunAlunWestRoadsideContext,
     },

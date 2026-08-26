@@ -1635,7 +1635,6 @@ export function createAlunAlunEastSchoolsFactory({
 
   function addAlunAlunEastJunctionFrontage(group) {
     const frontage = new THREE.Group();
-    const annexWallMaterial = toonMaterial({ color: 0xd8d4c8 });
     const creamMaterial = toonMaterial({ color: 0xe4ddcc });
     const beigeMaterial = toonMaterial({ color: 0xc9b98f });
     const paleMaterial = toonMaterial({ color: 0xeee9dc });
@@ -1656,61 +1655,12 @@ export function createAlunAlunEastSchoolsFactory({
     shopRow.name = "East-junction Google Street View commercial frontage";
     shopRow.position.set(25.7, 0.05, 11.8);
 
-    const serviceAnnex = new THREE.Group();
-    // Keep the western storefronts together while preserving the north-arm
-    // road opening visible between the beige row and ARUM shop in Street View.
-    serviceAnnex.position.set(-0.25, 0, -6.95);
-    const annexBody = new THREE.Mesh(
-      roundedBox(2.65, 0.88, 2.15, 0.045),
-      annexWallMaterial,
-    );
-    annexBody.position.y = 0.44;
-    serviceAnnex.add(annexBody);
-    const annexRoof = new THREE.Mesh(
-      createGableRoofGeometry(2.9, 2.35, 0.24),
-      roofMaterial,
-    );
-    annexRoof.position.y = 0.86;
-    serviceAnnex.add(annexRoof);
-    [-0.55, 0.48].forEach((eastOffset, index) => {
-      const serviceBay = new THREE.Mesh(
-        roundedBox(0.06, 0.58, index === 0 ? 0.78 : 0.9, 0.018),
-        darkMaterial,
-      );
-      serviceBay.position.set(-1.35, 0.34, eastOffset);
-      serviceAnnex.add(serviceBay);
-    });
-    const annexAwning = new THREE.Mesh(
-      roundedBox(0.46, 0.075, 2.05, 0.018),
-      roofDarkMaterial,
-    );
-    annexAwning.position.set(-1.48, 0.72, 0);
-    serviceAnnex.add(annexAwning);
-    for (let seamEast = -0.92; seamEast <= 0.92; seamEast += 0.23) {
-      const awningSeam = new THREE.Mesh(
-        roundedBox(0.48, 0.018, 0.025, 0.006),
-        silverMaterial,
-      );
-      awningSeam.position.set(-1.49, 0.765, seamEast);
-      serviceAnnex.add(awningSeam);
-    }
-    const annexFascia = new THREE.Mesh(
-      roundedBox(0.06, 0.18, 1.92, 0.016),
-      creamMaterial,
-    );
-    annexFascia.position.set(-1.36, 0.78, 0);
-    serviceAnnex.add(annexFascia);
-    const annexLabel = new THREE.Mesh(
-      new THREE.PlaneGeometry(1.58, 0.13),
-      getSitubondoSignMaterial("SERVIS MOTOR", "#aa4c42", 820),
-    );
-    annexLabel.position.set(-1.395, 0.79, 0);
-    annexLabel.rotation.y = -Math.PI * 0.5;
-    serviceAnnex.add(annexLabel);
-    shopRow.add(serviceAnnex);
-
     const blueOffice = new THREE.Group();
-    blueOffice.position.set(0, 0, -5.05);
+    // Street View places a narrow neighbouring unit between Planet Ban and
+    // the longer beige row. Keep all three shells distinct instead of letting
+    // this generic office occupy both adjoining buildings.
+    blueOffice.position.set(0, 0, -4.9);
+    blueOffice.scale.z = 0.66;
     const officeBody = new THREE.Mesh(
       roundedBox(2.6, 1.56, 1.58, 0.04),
       creamMaterial,
