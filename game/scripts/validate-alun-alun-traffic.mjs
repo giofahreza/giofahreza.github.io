@@ -8,11 +8,15 @@ import {
 } from "../src/config/runtime.js";
 import { createNavigationSystem } from "../src/navigation/navigation.js";
 import {
+  ALUN_ALUN_FRONTAGE_APRON_Y,
+  ALUN_ALUN_FRONTAGE_SIDEWALK_Y,
   ALUN_ALUN_INTERIOR_CHECKER_PATH_OUTLINES,
   ALUN_ALUN_INTERIOR_TACTILE_PAVER_DEFINITION,
+  ALUN_ALUN_JUNCTION_ASPHALT_OUTLINE,
   ALUN_ALUN_NORTH_PARK_ROADSIDE_SEAM,
   ALUN_ALUN_NORTH_PARK_ASPHALT_FILL_OUTLINE,
   ALUN_ALUN_PARK_OUTLINE,
+  ALUN_ALUN_PEGADAIAN_ROAD_DEFINITION,
   ALUN_ALUN_PERIMETER_LOCAL_ROAD_OUTER_WIDTH,
   ALUN_ALUN_PEDESTRIAN_ROUTE_DEFINITIONS,
   ALUN_ALUN_ROAD_SURFACE_Y,
@@ -24,6 +28,7 @@ import {
   ALUN_ALUN_TRAFFIC_SIGNAL_TIMING,
   ALUN_ALUN_SOUTH_LOCAL_ROAD_PATH,
   ALUN_ALUN_WEST_PARK_SIDE_CARRIAGEWAY_PATH,
+  ALUN_ALUN_WEST_FRONTAGE_DEFINITION,
   ALUN_ALUN_WEST_ROAD_OUTER_WIDTH,
   ALUN_ALUN_WEST_SHARED_ROAD_PATH,
   ALUN_ALUN_WEST_LOCAL_ROAD_PATH,
@@ -36,6 +41,7 @@ import {
   getAlunAlunTrafficSignalState,
 } from "../src/features/landmarks/alun-alun/traffic.js";
 import {
+  ALUN_ALUN_FRONTAGE_NAVIGATION_SURFACES,
   ALUN_ALUN_PARK_LAWN_OUTLINE,
   ALUN_ALUN_PARK_NAVIGATION_SURFACES,
   ALUN_ALUN_PARK_SURFACE_HEIGHTS,
@@ -1097,6 +1103,179 @@ function polygonArea(polygon) {
     twiceArea += point[0] * next[1] - next[0] * point[1];
   });
   return Math.abs(twiceArea) * 0.5;
+}
+
+function pointDistance(first, second) {
+  return Math.hypot(first[0] - second[0], first[1] - second[1]);
+}
+
+function samePoint(first, second, epsilon = 1e-8) {
+  return pointDistance(first, second) <= epsilon;
+}
+
+function cross2D(start, end, point) {
+  return (
+    (end[0] - start[0]) * (point[1] - start[1]) -
+    (end[1] - start[1]) * (point[0] - start[0])
+  );
+}
+
+function pointOnSegment2D(point, start, end, epsilon = 1e-9) {
+  return (
+    Math.abs(cross2D(start, end, point)) <= epsilon &&
+    point[0] >= Math.min(start[0], end[0]) - epsilon &&
+    point[0] <= Math.max(start[0], end[0]) + epsilon &&
+    point[1] >= Math.min(start[1], end[1]) - epsilon &&
+    point[1] <= Math.max(start[1], end[1]) + epsilon
+  );
+}
+
+function segmentsIntersect2D(
+  firstStart,
+  firstEnd,
+  secondStart,
+  secondEnd,
+  epsilon = 1e-9,
+) {
+  const firstCross = cross2D(firstStart, firstEnd, secondStart);
+  const secondCross = cross2D(firstStart, firstEnd, secondEnd);
+  const thirdCross = cross2D(secondStart, secondEnd, firstStart);
+  const fourthCross = cross2D(secondStart, secondEnd, firstEnd);
+  if (
+    ((firstCross > epsilon && secondCross < -epsilon) ||
+      (firstCross < -epsilon && secondCross > epsilon)) &&
+    ((thirdCross > epsilon && fourthCross < -epsilon) ||
+      (thirdCross < -epsilon && fourthCross > epsilon))
+  ) {
+    return true;
+  }
+  return (
+    pointOnSegment2D(secondStart, firstStart, firstEnd, epsilon) ||
+    pointOnSegment2D(secondEnd, firstStart, firstEnd, epsilon) ||
+    pointOnSegment2D(firstStart, secondStart, secondEnd, epsilon) ||
+    pointOnSegment2D(firstEnd, secondStart, secondEnd, epsilon)
+  );
+}
+
+function polygonTriangles(label, polygon) {
+  const faces = THREE.ShapeUtils.triangulateShape(
+    polygon.map(([north, east]) => new THREE.Vector2(north, east)),
+    [],
+  );
+  const triangles = faces.map((face) => face.map((index) => polygon[index]));
+  const triangulatedArea = triangles.reduce(
+    (area, triangle) => area + polygonArea(triangle),
+    0,
+  );
+  const expectedArea = polygonArea(polygon);
+  if (
+    triangles.length === 0 ||
+    Math.abs(triangulatedArea - expectedArea) >
+      Math.max(1e-8, expectedArea * 1e-8)
+  ) {
+    throw new Error(`${label} cannot be triangulated without losing area`);
+  }
+  return triangles;
+}
+
+function validateFiniteSimplePolygon(label, polygon, minimumArea = 1e-5) {
+  if (
+    !Array.isArray(polygon) ||
+    polygon.length < 3 ||
+    polygon.some(
+      (point) =>
+        !Array.isArray(point) ||
+        point.length !== 2 ||
+        !point.every(isFiniteNumber),
+    )
+  ) {
+    throw new Error(`${label} must be one finite polygon`);
+  }
+  if (polygonArea(polygon) < minimumArea) {
+    throw new Error(`${label} has no usable area`);
+  }
+  polygon.forEach((point, index) => {
+    const next = polygon[(index + 1) % polygon.length];
+    if (samePoint(point, next, 1e-10)) {
+      throw new Error(`${label} has duplicate vertices at edge ${index}`);
+    }
+  });
+  for (let first = 0; first < polygon.length; first += 1) {
+    const firstEnd = (first + 1) % polygon.length;
+    for (let second = first + 1; second < polygon.length; second += 1) {
+      const secondEnd = (second + 1) % polygon.length;
+      if (firstEnd === second || secondEnd === first) continue;
+      if (
+        segmentsIntersect2D(
+          polygon[first],
+          polygon[firstEnd],
+          polygon[second],
+          polygon[secondEnd],
+        )
+      ) {
+        throw new Error(
+          `${label} self-intersects at edges ${first}/${second}`,
+        );
+      }
+    }
+  }
+  polygonTriangles(label, polygon);
+}
+
+function pointSegmentDistance(point, start, end) {
+  const delta = [end[0] - start[0], end[1] - start[1]];
+  const lengthSquared = dot(delta, delta);
+  if (lengthSquared <= 1e-18) return pointDistance(point, start);
+  const fromStart = [point[0] - start[0], point[1] - start[1]];
+  const amount = Math.max(
+    0,
+    Math.min(1, dot(fromStart, delta) / lengthSquared),
+  );
+  return pointDistance(point, [
+    start[0] + delta[0] * amount,
+    start[1] + delta[1] * amount,
+  ]);
+}
+
+function polygonsOverlapOrTouch(firstPolygon, secondPolygon) {
+  for (let first = 0; first < firstPolygon.length; first += 1) {
+    const firstEnd = (first + 1) % firstPolygon.length;
+    for (let second = 0; second < secondPolygon.length; second += 1) {
+      const secondEnd = (second + 1) % secondPolygon.length;
+      if (
+        segmentsIntersect2D(
+          firstPolygon[first],
+          firstPolygon[firstEnd],
+          secondPolygon[second],
+          secondPolygon[secondEnd],
+        )
+      ) {
+        return true;
+      }
+    }
+  }
+  return (
+    pointInsidePolygon(firstPolygon[0], secondPolygon) ||
+    pointInsidePolygon(secondPolygon[0], firstPolygon)
+  );
+}
+
+function polygonClearance(firstPolygon, secondPolygon) {
+  if (polygonsOverlapOrTouch(firstPolygon, secondPolygon)) return 0;
+  let minimum = Infinity;
+  firstPolygon.forEach((point, firstIndex) => {
+    const firstEnd = firstPolygon[(firstIndex + 1) % firstPolygon.length];
+    secondPolygon.forEach((otherPoint, secondIndex) => {
+      const secondEnd =
+        secondPolygon[(secondIndex + 1) % secondPolygon.length];
+      minimum = Math.min(
+        minimum,
+        pointSegmentDistance(point, otherPoint, secondEnd),
+        pointSegmentDistance(otherPoint, point, firstEnd),
+      );
+    });
+  });
+  return minimum;
 }
 
 function pointInsidePolygon(point, polygon) {
@@ -2766,6 +2945,819 @@ function validateParkNavigationSurfaces() {
   };
 }
 
+function validateWestFrontageSurfaceDefinition() {
+  const frontage = ALUN_ALUN_WEST_FRONTAGE_DEFINITION;
+  const pegadaian = ALUN_ALUN_PEGADAIAN_ROAD_DEFINITION;
+  const sidewalkWidth = frontage.sidewalkWidth;
+  const expectedGeneratedEnvelopeWidth = (1.45 + 0.18) /
+    MAP_METERS_PER_WORLD_UNIT;
+  const ownershipOffset = 0.002;
+  const minimumFootprintClearance = 0.015;
+
+  if (
+    Math.abs(sidewalkWidth - 0.2) > 1e-12 ||
+    ![
+      ALUN_ALUN_ROAD_SURFACE_Y,
+      ALUN_ALUN_FRONTAGE_APRON_Y,
+      ALUN_ALUN_FRONTAGE_SIDEWALK_Y,
+    ].every(isFiniteNumber) ||
+    ALUN_ALUN_FRONTAGE_APRON_Y <= ALUN_ALUN_ROAD_SURFACE_Y ||
+    ALUN_ALUN_FRONTAGE_SIDEWALK_Y < ALUN_ALUN_FRONTAGE_APRON_Y ||
+    ALUN_ALUN_FRONTAGE_SIDEWALK_Y - ALUN_ALUN_ROAD_SURFACE_Y >
+      MAX_WALKABLE_STEP_HEIGHT
+  ) {
+    throw new Error(
+      "west frontage needs an exact one-metre, walkably raised sidewalk stack",
+    );
+  }
+  if (
+    frontage.asphaltInfillOutlines.length !== 2 ||
+    frontage.roadsideSeam.length !==
+      frontage.sidewalkOuterBoundary.length ||
+    frontage.roadsideSeam.length < 3 ||
+    pegadaian.oppositeSidewalkInnerBoundary.length !==
+      pegadaian.oppositeSidewalkOuterBoundary.length ||
+    pegadaian.oppositeSidewalkInnerBoundary.length < 3
+  ) {
+    throw new Error(
+      "west frontage boundary collections no longer describe two clipped infills and two continuous footways",
+    );
+  }
+
+  const polygonDefinitions = [
+    ["west frontage road navigation strip", frontage.roadNavigationOutline],
+    ["west frontage sidewalk", frontage.sidewalkOutline],
+    ["west frontage property apron", frontage.propertyApronOutline],
+    ["Pegadaian road suffix", pegadaian.surfaceOutline],
+    ["Pegadaian opposite sidewalk", pegadaian.oppositeSidewalkOutline],
+    ...frontage.asphaltInfillOutlines.map((polygon, index) => [
+      `west frontage asphalt infill ${index + 1}`,
+      polygon,
+    ]),
+  ];
+  polygonDefinitions.forEach(([label, polygon]) =>
+    validateFiniteSimplePolygon(label, polygon),
+  );
+
+  const validateBandOutline = (
+    label,
+    innerBoundary,
+    outerBoundary,
+    outline,
+  ) => {
+    const expectedOutline = [
+      ...innerBoundary,
+      ...[...outerBoundary].reverse(),
+    ];
+    if (
+      outline.length !== expectedOutline.length ||
+      outline.some((point, index) =>
+        !samePoint(point, expectedOutline[index]),
+      )
+    ) {
+      throw new Error(`${label} outline diverges from its shared boundaries`);
+    }
+  };
+  validateBandOutline(
+    "west frontage sidewalk",
+    frontage.roadsideSeam,
+    frontage.sidewalkOuterBoundary,
+    frontage.sidewalkOutline,
+  );
+  validateBandOutline(
+    "Pegadaian opposite sidewalk",
+    pegadaian.oppositeSidewalkInnerBoundary,
+    pegadaian.oppositeSidewalkOuterBoundary,
+    pegadaian.oppositeSidewalkOutline,
+  );
+  if (
+    frontage.propertyApronOutline.length <=
+      frontage.sidewalkOuterBoundary.length ||
+    frontage.sidewalkOuterBoundary.some(
+      (point, index) =>
+        !samePoint(point, frontage.propertyApronOutline[index]),
+    )
+  ) {
+    throw new Error(
+      "property apron must own the complete outer sidewalk boundary exactly once",
+    );
+  }
+
+  const validateExactBandWidth = (label, innerBoundary, outerBoundary) => {
+    let taperCount = 0;
+    for (let index = 0; index < innerBoundary.length - 1; index += 1) {
+      const start = innerBoundary[index];
+      const end = innerBoundary[index + 1];
+      const delta = [end[0] - start[0], end[1] - start[1]];
+      const length = Math.hypot(...delta);
+      if (length <= 1e-8) {
+        throw new Error(`${label} has a zero-length segment ${index}`);
+      }
+      const normal = [-delta[1] / length, delta[0] / length];
+      const startOffset = [
+        outerBoundary[index][0] - start[0],
+        outerBoundary[index][1] - start[1],
+      ];
+      const endOffset = [
+        outerBoundary[index + 1][0] - end[0],
+        outerBoundary[index + 1][1] - end[1],
+      ];
+      const startWidth = dot(startOffset, normal);
+      const endWidth = dot(endOffset, normal);
+      if (startWidth * endWidth <= 0) {
+        throw new Error(`${label} flips sides at segment ${index}`);
+      }
+      if (index === 0) {
+        if (
+          Math.abs(Math.abs(startWidth) - expectedGeneratedEnvelopeWidth) >
+            0.00002 ||
+          Math.abs(Math.abs(endWidth) - sidewalkWidth) > 1e-8
+        ) {
+          throw new Error(
+            `${label} must taper once from the retained 1.63 m generated envelope to exactly 1.00 m`,
+          );
+        }
+        taperCount += 1;
+      } else if (
+        Math.abs(Math.abs(startWidth) - sidewalkWidth) > 1e-8 ||
+        Math.abs(Math.abs(endWidth) - sidewalkWidth) > 1e-8
+      ) {
+        throw new Error(
+          `${label} normal width is not exactly 0.20 world at segment ${index}`,
+        );
+      }
+    }
+    if (taperCount !== 1) {
+      throw new Error(`${label} must contain exactly one retained-road taper`);
+    }
+  };
+  validateExactBandWidth(
+    "west frontage sidewalk",
+    frontage.roadsideSeam,
+    frontage.sidewalkOuterBoundary,
+  );
+  validateExactBandWidth(
+    "Pegadaian opposite sidewalk",
+    pegadaian.oppositeSidewalkInnerBoundary,
+    pegadaian.oppositeSidewalkOuterBoundary,
+  );
+
+  if (
+    !Array.isArray(pegadaian.path) ||
+    pegadaian.path.length !== 2 ||
+    Math.abs(pegadaian.coreWidth - 1.04) > 1e-12 ||
+    !samePoint(
+      pegadaian.path[0],
+      [
+        (pegadaian.surfaceOutline[0][0] +
+          pegadaian.surfaceOutline.at(-1)[0]) * 0.5,
+        (pegadaian.surfaceOutline[0][1] +
+          pegadaian.surfaceOutline.at(-1)[1]) * 0.5,
+      ],
+    ) ||
+    Math.abs(
+      pointDistance(
+        pegadaian.surfaceOutline[0],
+        pegadaian.surfaceOutline.at(-1),
+      ) - pegadaian.coreWidth,
+    ) > 1e-8
+  ) {
+    throw new Error(
+      "straight Pegadaian suffix must retain its 5.2 m core at the generated-road join",
+    );
+  }
+
+  const mainEastboundPoints =
+    ALUN_ALUN_TRAFFIC_ROUTE_DEFINITIONS.mainEastbound.points;
+  const shopSideRoadPath = [
+    mainEastboundPoints[2],
+    mainEastboundPoints[3],
+    mainEastboundPoints[4],
+    mainEastboundPoints[6],
+  ];
+  const baseRoadGeometries = [
+    createAlunAlunRoadRibbonGeometry(
+      ALUN_ALUN_WEST_SHARED_ROAD_PATH,
+      ALUN_ALUN_WEST_ROAD_OUTER_WIDTH,
+    ),
+    createAlunAlunRoadRibbonGeometry(
+      shopSideRoadPath,
+      ALUN_ALUN_WEST_ROAD_OUTER_WIDTH,
+    ),
+  ];
+  const pointInsideTriangle = (point, triangle, epsilon = 1e-9) => {
+    const first = cross2D(triangle[0], triangle[1], point);
+    const second = cross2D(triangle[1], triangle[2], point);
+    const third = cross2D(triangle[2], triangle[0], point);
+    return (
+      (first >= -epsilon && second >= -epsilon && third >= -epsilon) ||
+      (first <= epsilon && second <= epsilon && third <= epsilon)
+    );
+  };
+  const pointInsideRoadGeometry = (point) =>
+    baseRoadGeometries.some((geometry) => {
+      const positions = geometry.getAttribute("position");
+      const indices = geometry.getIndex();
+      for (let offset = 0; offset < indices.count; offset += 3) {
+        const triangle = [0, 1, 2].map((corner) => {
+          const vertex = indices.getX(offset + corner);
+          return [positions.getX(vertex), positions.getZ(vertex)];
+        });
+        if (pointInsideTriangle(point, triangle)) return true;
+      }
+      return false;
+    });
+  const pointInsideBaseAsphalt = (point) =>
+    pointInsideRoadGeometry(point) ||
+    pointInsidePolygon(point, pegadaian.surfaceOutline) ||
+    pointInsidePolygon(point, ALUN_ALUN_JUNCTION_ASPHALT_OUTLINE);
+  const pointInsideCompleteAsphalt = (point) =>
+    pointInsideBaseAsphalt(point) ||
+    frontage.asphaltInfillOutlines.some((polygon) =>
+      pointInsidePolygon(point, polygon),
+    );
+
+  let ownershipSamples = 0;
+  const validateSharedBoundaryOwnership = (
+    label,
+    boundary,
+    firstContains,
+    secondContains,
+  ) => {
+    boundary.slice(0, -1).forEach((start, segmentIndex) => {
+      const end = boundary[segmentIndex + 1];
+      const delta = [end[0] - start[0], end[1] - start[1]];
+      const length = Math.hypot(...delta);
+      const normal = [-delta[1] / length, delta[0] / length];
+      const sampleCount = Math.max(1, Math.ceil(length / SAMPLE_SPACING));
+      for (let sampleIndex = 0; sampleIndex < sampleCount; sampleIndex += 1) {
+        const amount = (sampleIndex + 0.5) / sampleCount;
+        const midpoint = [
+          start[0] + delta[0] * amount,
+          start[1] + delta[1] * amount,
+        ];
+        const plus = [
+          midpoint[0] + normal[0] * ownershipOffset,
+          midpoint[1] + normal[1] * ownershipOffset,
+        ];
+        const minus = [
+          midpoint[0] - normal[0] * ownershipOffset,
+          midpoint[1] - normal[1] * ownershipOffset,
+        ];
+        const plusOwners = [firstContains(plus), secondContains(plus)];
+        const minusOwners = [firstContains(minus), secondContains(minus)];
+        const valid =
+          (plusOwners[0] &&
+            !plusOwners[1] &&
+            !minusOwners[0] &&
+            minusOwners[1]) ||
+          (!plusOwners[0] &&
+            plusOwners[1] &&
+            minusOwners[0] &&
+            !minusOwners[1]);
+        if (!valid) {
+          throw new Error(
+            `${label} has a gap or overlap at segment ${segmentIndex}, sample ${sampleIndex}`,
+          );
+        }
+        ownershipSamples += 1;
+      }
+    });
+  };
+
+  try {
+    // Both asymmetric polygons must own only the area clipped away from the
+    // old road/junction surfaces. Dense triangle-interior samples catch a
+    // reintroduced coplanar patch while allowing the exact shared boundary.
+    frontage.asphaltInfillOutlines.forEach((polygon, polygonIndex) => {
+      polygonTriangles(`west frontage asphalt infill ${polygonIndex + 1}`, polygon)
+        .forEach((triangle) => {
+          const subdivisions = 18;
+          for (let firstWeight = 1; firstWeight < subdivisions; firstWeight += 1) {
+            for (
+              let secondWeight = 1;
+              secondWeight < subdivisions - firstWeight;
+              secondWeight += 1
+            ) {
+              const thirdWeight =
+                subdivisions - firstWeight - secondWeight;
+              const point = [
+                (triangle[0][0] * firstWeight +
+                  triangle[1][0] * secondWeight +
+                  triangle[2][0] * thirdWeight) /
+                  subdivisions,
+                (triangle[0][1] * firstWeight +
+                  triangle[1][1] * secondWeight +
+                  triangle[2][1] * thirdWeight) /
+                  subdivisions,
+              ];
+              if (
+                pointInsideBaseAsphalt(point) ||
+                frontage.asphaltInfillOutlines.some(
+                  (other, otherIndex) =>
+                    otherIndex !== polygonIndex &&
+                    pointInsidePolygon(point, other),
+                )
+              ) {
+                throw new Error(
+                  `west frontage asphalt infill ${polygonIndex + 1} overlaps an existing asphalt owner`,
+                );
+              }
+            }
+          }
+        });
+    });
+
+    validateSharedBoundaryOwnership(
+      "west frontage asphalt/sidewalk seam",
+      frontage.roadsideSeam,
+      pointInsideCompleteAsphalt,
+      (point) => pointInsidePolygon(point, frontage.sidewalkOutline),
+    );
+    validateSharedBoundaryOwnership(
+      "west frontage sidewalk/apron seam",
+      frontage.sidewalkOuterBoundary,
+      (point) => pointInsidePolygon(point, frontage.sidewalkOutline),
+      (point) => pointInsidePolygon(point, frontage.propertyApronOutline),
+    );
+    validateSharedBoundaryOwnership(
+      "Pegadaian asphalt/opposite-sidewalk seam",
+      pegadaian.oppositeSidewalkInnerBoundary,
+      (point) => pointInsidePolygon(point, pegadaian.surfaceOutline),
+      (point) => pointInsidePolygon(point, pegadaian.oppositeSidewalkOutline),
+    );
+  } finally {
+    baseRoadGeometries.forEach((geometry) => geometry.dispose());
+  }
+
+  const rectanglePolygon = (definition) => {
+    const envelope = obstacleEnvelope(definition);
+    const width = envelope.widthAxis.map(
+      (value) => value * envelope.halfWidth,
+    );
+    const depth = envelope.depthAxis.map(
+      (value) => value * envelope.halfDepth,
+    );
+    return [
+      [
+        envelope.center[0] - width[0] - depth[0],
+        envelope.center[1] - width[1] - depth[1],
+      ],
+      [
+        envelope.center[0] + width[0] - depth[0],
+        envelope.center[1] + width[1] - depth[1],
+      ],
+      [
+        envelope.center[0] + width[0] + depth[0],
+        envelope.center[1] + width[1] + depth[1],
+      ],
+      [
+        envelope.center[0] - width[0] + depth[0],
+        envelope.center[1] - width[1] + depth[1],
+      ],
+    ];
+  };
+  const expectedCollisionBoxes = [
+    {
+      label: "frontage service annex",
+      north: 25.45,
+      east: 4.85,
+      width: 2.9,
+      depth: 2.35,
+    },
+    {
+      label: "frontage blue office",
+      north: 25.7,
+      east: 6.75,
+      width: 2.8,
+      depth: 1.8,
+    },
+    {
+      label: "frontage beige row",
+      north: 25.85,
+      east: 9.65,
+      width: 2.95,
+      depth: 4.5,
+    },
+  ];
+  const resolvedCollisionBoxes = expectedCollisionBoxes.map((expected) => {
+    const actual = ALUN_ALUN_TRAFFIC_COLLISION_OBSTACLES.find(
+      (obstacle) => obstacle.label === expected.label,
+    );
+    if (
+      !actual ||
+      ["north", "east", "width", "depth"].some(
+        (key) => Math.abs(actual[key] - expected[key]) > 1e-12,
+      ) ||
+      (actual.yaw ?? 0) !== 0
+    ) {
+      throw new Error(`${expected.label} footprint constraint has changed`);
+    }
+    return actual;
+  });
+  const footprintDefinitions = [
+    {
+      label: "Kantor Pos",
+      maximumApronClearance: 0.07,
+      polygon: rectanglePolygon({
+        north: 25.1,
+        east: 0.42,
+        width: 4.65,
+        depth: 5.25,
+      }),
+    },
+    ...resolvedCollisionBoxes.map((definition, index) => ({
+      label: definition.label,
+      maximumApronClearance: [0.45, 0.05, 0.07][index],
+      polygon: rectanglePolygon(definition),
+    })),
+    {
+      label: "Pegadaian OSM footprint",
+      maximumApronClearance: 0.07,
+      // Exact decoded building-10 outline retained by player navigation.
+      polygon: [
+        [22.86, -25.26],
+        [22.56, -19.78],
+        [19.42, -19.94],
+        [19.7, -25.42],
+      ],
+    },
+  ];
+  let minimumApronClearance = Infinity;
+  let minimumSidewalkClearance = Infinity;
+  footprintDefinitions.forEach(
+    ({ label, maximumApronClearance, polygon }) => {
+      validateFiniteSimplePolygon(`${label} footprint`, polygon);
+      const apronClearance = polygonClearance(
+        frontage.propertyApronOutline,
+        polygon,
+      );
+      const sidewalkClearance = polygonClearance(
+        frontage.sidewalkOutline,
+        polygon,
+      );
+      if (
+        apronClearance < minimumFootprintClearance ||
+        apronClearance > maximumApronClearance
+      ) {
+        throw new Error(
+          `${label} apron clearance ${formatDistance(apronClearance)} is outside its surveyed frontage envelope`,
+        );
+      }
+      if (sidewalkClearance < RIDER_COLLISION_RADIUS) {
+        throw new Error(
+          `${label} footprint encroaches on the one-metre sidewalk`,
+        );
+      }
+      minimumApronClearance = Math.min(
+        minimumApronClearance,
+        apronClearance,
+      );
+      minimumSidewalkClearance = Math.min(
+        minimumSidewalkClearance,
+        sidewalkClearance,
+      );
+    },
+  );
+
+  return {
+    footprintCount: footprintDefinitions.length,
+    minimumApronClearance,
+    minimumSidewalkClearance,
+    ownershipSamples,
+    sidewalkWidth,
+  };
+}
+
+function validateFrontageNavigationSurfaces() {
+  const frontage = ALUN_ALUN_WEST_FRONTAGE_DEFINITION;
+  const pegadaian = ALUN_ALUN_PEGADAIAN_ROAD_DEFINITION;
+  const expected = [
+    {
+      points: frontage.roadNavigationOutline,
+      height: ALUN_ALUN_ROAD_SURFACE_Y,
+    },
+    ...frontage.asphaltInfillOutlines.map((points) => ({
+      points,
+      height: ALUN_ALUN_ROAD_SURFACE_Y,
+    })),
+    {
+      points: pegadaian.surfaceOutline,
+      height: ALUN_ALUN_ROAD_SURFACE_Y,
+    },
+    {
+      points: frontage.sidewalkOutline,
+      height: ALUN_ALUN_FRONTAGE_SIDEWALK_Y,
+    },
+    {
+      points: pegadaian.oppositeSidewalkOutline,
+      height: ALUN_ALUN_FRONTAGE_SIDEWALK_Y,
+    },
+    {
+      points: frontage.propertyApronOutline,
+      height: ALUN_ALUN_FRONTAGE_APRON_Y,
+    },
+  ];
+  if (
+    ALUN_ALUN_FRONTAGE_NAVIGATION_SURFACES.length !== expected.length ||
+    ALUN_ALUN_FRONTAGE_NAVIGATION_SURFACES.some((surface, index) =>
+      surface.shape !== "polygon" ||
+      surface.points !== expected[index].points ||
+      Math.abs(surface.height - expected[index].height) > 1e-12 ||
+      surface.liftOffset !== undefined ||
+      !surface.label
+    )
+  ) {
+    throw new Error(
+      "frontage navigation must use the exact rendered polygons and absolute local heights",
+    );
+  }
+
+  const testBaseLift = -0.013;
+  const expectedRoadLift = testBaseLift + ALUN_ALUN_ROAD_SURFACE_Y;
+  const mappedNavigation = {
+    userData: {
+      navigation: {
+        // Deliberately expose raw ground beneath every local polygon. This
+        // catches the narrow custom-shoulder trough that formerly lowered the
+        // camera between the mapped road core and asymmetric asphalt infill.
+        surfaceLiftAt: () => GROUND_EPSILON,
+      },
+    },
+  };
+  const navigation = createNavigationSystem({
+    constants: {
+      GROUND_EPSILON,
+      MAP_METERS_PER_WORLD_UNIT,
+      MAX_WALKABLE_STEP_HEIGHT,
+      PLANET_RADIUS,
+      RIDER_COLLISION_RADIUS,
+    },
+    getGeospatialWorld: () => mappedNavigation,
+  });
+  const registered = navigation.registerStopNavigation({
+    theta: 0,
+    phi: 0,
+    yaw: 0,
+    baseScale: 1,
+    name: "Alun-Alun frontage navigation regression",
+    group: {
+      position: new THREE.Vector3(PLANET_RADIUS + testBaseLift, 0, 0),
+      userData: {
+        navigation: { surfaces: ALUN_ALUN_FRONTAGE_NAVIGATION_SURFACES },
+      },
+    },
+  });
+  if (
+    !registered ||
+    navigation.walkableSurfaces.length !== expected.length
+  ) {
+    throw new Error("frontage polygon navigation surfaces were not registered");
+  }
+  const liftAtLocalPoint = ([north, east]) =>
+    navigation.navigationSurfaceLiftAt(east, -north);
+
+  expected.forEach((definition, index) => {
+    const triangles = polygonTriangles(
+      `frontage navigation surface ${index + 1}`,
+      definition.points,
+    );
+    let sample = null;
+    for (const triangle of triangles) {
+      const candidates = [
+        [1 / 3, 1 / 3, 1 / 3],
+        [0.6, 0.2, 0.2],
+        [0.2, 0.6, 0.2],
+        [0.2, 0.2, 0.6],
+      ];
+      sample = candidates
+        .map((weights) => [
+          triangle.reduce(
+            (total, point, corner) => total + point[0] * weights[corner],
+            0,
+          ),
+          triangle.reduce(
+            (total, point, corner) => total + point[1] * weights[corner],
+            0,
+          ),
+        ])
+        .find((point) =>
+          expected.every(
+            (other, otherIndex) =>
+              otherIndex === index ||
+              other.height === definition.height ||
+              !pointInsidePolygon(point, other.points),
+          ),
+        );
+      if (sample) break;
+    }
+    const expectedLift = testBaseLift + definition.height;
+    if (
+      !sample ||
+      Math.abs(liftAtLocalPoint(sample) - expectedLift) > 1e-7
+    ) {
+      throw new Error(
+        `frontage navigation surface ${index + 1} does not preserve its absolute height`,
+      );
+    }
+  });
+
+  let transitionSamples = 0;
+  const validateTransition = (
+    label,
+    boundary,
+    firstPolygon,
+    firstHeight,
+    secondPolygon,
+    secondHeight,
+  ) => {
+    boundary.slice(0, -1).forEach((start, segmentIndex) => {
+      const end = boundary[segmentIndex + 1];
+      const delta = [end[0] - start[0], end[1] - start[1]];
+      const length = Math.hypot(...delta);
+      const normal = [-delta[1] / length, delta[0] / length];
+      const midpoint = [
+        (start[0] + end[0]) * 0.5,
+        (start[1] + end[1]) * 0.5,
+      ];
+      const candidates = [1, -1].map((side) => [
+        midpoint[0] + normal[0] * 0.01 * side,
+        midpoint[1] + normal[1] * 0.01 * side,
+      ]);
+      const first = candidates.find((point) =>
+        pointInsidePolygon(point, firstPolygon),
+      );
+      const second = candidates.find((point) =>
+        pointInsidePolygon(point, secondPolygon),
+      );
+      if (
+        !first ||
+        !second ||
+        samePoint(first, second) ||
+        Math.abs(
+          liftAtLocalPoint(first) - (testBaseLift + firstHeight),
+        ) > 1e-7 ||
+        Math.abs(
+          liftAtLocalPoint(second) - (testBaseLift + secondHeight),
+        ) > 1e-7 ||
+        navigation.surfaceTransitionIsBlocked(
+          first[1],
+          -first[0],
+          second[1],
+          -second[0],
+        )
+      ) {
+        throw new Error(
+          `${label} is not a walkable absolute-height transition at segment ${segmentIndex}`,
+        );
+      }
+      transitionSamples += 1;
+    });
+  };
+
+  // The mapped road is the second owner at the inner seam; use a deliberately
+  // broad road-side polygon only to identify the sample on that side. Its
+  // returned lift still comes from the mapped road or the exact infill.
+  const broadRoadSide = [
+    [-100, -100],
+    [100, -100],
+    [100, 100],
+    [-100, 100],
+  ];
+  const validateRoadSideTransition = (label, boundary, sidewalkPolygon) => {
+    boundary.slice(0, -1).forEach((start, segmentIndex) => {
+      const end = boundary[segmentIndex + 1];
+      const delta = [end[0] - start[0], end[1] - start[1]];
+      const length = Math.hypot(...delta);
+      const normal = [-delta[1] / length, delta[0] / length];
+      const midpoint = [
+        (start[0] + end[0]) * 0.5,
+        (start[1] + end[1]) * 0.5,
+      ];
+      const candidates = [1, -1].map((side) => [
+        midpoint[0] + normal[0] * 0.01 * side,
+        midpoint[1] + normal[1] * 0.01 * side,
+      ]);
+      const sidewalk = candidates.find((point) =>
+        pointInsidePolygon(point, sidewalkPolygon),
+      );
+      const road = candidates.find(
+        (point) =>
+          pointInsidePolygon(point, broadRoadSide) &&
+          !pointInsidePolygon(point, sidewalkPolygon),
+      );
+      if (
+        !sidewalk ||
+        !road ||
+        Math.abs(
+          liftAtLocalPoint(sidewalk) -
+            (testBaseLift + ALUN_ALUN_FRONTAGE_SIDEWALK_Y),
+        ) > 1e-7 ||
+        Math.abs(liftAtLocalPoint(road) - expectedRoadLift) > 1e-7 ||
+        navigation.surfaceTransitionIsBlocked(
+          road[1],
+          -road[0],
+          sidewalk[1],
+          -sidewalk[0],
+        )
+      ) {
+        throw new Error(
+          `${label} is not a walkable road-to-sidewalk step at segment ${segmentIndex}`,
+        );
+      }
+      transitionSamples += 1;
+    });
+  };
+  validateRoadSideTransition(
+    "west frontage inner seam",
+    frontage.roadsideSeam,
+    frontage.sidewalkOutline,
+  );
+  validateTransition(
+    "west frontage outer seam",
+    frontage.sidewalkOuterBoundary,
+    frontage.sidewalkOutline,
+    ALUN_ALUN_FRONTAGE_SIDEWALK_Y,
+    frontage.propertyApronOutline,
+    ALUN_ALUN_FRONTAGE_APRON_Y,
+  );
+  validateRoadSideTransition(
+    "Pegadaian opposite inner seam",
+    pegadaian.oppositeSidewalkInnerBoundary,
+    pegadaian.oppositeSidewalkOutline,
+  );
+
+  return {
+    surfaceCount: navigation.walkableSurfaces.length,
+    transitionSamples,
+  };
+}
+
+function validateFrontageVehicleSeparation(routes) {
+  const protectedPolygons = [
+    [
+      "west frontage sidewalk",
+      ALUN_ALUN_WEST_FRONTAGE_DEFINITION.sidewalkOutline,
+    ],
+    [
+      "west frontage property apron",
+      ALUN_ALUN_WEST_FRONTAGE_DEFINITION.propertyApronOutline,
+    ],
+    [
+      "Pegadaian opposite sidewalk",
+      ALUN_ALUN_PEGADAIAN_ROAD_DEFINITION.oppositeSidewalkOutline,
+    ],
+  ].map(([label, polygon]) => ({
+    bounds: polygonBounds(polygon),
+    label,
+    triangles: polygonTriangles(label, polygon),
+  }));
+  let checkedComparisons = 0;
+  let minimumGap = Infinity;
+  let minimumDetail = null;
+  routes.forEach((route) => {
+    const halfLength = ROUTE_SWEPT_HALF_LENGTHS[route.name];
+    const halfWidth = ROUTE_SWEPT_HALF_WIDTHS[route.name];
+    const broadPhaseRadius = Math.hypot(halfLength, halfWidth);
+    sampleRoute(route).forEach((sample) => {
+      const vehicle = vehiclePolygon(sample, halfLength, halfWidth);
+      protectedPolygons.forEach((protectedSurface) => {
+        const bounds = protectedSurface.bounds;
+        if (
+          sample.north < bounds.minimumNorth - broadPhaseRadius ||
+          sample.north > bounds.maximumNorth + broadPhaseRadius ||
+          sample.east < bounds.minimumEast - broadPhaseRadius ||
+          sample.east > bounds.maximumEast + broadPhaseRadius
+        ) {
+          return;
+        }
+        protectedSurface.triangles.forEach((triangle) => {
+          const rawGap = polygonPairGap(vehicle, triangle);
+          checkedComparisons += 1;
+          if (rawGap < minimumGap) {
+            minimumGap = rawGap;
+            minimumDetail = {
+              protectedSurface,
+              rawGap,
+              route,
+              sample,
+            };
+          }
+          if (rawGap < REQUIRED_CLEARANCE) {
+            throw new Error(
+              `${route.name} swept vehicle envelope encroaches on ${protectedSurface.label} at north/east ${formatCoordinate(sample.north)}/${formatCoordinate(sample.east)} (clearance ${formatDistance(rawGap)})`,
+            );
+          }
+        });
+      });
+    });
+  });
+  if (!minimumDetail || !Number.isFinite(minimumGap)) {
+    throw new Error("frontage vehicle broad phase did not inspect the new surfaces");
+  }
+  return { checkedComparisons, minimumDetail, minimumGap };
+}
+
 function validateSouthApproachSurfaceDefinition() {
   const definition = ALUN_ALUN_SOUTH_APPROACH_DEFINITION;
   const {
@@ -2953,6 +3945,8 @@ function validateSouthApproachSurfaceDefinition() {
 let routes;
 let pedestrianRoutes;
 let productionFleetConfigs;
+let frontageNavigationResult;
+let frontageSurfaceResult;
 let parkNavigationResult;
 let parkSurfaceOwnershipResult;
 try {
@@ -2960,6 +3954,8 @@ try {
   validateRoadSurfaceGeometry();
   parkSurfaceOwnershipResult = validateParkSurfaceOwnership();
   parkNavigationResult = validateParkNavigationSurfaces();
+  frontageSurfaceResult = validateWestFrontageSurfaceDefinition();
+  frontageNavigationResult = validateFrontageNavigationSurfaces();
   validateSouthApproachSurfaceDefinition();
   validateCollections(
     ALUN_ALUN_TRAFFIC_ROUTE_DEFINITIONS,
@@ -3001,9 +3997,11 @@ const routesByName = new Map(routes.map((route) => [route.name, route]));
 const routeSamplesByName = new Map(
   routes.map((route) => [route.name, sampleRoute(route)]),
 );
+let frontageVehicleResult;
 let productionFleet;
 let pedestrianVehicleResult;
 try {
+  frontageVehicleResult = validateFrontageVehicleSeparation(routes);
   productionFleet = createProductionFleet(
     productionFleetConfigs,
     routesByName,
@@ -3360,6 +4358,24 @@ if (
   console.log(
     `Raised park navigation: ${parkNavigationResult.surfaceCount} exact polygons; ` +
       `${parkNavigationResult.curbTransitionSamples} walkable curb transitions`,
+  );
+  console.log(
+    `Straight west frontage: ${frontageSurfaceResult.sidewalkWidth.toFixed(2)} ` +
+      `world / ${(frontageSurfaceResult.sidewalkWidth * MAP_METERS_PER_WORLD_UNIT).toFixed(2)} m sidewalk; ` +
+      `${frontageSurfaceResult.ownershipSamples.toLocaleString("en-US")} ` +
+      `seam-ownership samples; ${frontageSurfaceResult.footprintCount} ` +
+      `surveyed footprints; minimum apron/sidewalk clearances ` +
+      `${formatDistance(frontageSurfaceResult.minimumApronClearance)} / ` +
+      `${formatDistance(frontageSurfaceResult.minimumSidewalkClearance)}.`,
+  );
+  console.log(
+    `Frontage navigation: ${frontageNavigationResult.surfaceCount} absolute-height ` +
+      `polygons; ${frontageNavigationResult.transitionSamples} walkable transitions; ` +
+      `${frontageVehicleResult.checkedComparisons.toLocaleString("en-US")} ` +
+      `swept-envelope comparisons; minimum vehicle clearance ` +
+      `${formatDistance(frontageVehicleResult.minimumGap)} ` +
+      `(${frontageVehicleResult.minimumDetail.route.name} vs ` +
+      `${frontageVehicleResult.minimumDetail.protectedSurface.label}).`,
   );
   console.log(
     `Routes: ${routes.length}; collision boxes: ${obstacles.length}; ` +

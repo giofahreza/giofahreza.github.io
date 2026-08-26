@@ -5,8 +5,12 @@ import { createAlunAlunLesehanFactory } from "./lesehan.js";
 import {
   ALUN_ALUN_INTERIOR_CHECKER_PATH_OUTLINES,
   ALUN_ALUN_INTERIOR_TACTILE_PAVER_DEFINITION,
+  ALUN_ALUN_FRONTAGE_APRON_Y,
+  ALUN_ALUN_FRONTAGE_SIDEWALK_Y,
+  ALUN_ALUN_PEGADAIAN_ROAD_DEFINITION,
   ALUN_ALUN_WEST_MEDIAN_PATH,
   ALUN_ALUN_WEST_MEDIAN_WIDTHS,
+  ALUN_ALUN_WEST_FRONTAGE_DEFINITION,
   ALUN_ALUN_SOUTH_MEDIAN_PATH,
   ALUN_ALUN_SOUTH_MEDIAN_WIDTHS,
   ALUN_ALUN_SOUTH_CROSSING_DEFINITION,
@@ -70,6 +74,52 @@ export const ALUN_ALUN_PARK_NAVIGATION_SURFACES = Object.freeze([
       label: `raised checker path ${index + 1}`,
     }),
   ),
+]);
+
+// Unlike the generated map road, these asymmetric infills and exact-width
+// pedestrian bands are owned by the tangent-plane landmark. Absolute local
+// heights keep walking aligned with the visible surfaces even where the OSM
+// source road has deliberately had its generic sidewalk suppressed.
+export const ALUN_ALUN_FRONTAGE_NAVIGATION_SURFACES = Object.freeze([
+  Object.freeze({
+    shape: "polygon",
+    points: ALUN_ALUN_WEST_FRONTAGE_DEFINITION.roadNavigationOutline,
+    height: ALUN_ALUN_ROAD_SURFACE_Y,
+    label: "straight frontage road-side ownership strip",
+  }),
+  ...ALUN_ALUN_WEST_FRONTAGE_DEFINITION.asphaltInfillOutlines.map(
+    (points, index) =>
+      Object.freeze({
+        shape: "polygon",
+        points,
+        height: ALUN_ALUN_ROAD_SURFACE_Y,
+        label: `straight frontage asphalt infill ${index + 1}`,
+      }),
+  ),
+  Object.freeze({
+    shape: "polygon",
+    points: ALUN_ALUN_PEGADAIAN_ROAD_DEFINITION.surfaceOutline,
+    height: ALUN_ALUN_ROAD_SURFACE_Y,
+    label: "straight Pegadaian road suffix",
+  }),
+  Object.freeze({
+    shape: "polygon",
+    points: ALUN_ALUN_WEST_FRONTAGE_DEFINITION.sidewalkOutline,
+    height: ALUN_ALUN_FRONTAGE_SIDEWALK_Y,
+    label: "Pegadaian-Pos-Planet Ban one-metre sidewalk",
+  }),
+  Object.freeze({
+    shape: "polygon",
+    points: ALUN_ALUN_PEGADAIAN_ROAD_DEFINITION.oppositeSidewalkOutline,
+    height: ALUN_ALUN_FRONTAGE_SIDEWALK_Y,
+    label: "Pegadaian opposite one-metre sidewalk",
+  }),
+  Object.freeze({
+    shape: "polygon",
+    points: ALUN_ALUN_WEST_FRONTAGE_DEFINITION.propertyApronOutline,
+    height: ALUN_ALUN_FRONTAGE_APRON_Y,
+    label: "commercial property frontage apron",
+  }),
 ]);
 
 // Collision objects that belong to the signalised junction are kept separate
@@ -1484,7 +1534,10 @@ export function createAlunAlunModelFactory({
     // lift so crossing the curb raises the rider by the same amount as the
     // visible road-to-ceramic step without inheriting the landmark's sag.
     group.userData.navigation = {
-      surfaces: ALUN_ALUN_PARK_NAVIGATION_SURFACES,
+      surfaces: [
+        ...ALUN_ALUN_PARK_NAVIGATION_SURFACES,
+        ...ALUN_ALUN_FRONTAGE_NAVIGATION_SURFACES,
+      ],
     };
 
     // Batch the static paving, curbs, planter bodies and boulder. Gazebos,

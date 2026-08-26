@@ -135,6 +135,7 @@ export function createNavigationSystem({
     points,
     holes,
     liftOffset,
+    height,
     yaw = 0,
     label = "",
   ) {
@@ -153,6 +154,7 @@ export function createNavigationSystem({
       points,
       holes,
       liftOffset,
+      height,
       yaw,
       label,
       normal,
@@ -194,6 +196,9 @@ export function createNavigationSystem({
       const label =
         `${stop.shortName ?? stop.name}: ${surface.label ?? "surface"}`;
       if (surface.shape === "polygon") {
+        const height = Number.isFinite(surface.height)
+          ? baseLift + surface.height * scale
+          : null;
         addWalkablePolygon(
           stop.theta,
           stop.phi,
@@ -201,7 +206,10 @@ export function createNavigationSystem({
           (surface.holes ?? []).map((hole) =>
             hole.map(([x, z]) => [x * scale, z * scale]),
           ),
-          surface.liftOffset * scale,
+          Number.isFinite(surface.liftOffset)
+            ? surface.liftOffset * scale
+            : 0,
+          height,
           yaw + (surface.yaw ?? 0),
           label,
         );
@@ -283,7 +291,7 @@ export function createNavigationSystem({
       if (surface.contains(localX, localZ)) {
         const surfaceLift =
           surface.shape === "polygon"
-            ? mappedLift + surface.liftOffset
+            ? surface.height ?? mappedLift + surface.liftOffset
             : surface.height;
         lift = Math.max(lift, surfaceLift);
       }

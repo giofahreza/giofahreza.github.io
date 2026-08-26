@@ -7,6 +7,21 @@ const freezeCoordinates = (coordinates) => Object.freeze(coordinates);
 // mask a different road.
 export const ALUN_ALUN_GENERATED_ROAD_REPLACEMENTS = Object.freeze([
   Object.freeze({
+    label: "Pegadaian frontage branch",
+    style: 3,
+    // Preserve the source road through [-1319,1128]. The final two segments
+    // are redrawn as one straight custom chord with an exact 1 m sidewalk.
+    retainedPointCount: 22,
+    coordinates: freezeCoordinates([
+      -2289, 3956, -2354, 3611, -2394, 3346, -2411, 3215,
+      -2432, 2984, -2458, 2724, -2452, 2629, -2440, 2597,
+      -2416, 2579, -2377, 2553, -2317, 2534, -2199, 2525,
+      -1999, 2521, -1929, 2497, -1876, 2447, -1751, 2089,
+      -1712, 2021, -1447, 1775, -1317, 1704, -1272, 1616,
+      -1251, 1486, -1319, 1128, -1385, 790, -1423, 564,
+    ]),
+  }),
+  Object.freeze({
     label: "west local connector",
     style: 2,
     retainedPointCount: 0,

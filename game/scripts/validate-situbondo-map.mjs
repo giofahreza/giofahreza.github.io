@@ -33,7 +33,17 @@ const GENERATED_ROAD_SIDEWALK_WIDTH_METERS = Object.freeze([
 ]);
 const GENERATED_GROUND_SURFACE_LIFT = 0.0008;
 const GENERATED_ROAD_SURFACE_LIFT = 0.024;
+const GENERATED_SIDEWALK_SURFACE_LIFT = 0.036;
 const MASK_CORE_SAMPLE_SPACING = 0.02;
+const PEGADAIAN_FRONTAGE_RETAINED_POINT_COUNT = 22;
+const PEGADAIAN_FRONTAGE_SOURCE_COORDINATES = Object.freeze([
+  -2289, 3956, -2354, 3611, -2394, 3346, -2411, 3215,
+  -2432, 2984, -2458, 2724, -2452, 2629, -2440, 2597,
+  -2416, 2579, -2377, 2553, -2317, 2534, -2199, 2525,
+  -1999, 2521, -1929, 2497, -1876, 2447, -1751, 2089,
+  -1712, 2021, -1447, 1775, -1317, 1704, -1272, 1616,
+  -1251, 1486, -1319, 1128, -1385, 790, -1423, 564,
+]);
 const ALUN_ALUN_SURVEYED_ROADS = Object.freeze([
   Object.freeze({
     osmWayId: 331217150,
@@ -137,6 +147,17 @@ function pointToSegmentDistance(point, start, end) {
     point[0] - (start[0] + deltaNorth * projection),
     point[1] - (start[1] + deltaEast * projection),
   );
+}
+
+function offsetSegmentMidpoint(start, end, offset) {
+  const deltaNorth = end[0] - start[0];
+  const deltaEast = end[1] - start[1];
+  const length = Math.hypot(deltaNorth, deltaEast);
+  if (length === 0) return [Infinity, Infinity];
+  return [
+    (start[0] + end[0]) * 0.5 - deltaEast / length * offset,
+    (start[1] + end[1]) * 0.5 + deltaNorth / length * offset,
+  ];
 }
 
 function segmentCross(start, end, point) {
@@ -325,6 +346,38 @@ map.roads.forEach((road) => {
 const renderableRoadFingerprints = new Set(
   renderableRoads.map((road) => roadFingerprint(road[0], road[2])),
 );
+const pegadaianFrontageReplacement =
+  ALUN_ALUN_GENERATED_ROAD_REPLACEMENTS.find(
+    (replacement) => replacement.label === "Pegadaian frontage branch",
+  );
+check(
+  pegadaianFrontageReplacement?.style === 3 &&
+    coordinateFingerprint(pegadaianFrontageReplacement.coordinates) ===
+      coordinateFingerprint(PEGADAIAN_FRONTAGE_SOURCE_COORDINATES),
+  "Pegadaian frontage replacement no longer has the exact style-3 road fingerprint",
+);
+check(
+  pegadaianFrontageReplacement?.retainedPointCount ===
+    PEGADAIAN_FRONTAGE_RETAINED_POINT_COUNT &&
+    pegadaianFrontageReplacement.coordinates.slice(
+      (PEGADAIAN_FRONTAGE_RETAINED_POINT_COUNT - 1) * 2,
+      PEGADAIAN_FRONTAGE_RETAINED_POINT_COUNT * 2,
+    ).join(",") === "-1319,1128",
+  "Pegadaian frontage replacement is not retained through [-1319,1128] at point 22",
+);
+const pegadaianSourceFingerprint = roadFingerprint(
+  3,
+  PEGADAIAN_FRONTAGE_SOURCE_COORDINATES,
+);
+const pegadaianSourceMatches =
+  sourceRoadsByFingerprint.get(pegadaianSourceFingerprint) ?? [];
+const pegadaianSourceRoad = pegadaianSourceMatches[0] ?? null;
+check(
+  pegadaianSourceMatches.length === 1 &&
+    map.roads[3] === pegadaianSourceRoad &&
+    pegadaianSourceRoad[1] === 52,
+  "Pegadaian frontage source is not the exact 5.2 m map road 3",
+);
 ALUN_ALUN_GENERATED_ROAD_REPLACEMENTS.forEach((replacement) => {
   const sourceFingerprint = roadFingerprint(
     replacement.style,
@@ -354,6 +407,22 @@ ALUN_ALUN_GENERATED_ROAD_REPLACEMENTS.forEach((replacement) => {
     `generated-road replacement ${replacement.label} retained the wrong prefix`,
   );
 });
+const pegadaianRetainedCoordinates =
+  PEGADAIAN_FRONTAGE_SOURCE_COORDINATES.slice(
+    0,
+    PEGADAIAN_FRONTAGE_RETAINED_POINT_COUNT * 2,
+  );
+const pegadaianRetainedRenderableMatches = renderableRoads.filter(
+  (road) =>
+    roadFingerprint(road[0], road[2]) ===
+    roadFingerprint(3, pegadaianRetainedCoordinates),
+);
+check(
+  pegadaianRetainedRenderableMatches.length === 1 &&
+    pegadaianRetainedRenderableMatches[0][1] === 52 &&
+    !renderableRoadFingerprints.has(pegadaianSourceFingerprint),
+  "Pegadaian frontage mask did not render exactly one 22-point retained prefix",
+);
 const fullyReplacedRoadCount = ALUN_ALUN_GENERATED_ROAD_REPLACEMENTS.filter(
   (replacement) => replacement.retainedPointCount < 2,
 ).length;
@@ -401,6 +470,99 @@ const parkSideSidewalkWidth = parkSideSourceRoad
   ? GENERATED_ROAD_SIDEWALK_WIDTH_METERS[parkSideSourceRoad[0]] ?? 0
   : 0;
 const navigation = createMapNavigation(map);
+
+// The Pegadaian source branch keeps its first 22 points as a generated road,
+// then replaces both remaining curved segments with surveyed tangent-plane
+// geometry. Derive samples from the exact source centreline: halfway along a
+// segment avoids join/end-cap ambiguity, and the middle of the former
+// sidewalk band is far enough from both its curb and outer edge to catch even
+// small masking regressions.
+const pegadaianCenterline = pegadaianSourceRoad
+  ? decodeRoadCenterline(pegadaianSourceRoad)
+  : [];
+check(
+  pegadaianCenterline.length === 24,
+  "Pegadaian frontage source does not contain the expected 24 points",
+);
+const pegadaianHalfWidth = pegadaianSourceRoad
+  ? pegadaianSourceRoad[1] / map.coordinatePrecision * 0.5
+  : 0;
+const pegadaianGeneratedSidewalkWidth = pegadaianSourceRoad
+  ? GENERATED_ROAD_SIDEWALK_WIDTH_METERS[pegadaianSourceRoad[0]] ?? 0
+  : 0;
+const pegadaianFormerSidewalkSampleOffset =
+  pegadaianHalfWidth +
+  GENERATED_ROAD_CURB_WIDTH_METERS +
+  pegadaianGeneratedSidewalkWidth * 0.5;
+const pegadaianRetainedSegment = pegadaianCenterline.length === 24
+  ? pegadaianCenterline.slice(
+      PEGADAIAN_FRONTAGE_RETAINED_POINT_COUNT - 2,
+      PEGADAIAN_FRONTAGE_RETAINED_POINT_COUNT,
+    )
+  : [];
+const pegadaianRetainedSidewalkSamples =
+  pegadaianRetainedSegment.length === 2
+    ? [-1, 1].map((side) =>
+        offsetSegmentMidpoint(
+          pegadaianRetainedSegment[0],
+          pegadaianRetainedSegment[1],
+          side * pegadaianFormerSidewalkSampleOffset,
+        ),
+      )
+    : [];
+pegadaianRetainedSidewalkSamples.forEach((point, index) => {
+  const lift = navigation.surfaceLiftAt(point[1], point[0]);
+  check(
+    Math.abs(lift - GENERATED_SIDEWALK_SURFACE_LIFT) < 1e-9,
+    `Pegadaian retained-prefix generic sidewalk side ${index + 1} has lift ` +
+      `${lift.toFixed(4)}`,
+  );
+});
+
+const pegadaianMaskedSuffixSegments = [];
+if (pegadaianCenterline.length === 24) {
+  for (
+    let index = PEGADAIAN_FRONTAGE_RETAINED_POINT_COUNT - 1;
+    index < pegadaianCenterline.length - 1;
+    index += 1
+  ) {
+    pegadaianMaskedSuffixSegments.push([
+      pegadaianCenterline[index],
+      pegadaianCenterline[index + 1],
+    ]);
+  }
+}
+check(
+  pegadaianMaskedSuffixSegments.length === 2,
+  "Pegadaian frontage mask does not own exactly two source suffix segments",
+);
+pegadaianMaskedSuffixSegments.forEach((segment, segmentIndex) => {
+  [-1, 1].forEach((side) => {
+    const point = offsetSegmentMidpoint(
+      segment[0],
+      segment[1],
+      side * pegadaianFormerSidewalkSampleOffset,
+    );
+    const lift = navigation.surfaceLiftAt(point[1], point[0]);
+    check(
+      Math.abs(lift - GENERATED_GROUND_SURFACE_LIFT) < 1e-9,
+      `Pegadaian masked suffix segment ${segmentIndex + 1} side ` +
+        `${side < 0 ? "left" : "right"} still has generic sidewalk lift ` +
+        `${lift.toFixed(4)}`,
+    );
+  });
+  const roadCorePoint = offsetSegmentMidpoint(segment[0], segment[1], 0);
+  const roadCoreLift = navigation.surfaceLiftAt(
+    roadCorePoint[1],
+    roadCorePoint[0],
+  );
+  check(
+    Math.abs(roadCoreLift - GENERATED_ROAD_SURFACE_LIFT) < 1e-9,
+    `Pegadaian masked suffix segment ${segmentIndex + 1} road-core lift ` +
+      `changed to ${roadCoreLift.toFixed(4)}`,
+  );
+});
+
 const formerParkSidewalkLift = navigation.surfaceLiftAt(
   formerParkSidewalkPoint[1],
   formerParkSidewalkPoint[0],
