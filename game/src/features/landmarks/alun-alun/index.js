@@ -8,7 +8,7 @@ import {
   ALUN_ALUN_SOUTH_MEDIAN_PATH,
   ALUN_ALUN_SOUTH_MEDIAN_WIDTHS,
   ALUN_ALUN_SOUTH_CROSSING_DEFINITION,
-  ALUN_ALUN_PARK_EAST_CURB_PATH,
+  ALUN_ALUN_PARK_OUTLINE,
   createAlunAlunTrafficFactory,
 } from "./traffic.js";
 import { createAlunAlunWestRoadsideFactory } from "./west-roadside.js";
@@ -111,23 +111,6 @@ export function createAlunAlunModelFactory({
   },
   world,
 }) {
-  // OSM way 185229377 projected from the survey origin. Local X is north and
-  // local Z is east, matching placeOnPlanet(..., yaw = 0). Keeping the actual
-  // outline here prevents the landmark from collapsing back into a map icon.
-  const ALUN_ALUN_OUTLINE = [
-    [9.97, -17.55],
-    [-14.93, -12.39],
-    [-16.17, -11.46],
-    [-17.44, -9.55],
-    [-17.47, -7.21],
-    [-12.92, 15.29],
-    [-12.16, 16.87],
-    ...ALUN_ALUN_PARK_EAST_CURB_PATH,
-    [18.25, 6.85],
-    [12.41, -16.6],
-    [11.4, -17.34],
-  ];
-
   function createAlunAlunTileMaterial() {
     const tileCanvas = document.createElement("canvas");
     tileCanvas.width = 128;
@@ -1032,13 +1015,13 @@ export function createAlunAlunModelFactory({
       emissiveIntensity: 0.06,
     });
 
-    addAlunAlunSurface(group, ALUN_ALUN_OUTLINE, 0.018, tileMaterial, 0.6);
-    const lawnOutline = ALUN_ALUN_OUTLINE.map(([north, east]) => [
+    addAlunAlunSurface(group, ALUN_ALUN_PARK_OUTLINE, 0.018, tileMaterial, 0.6);
+    const lawnOutline = ALUN_ALUN_PARK_OUTLINE.map(([north, east]) => [
       north * 0.77 - 0.1,
       east * 0.76 + 0.2,
     ]);
     addAlunAlunSurface(group, lawnOutline, 0.038, parkGrassMaterial, 2);
-    addAlunAlunCurb(group, ALUN_ALUN_OUTLINE, curbMaterials, {
+    addAlunAlunCurb(group, ALUN_ALUN_PARK_OUTLINE, curbMaterials, {
       // A short dropped-curb opening aligns with the compact crossing at the
       // signalised north-east corner.
       // Edges are zero-based: edge 9 is the short diagonal corner from

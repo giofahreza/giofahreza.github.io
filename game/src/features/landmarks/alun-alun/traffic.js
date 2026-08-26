@@ -372,6 +372,23 @@ export const ALUN_ALUN_PARK_EAST_CURB_PATH = freezePath([
   [18.01, 9.28],
 ]);
 
+// Complete protected paving outline. The generated OSM-road validator uses
+// this same polygon so inferred road widths cannot spill back across the
+// checker plaza while the landmark and validation silently drift apart.
+export const ALUN_ALUN_PARK_OUTLINE = freezePath([
+  [9.97, -17.55],
+  [-14.93, -12.39],
+  [-16.17, -11.46],
+  [-17.44, -9.55],
+  [-17.47, -7.21],
+  [-12.92, 15.29],
+  [-12.16, 16.87],
+  ...ALUN_ALUN_PARK_EAST_CURB_PATH,
+  [18.25, 6.85],
+  [12.41, -16.6],
+  [11.4, -17.34],
+]);
+
 // The south approach used to be rendered as one wide ribbon followed by two
 // narrow ribbons that all met at the same centre point. The narrow pair then
 // occupied the same asphalt for roughly 27 metres before reaching the median,
@@ -726,11 +743,14 @@ export function createAlunAlunTrafficFactory({
     const asphaltSurface = hideMaterialOutline(
       toonMaterial({
         color: 0x414947,
-        // Junction masks share the road plane. Pull asphalt deterministically
-        // above adjacent mapped surfaces without sub-millimetre Y stacking.
+        // The global OSM road layer uses a -3 depth offset. This surveyed
+        // replacement must win that depth test wherever its union masks the
+        // generic main-road and side-road ribbons; otherwise those differently
+        // coloured ribbons reappear as diagonal crossover wedges at low camera
+        // angles even though they are physically below this surface.
         polygonOffset: true,
-        polygonOffsetFactor: -1,
-        polygonOffsetUnits: -1,
+        polygonOffsetFactor: -4,
+        polygonOffsetUnits: -4,
       }),
     );
     const asphaltTrim = toonMaterial({ color: 0x303635 });

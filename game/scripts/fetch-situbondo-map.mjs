@@ -18,6 +18,23 @@ const RAW_MAP_ENDPOINTS = [
   "https://api.openstreetmap.org/api/0.6/map",
   "https://www.openstreetmap.org/api/0.6/map",
 ];
+// OSM describes several one-way halves around the Alun-Alun with either the
+// full four-lane count or no lane count at all. Generic inference consequently
+// makes each half 11-12.2 m wide and exposes crossing wedges beneath the
+// surveyed landmark roads. Street View shows 6.6 m per carriageway throughout
+// this chain, matching the landmark reconstruction.
+const SURVEYED_ROAD_WIDTH_METERS_BY_OSM_WAY_ID = new Map([
+  [331217150, 6.6],
+  [331217153, 6.6],
+  [380773860, 6.6],
+  [380773862, 6.6],
+  [380773884, 6.6],
+  [380773887, 6.6],
+  [380773891, 6.6],
+  [406394144, 6.6],
+  [678149158, 6.6],
+  [1428205851, 6.6],
+]);
 const OUTPUT_PATH = resolve(
   dirname(fileURLToPath(import.meta.url)),
   "../public/data/situbondo-map.json",
@@ -264,7 +281,9 @@ function roadClass(highway) {
   return 4;
 }
 
-function inferredRoadWidth(tags) {
+function inferredRoadWidth(tags, wayId) {
+  const surveyedWidth = SURVEYED_ROAD_WIDTH_METERS_BY_OSM_WAY_ID.get(wayId);
+  if (surveyedWidth) return surveyedWidth;
   const explicit = parseMetric(tags.width);
   if (explicit) return Math.min(24, Math.max(1.2, explicit));
   const lanes = parseMetric(tags.lanes);
@@ -608,6 +627,20 @@ async function main() {
   const highwayWays = ways.filter(
     (way) => way.tags?.highway && intersectsSurveyCircle(way),
   );
+  const highwayWaysById = new Map(highwayWays.map((way) => [way.id, way]));
+  SURVEYED_ROAD_WIDTH_METERS_BY_OSM_WAY_ID.forEach((width, wayId) => {
+    const way = highwayWaysById.get(wayId);
+    if (!way) {
+      throw new Error(
+        `Surveyed ${width} m road override is missing OSM way ${wayId}`,
+      );
+    }
+    if (way.tags?.oneway !== "yes" && way.tags?.junction !== "roundabout") {
+      throw new Error(
+        `Surveyed road override ${wayId} is no longer one-way or a roundabout`,
+      );
+    }
+  });
   const railwayWays = ways.filter(
     (way) => way.tags?.railway && intersectsSurveyCircle(way),
   );
@@ -626,7 +659,7 @@ async function main() {
   highwayWays.forEach((way) => {
     const tags = way.tags ?? {};
     const style = roadClass(tags.highway);
-    const width = quantize(inferredRoadWidth(tags));
+    const width = quantize(inferredRoadWidth(tags, way.id));
     clipPolyline(way.geometry.map(project)).forEach((part) => {
       const line = quantizedLine(part);
       if (line.length >= 4) roads.push([style, width, line]);
@@ -649,7 +682,7 @@ async function main() {
   bridgeWays.forEach((way) => {
     const tags = way.tags ?? {};
     const mode = tags.railway ? 1 : roadClass(tags.highway) === 5 ? 2 : 0;
-    const width = tags.highway ? inferredRoadWidth(tags) : 2.2;
+    const width = tags.highway ? inferredRoadWidth(tags, way.id) : 2.2;
     clipPolyline(way.geometry.map(project)).forEach((part) => {
       const line = quantizedLine(part);
       if (line.length >= 4) {
