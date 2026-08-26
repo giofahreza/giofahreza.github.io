@@ -3,7 +3,10 @@ import {
   mergeDirectMeshesByMaterial,
   roundedBox,
 } from "../../../rendering/geometry.js";
-import { toonMaterial } from "../../../rendering/materials.js";
+import {
+  hideMaterialOutline,
+  toonMaterial,
+} from "../../../rendering/materials.js";
 
 // Midline between the two surveyed carriageways west of the signalised
 // junction.  The earlier straight median at north=21 crossed the eastbound
@@ -32,6 +35,222 @@ export const ALUN_ALUN_WEST_MEDIAN_WIDTHS = Object.freeze([
 ]);
 
 export const ALUN_ALUN_ROAD_SURFACE_Y = 0.047;
+
+function roadRibbonFrame(points, index) {
+  const [north, east] = points[index];
+  const previous = points[Math.max(0, index - 1)];
+  const next = points[Math.min(points.length - 1, index + 1)];
+  const deltaNorth = next[0] - previous[0];
+  const deltaEast = next[1] - previous[1];
+  const length = Math.hypot(deltaNorth, deltaEast) || 1;
+  return {
+    north,
+    east,
+    lateralNorth: -deltaEast / length,
+    lateralEast: deltaNorth / length,
+  };
+}
+
+function offsetAlunAlunRoadPath(points, offsetOrOffsets) {
+  return points.map((_, index) => {
+    const frame = roadRibbonFrame(points, index);
+    const offset = Array.isArray(offsetOrOffsets)
+      ? offsetOrOffsets[index]
+      : offsetOrOffsets;
+    return [
+      frame.north + frame.lateralNorth * offset,
+      frame.east + frame.lateralEast * offset,
+    ];
+  });
+}
+
+// Keep this geometry builder exported so the offline traffic validator can
+// catch a reversed triangle winding before it becomes a gameplay-only road
+// glitch. The first implementation wound every triangle toward -Y, so the
+// normal pass culled the asphalt while OutlineEffect exposed it as dark wedges.
+export function createAlunAlunRoadRibbonGeometry(points, widthOrWidths) {
+  const positions = [];
+  const uvs = [];
+  const indices = [];
+  let pathDistance = 0;
+  points.forEach((point, index) => {
+    const width = Array.isArray(widthOrWidths)
+      ? widthOrWidths[index]
+      : widthOrWidths;
+    if (index > 0) {
+      const previousPoint = points[index - 1];
+      pathDistance += Math.hypot(
+        point[0] - previousPoint[0],
+        point[1] - previousPoint[1],
+      );
+    }
+    const frame = roadRibbonFrame(points, index);
+    const offsetNorth = frame.lateralNorth * width * 0.5;
+    const offsetEast = frame.lateralEast * width * 0.5;
+    positions.push(
+      frame.north + offsetNorth,
+      0,
+      frame.east + offsetEast,
+      frame.north - offsetNorth,
+      0,
+      frame.east - offsetEast,
+    );
+    const textureU = width / 0.8;
+    const textureV = pathDistance / 0.8;
+    uvs.push(0, textureV, textureU, textureV);
+    if (index < points.length - 1) {
+      const row = index * 2;
+      // Viewed from above, both triangles now wind counter-clockwise and
+      // therefore produce +Y normals with the default FrontSide materials.
+      indices.push(row, row + 2, row + 1, row + 1, row + 2, row + 3);
+    }
+  });
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute(
+    "position",
+    new THREE.Float32BufferAttribute(positions, 3),
+  );
+  geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  geometry.computeBoundingSphere();
+  return geometry;
+}
+
+// Build only the two exposed shoulder bands. A former full-width gutter plane
+// sat 2.5 mm under the full asphalt plane, which collapsed to the same depth at
+// low chase-camera angles. These bands share the asphalt edge but never occupy
+// its interior, removing that source of z-fighting entirely.
+export function createAlunAlunRoadShoulderGeometry(
+  points,
+  innerWidth,
+  outerWidth,
+) {
+  const positions = [];
+  const uvs = [];
+  const indices = [];
+  const innerHalfWidth = innerWidth * 0.5;
+  const outerHalfWidth = outerWidth * 0.5;
+  let pathDistance = 0;
+
+  points.forEach((point, index) => {
+    if (index > 0) {
+      const previousPoint = points[index - 1];
+      pathDistance += Math.hypot(
+        point[0] - previousPoint[0],
+        point[1] - previousPoint[1],
+      );
+    }
+    const frame = roadRibbonFrame(points, index);
+    const pointAtOffset = (offset) => [
+      frame.north + frame.lateralNorth * offset,
+      0,
+      frame.east + frame.lateralEast * offset,
+    ];
+    positions.push(
+      ...pointAtOffset(outerHalfWidth),
+      ...pointAtOffset(innerHalfWidth),
+      ...pointAtOffset(-innerHalfWidth),
+      ...pointAtOffset(-outerHalfWidth),
+    );
+    const textureV = pathDistance / 0.8;
+    uvs.push(0, textureV, 1, textureV, 0, textureV, 1, textureV);
+
+    if (index < points.length - 1) {
+      const row = index * 4;
+      const nextRow = row + 4;
+      indices.push(
+        row,
+        nextRow,
+        row + 1,
+        row + 1,
+        nextRow,
+        nextRow + 1,
+        row + 2,
+        nextRow + 2,
+        row + 3,
+        row + 3,
+        nextRow + 2,
+        nextRow + 3,
+      );
+    }
+  });
+
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute(
+    "position",
+    new THREE.Float32BufferAttribute(positions, 3),
+  );
+  geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  geometry.computeBoundingSphere();
+  return geometry;
+}
+
+// A roadside band owns both of its boundaries explicitly. This is used where
+// the pavement must meet an asphalt edge exactly: rebuilding both surfaces as
+// independent centreline ribbons makes their mitres diverge on every bend and
+// produces alternating overlaps and gaps.
+export function createAlunAlunRoadsideBandGeometry(
+  innerBoundary,
+  outerBoundary,
+) {
+  if (innerBoundary.length !== outerBoundary.length) {
+    throw new Error("roadside band boundaries must have matching point counts");
+  }
+
+  const positions = [];
+  const uvs = [];
+  const indices = [];
+  let pathDistance = 0;
+  innerBoundary.forEach((point, index) => {
+    if (index > 0) {
+      const previousPoint = innerBoundary[index - 1];
+      pathDistance += Math.hypot(
+        point[0] - previousPoint[0],
+        point[1] - previousPoint[1],
+      );
+    }
+    const outerPoint = outerBoundary[index];
+    const width = Math.hypot(
+      outerPoint[0] - point[0],
+      outerPoint[1] - point[1],
+    );
+    positions.push(
+      point[0],
+      0,
+      point[1],
+      outerPoint[0],
+      0,
+      outerPoint[1],
+    );
+    const textureV = pathDistance / 0.8;
+    uvs.push(0, textureV, width / 0.8, textureV);
+    if (index < innerBoundary.length - 1) {
+      const row = index * 2;
+      indices.push(
+        row,
+        row + 1,
+        row + 2,
+        row + 1,
+        row + 3,
+        row + 2,
+      );
+    }
+  });
+
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute(
+    "position",
+    new THREE.Float32BufferAttribute(positions, 3),
+  );
+  geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  geometry.computeBoundingSphere();
+  return geometry;
+}
 
 // Nine seconds of green and two seconds of amber are followed by a five-second
 // clearance interval. The junction's long, channelised paths need more than
@@ -142,6 +361,107 @@ export const ALUN_ALUN_SOUTH_CROSSING_DEFINITION = Object.freeze({
 export const ALUN_ALUN_SOUTH_CROSSING_REFUGE =
   ALUN_ALUN_SOUTH_CROSSING_DEFINITION.refuge;
 
+// The south approach used to be rendered as one wide ribbon followed by two
+// narrow ribbons that all met at the same centre point. The narrow pair then
+// occupied the same asphalt for roughly 27 metres before reaching the median,
+// while the independently surveyed footway alternated between covering that
+// asphalt and drifting away from it. Build one union outline instead. Its east
+// boundary is also the exact curb seam used by the pedestrian bands below.
+const SOUTH_APPROACH_SHARED_CORE_WIDTH = 2.42;
+const SOUTH_APPROACH_SPLIT_CORE_WIDTH = 1.32;
+const SOUTH_APPROACH_SHARED_OUTER_WIDTH =
+  SOUTH_APPROACH_SHARED_CORE_WIDTH + 0.28;
+const SOUTH_APPROACH_SPLIT_OUTER_WIDTH =
+  SOUTH_APPROACH_SPLIT_CORE_WIDTH +
+  Math.min(0.28, SOUTH_APPROACH_SPLIT_CORE_WIDTH * 0.18);
+const SOUTH_APPROACH_SIDEWALK_WIDTH = 0.38;
+const SOUTH_APPROACH_FRONTAGE_WIDTH = 0.5;
+const southApproachSharedTransitionPath = freezePath([
+  [-12.84, 20.78],
+  [-8.5, 19.6],
+  [-1.52, 17.94],
+  [10.06, 15.2],
+  // This midpoint is where the two OSM carriageways actually reach the first
+  // physical median point. It supplies the transition tangent only; the outer
+  // boundaries below switch to the two measured carriageway edges here.
+  [15.5, 14.287],
+]);
+const southApproachWestSplitPath = freezePath([
+  [15.5, 13.624],
+  [15.86, 13.52],
+  [17.14, 13.2],
+  [20.16, 12.78],
+]);
+const southApproachSharedWestBoundary = freezePath(
+  offsetAlunAlunRoadPath(
+    southApproachSharedTransitionPath,
+    -SOUTH_APPROACH_SHARED_OUTER_WIDTH * 0.5,
+  ).slice(0, -1),
+);
+const southApproachSharedEastBoundary = freezePath(
+  offsetAlunAlunRoadPath(
+    southApproachSharedTransitionPath,
+    SOUTH_APPROACH_SHARED_OUTER_WIDTH * 0.5,
+  ).slice(0, -1),
+);
+const southApproachWestBoundary = freezePath(
+  offsetAlunAlunRoadPath(
+    southApproachWestSplitPath,
+    -SOUTH_APPROACH_SPLIT_OUTER_WIDTH * 0.5,
+  ),
+);
+// The eastern carriageway flares into the open junction. Keeping its roadside
+// edge at the narrow 6.6-metre branch width put the box-truck swept envelope
+// outside the asphalt. These points retain that measured flare while giving
+// the footway one clean boundary to follow.
+const southApproachEastBoundary = freezePath([
+  [15.536, 15.727],
+  [17.55, 15.71],
+  [20.55, 15.36],
+]);
+const southApproachRoadsideSeam = freezePath([
+  ...southApproachSharedEastBoundary,
+  ...southApproachEastBoundary,
+]);
+const southApproachSidewalkCenterline = freezePath(
+  offsetAlunAlunRoadPath(
+    southApproachRoadsideSeam,
+    SOUTH_APPROACH_SIDEWALK_WIDTH * 0.5,
+  ),
+);
+const southApproachSidewalkOuterBoundary = freezePath(
+  offsetAlunAlunRoadPath(
+    southApproachRoadsideSeam,
+    SOUTH_APPROACH_SIDEWALK_WIDTH,
+  ),
+);
+const southApproachFrontageOuterBoundary = freezePath(
+  offsetAlunAlunRoadPath(
+    southApproachRoadsideSeam,
+    SOUTH_APPROACH_SIDEWALK_WIDTH + SOUTH_APPROACH_FRONTAGE_WIDTH,
+  ),
+);
+
+export const ALUN_ALUN_SOUTH_APPROACH_DEFINITION = Object.freeze({
+  sharedCoreWidth: SOUTH_APPROACH_SHARED_CORE_WIDTH,
+  splitCoreWidth: SOUTH_APPROACH_SPLIT_CORE_WIDTH,
+  splitNorth: 15.5,
+  surfaceOutline: freezePath([
+    ...southApproachSharedWestBoundary,
+    ...southApproachWestBoundary,
+    ...[...southApproachEastBoundary].reverse(),
+    ...[...southApproachSharedEastBoundary].reverse(),
+  ]),
+  roadsideSeam: southApproachRoadsideSeam,
+  sidewalkCenterline: southApproachSidewalkCenterline,
+  sidewalkOuterBoundary: southApproachSidewalkOuterBoundary,
+  sidewalkWidth: SOUTH_APPROACH_SIDEWALK_WIDTH,
+  frontageOuterBoundary: southApproachFrontageOuterBoundary,
+  frontageWidth: SOUTH_APPROACH_FRONTAGE_WIDTH,
+  junctionWestJoin: southApproachWestBoundary.at(-1),
+  junctionEastJoin: southApproachEastBoundary.at(-1),
+});
+
 const definePedestrianRoute = (points, width, curbSide) => Object.freeze({
   points: freezePath(points),
   width,
@@ -157,17 +477,11 @@ export const ALUN_ALUN_PEDESTRIAN_ROUTE_DEFINITIONS = Object.freeze({
     [16.68, 13.9],
     [16.68, 14.34],
   ], 0.56, 1),
-  southEast: definePedestrianRoute([
-    [-12.84, 22.1],
-    [-8.5, 20.85],
-    [-1.52, 19.15],
-    [6.0, 17.35],
-    [10.0, 16.62],
-    [13.0, 16.0],
-    [16.0, 15.85],
-    [17.44, 15.9],
-    [20.52, 15.55],
-  ], 0.38, -1),
+  southEast: definePedestrianRoute(
+    ALUN_ALUN_SOUTH_APPROACH_DEFINITION.sidewalkCenterline,
+    ALUN_ALUN_SOUTH_APPROACH_DEFINITION.sidewalkWidth,
+    -1,
+  ),
   northWest: definePedestrianRoute([
     // Start after the curb return. Extending this ribbon into the open
     // intersection put pedestrians inside both the northbound and eastbound
@@ -389,11 +703,22 @@ export function createAlunAlunTrafficFactory({
   function addAlunAlunRoadContext(group) {
     const context = new THREE.Group();
     context.name = "Jl. Nasional 1 Street View context";
-    const asphaltSurface = toonMaterial({ color: 0x414947 });
+    const asphaltSurface = hideMaterialOutline(
+      toonMaterial({
+        color: 0x414947,
+        // Junction masks share the road plane. Pull asphalt deterministically
+        // above adjacent mapped surfaces without sub-millimetre Y stacking.
+        polygonOffset: true,
+        polygonOffsetFactor: -1,
+        polygonOffsetUnits: -1,
+      }),
+    );
     const asphaltTrim = toonMaterial({ color: 0x303635 });
     const roadWhite = toonMaterial({ color: 0xe7e4d8 });
     const roadYellow = toonMaterial({ color: 0xf0c047 });
-    const gutterMaterial = toonMaterial({ color: 0x555850 });
+    const gutterMaterial = hideMaterialOutline(
+      toonMaterial({ color: 0x555850 }),
+    );
     const pedestrianCanvas = document.createElement("canvas");
     pedestrianCanvas.width = 64;
     pedestrianCanvas.height = 64;
@@ -416,17 +741,23 @@ export function createAlunAlunTrafficFactory({
     pedestrianTexture.wrapT = THREE.RepeatWrapping;
     pedestrianTexture.minFilter = THREE.LinearMipmapLinearFilter;
     pedestrianTexture.magFilter = THREE.NearestFilter;
-    const pedestrianStone = new THREE.MeshBasicMaterial({
-      map: pedestrianTexture,
-      color: 0xffffff,
-      side: THREE.DoubleSide,
-    });
-    const pedestrianConcrete = new THREE.MeshBasicMaterial({
-      color: 0xbcb9af,
-      side: THREE.DoubleSide,
-    });
+    const pedestrianStone = hideMaterialOutline(
+      new THREE.MeshBasicMaterial({
+        map: pedestrianTexture,
+        color: 0xffffff,
+        side: THREE.DoubleSide,
+      }),
+    );
+    const pedestrianConcrete = hideMaterialOutline(
+      new THREE.MeshBasicMaterial({
+        color: 0xbcb9af,
+        side: THREE.DoubleSide,
+      }),
+    );
     const drainMaterial = toonMaterial({ color: 0x343a39 });
-    const medianSoil = toonMaterial({ color: 0x514a3b });
+    const medianSoil = hideMaterialOutline(
+      toonMaterial({ color: 0x514a3b }),
+    );
     const medianDark = toonMaterial({ color: 0x292d2c });
     const medianBlue = toonMaterial({ color: 0x3978a9 });
     const medianWhite = toonMaterial({ color: 0xe7e6dc });
@@ -435,7 +766,19 @@ export function createAlunAlunTrafficFactory({
     // not read as additional traffic islands.
     const sidewalkCurbBlue = toonMaterial({ color: 0x6f8e9d });
     const sidewalkCurbWhite = toonMaterial({ color: 0xd3d1c8 });
-    const medianGrass = toonMaterial({ color: 0x657f51 });
+    const medianGrass = hideMaterialOutline(
+      toonMaterial({ color: 0x657f51 }),
+    );
+    const flatSurfaceMaterials = new Set([
+      asphaltSurface,
+      gutterMaterial,
+      roadWhite,
+      roadYellow,
+      pedestrianStone,
+      pedestrianConcrete,
+      medianSoil,
+      medianGrass,
+    ]);
     const postGrey = toonMaterial({ color: 0x596360 });
     const wireMaterial = toonMaterial({ color: 0x252c2d });
     const blue = toonMaterial({ color: 0x246aa0 });
@@ -462,7 +805,6 @@ export function createAlunAlunTrafficFactory({
     // The Alun-Alun landmark is sunk by about .01025 world units. These local
     // lifts therefore finish just above the global .034-.036 inferred
     // sidewalks/curbs, but remain below the checker paving at .052+.
-    const ROAD_SHOULDER_Y = 0.0465;
     const ROAD_SURFACE_Y = ALUN_ALUN_ROAD_SURFACE_Y;
     const ROAD_MARK_Y = 0.049;
     const createRoadSurfaceGeometry = (points) => {
@@ -490,58 +832,6 @@ export function createAlunAlunTrafficFactory({
       context.add(surface);
       return surface;
     };
-    const createRoadRibbonGeometry = (points, widthOrWidths) => {
-      const positions = [];
-      const uvs = [];
-      const indices = [];
-      let pathDistance = 0;
-      points.forEach(([north, east], index) => {
-        const width = Array.isArray(widthOrWidths)
-          ? widthOrWidths[index]
-          : widthOrWidths;
-        if (index > 0) {
-          const previousPoint = points[index - 1];
-          pathDistance += Math.hypot(
-            north - previousPoint[0],
-            east - previousPoint[1],
-          );
-        }
-        const previous = points[Math.max(0, index - 1)];
-        const next = points[Math.min(points.length - 1, index + 1)];
-        const deltaNorth = next[0] - previous[0];
-        const deltaEast = next[1] - previous[1];
-        const length = Math.hypot(deltaNorth, deltaEast) || 1;
-        const offsetNorth = -deltaEast / length * width * 0.5;
-        const offsetEast = deltaNorth / length * width * 0.5;
-        positions.push(
-          north + offsetNorth,
-          0,
-          east + offsetEast,
-          north - offsetNorth,
-          0,
-          east - offsetEast,
-        );
-        // One texture repeat covers roughly 80 cm, keeping pedestrian paving
-        // at a stable scale even when source-polyline segments vary in length.
-        const textureU = width / 0.8;
-        const textureV = pathDistance / 0.8;
-        uvs.push(0, textureV, textureU, textureV);
-        if (index < points.length - 1) {
-          const row = index * 2;
-          indices.push(row, row + 1, row + 2, row + 1, row + 3, row + 2);
-        }
-      });
-      const geometry = new THREE.BufferGeometry();
-      geometry.setAttribute(
-        "position",
-        new THREE.Float32BufferAttribute(positions, 3),
-      );
-      geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
-      geometry.setIndex(indices);
-      geometry.computeVertexNormals();
-      geometry.computeBoundingSphere();
-      return geometry;
-    };
     const addRoadRibbon = (
       points,
       widthOrWidths,
@@ -549,13 +839,50 @@ export function createAlunAlunTrafficFactory({
       material = asphaltSurface,
     ) => {
       const ribbon = new THREE.Mesh(
-        createRoadRibbonGeometry(points, widthOrWidths),
+        createAlunAlunRoadRibbonGeometry(points, widthOrWidths),
         material,
       );
       ribbon.position.y = y;
       ribbon.receiveShadow = true;
       context.add(ribbon);
       return ribbon;
+    };
+    const addRoadsideBand = (
+      innerBoundary,
+      outerBoundary,
+      y,
+      material,
+    ) => {
+      const band = new THREE.Mesh(
+        createAlunAlunRoadsideBandGeometry(
+          innerBoundary,
+          outerBoundary,
+        ),
+        material,
+      );
+      band.position.y = y;
+      band.receiveShadow = true;
+      context.add(band);
+      return band;
+    };
+    const addRoadShoulderBands = (
+      points,
+      innerWidth,
+      outerWidth,
+      material = asphaltSurface,
+    ) => {
+      const shoulder = new THREE.Mesh(
+        createAlunAlunRoadShoulderGeometry(
+          points,
+          innerWidth,
+          outerWidth,
+        ),
+        material,
+      );
+      shoulder.position.y = ROAD_SURFACE_Y;
+      shoulder.receiveShadow = true;
+      context.add(shoulder);
+      return shoulder;
     };
     const addRoadMark = (startNorth, startEast, endNorth, endEast, material, thickness = 0.032) => {
       const deltaNorth = endNorth - startNorth;
@@ -653,7 +980,6 @@ export function createAlunAlunTrafficFactory({
     // inside each carriageway with a useful rendered shoulder margin. The old
     // 6.2-metre width left only about 5 mm at the eastbound swept envelope.
     const MAIN_CARRIAGEWAY_WIDTH = 1.32;
-    const CROSS_STREET_WIDTH = 2.42;
     const NORTH_CROSS_STREET_WIDTH = 1.7;
     const LOCAL_STREET_WIDTH = 1.04;
     const addExistingRoadPath = (
@@ -666,11 +992,10 @@ export function createAlunAlunTrafficFactory({
     ) => {
       const edgeOffset = width * 0.45;
       const shoulderWidth = width + Math.min(0.28, width * 0.18);
-      addRoadRibbon(
+      addRoadShoulderBands(
         points,
+        width,
         shoulderWidth,
-        ROAD_SHOULDER_Y,
-        gutterMaterial,
       );
       addRoadRibbon(points, width, ROAD_SURFACE_Y);
       if (edgeLines) {
@@ -727,38 +1052,6 @@ export function createAlunAlunTrafficFactory({
         [-15.36, 9.92],
         [-14.44, 13.78],
         [-12.84, 20.78],
-        ],
-      },
-      {
-        width: CROSS_STREET_WIDTH,
-        centerLine: false,
-        edgeLines: false,
-        points: [
-          [-12.84, 20.78],
-          [-8.5, 19.6],
-          [-1.52, 17.94],
-          [10.06, 15.2],
-        ],
-      },
-      {
-        width: MAIN_CARRIAGEWAY_WIDTH,
-        centerLine: false,
-        edgeLines: false,
-        points: [
-          [10.06, 15.2],
-          [15.86, 13.52],
-          [17.14, 13.2],
-          [20.16, 12.78],
-        ],
-      },
-      {
-        width: MAIN_CARRIAGEWAY_WIDTH,
-        centerLine: false,
-        edgeLines: false,
-        points: [
-          [10.06, 15.2],
-          [17.44, 14.86],
-          [20.52, 14.22],
         ],
       },
       {
@@ -825,6 +1118,10 @@ export function createAlunAlunTrafficFactory({
         ],
       },
     ].forEach(({ points, ...options }) => addExistingRoadPath(points, options));
+    const southApproachSurface = addRoadSurface(
+      ALUN_ALUN_SOUTH_APPROACH_DEFINITION.surfaceOutline,
+    );
+    southApproachSurface.name = "South approach unified asphalt surface";
     addExistingRoadPath(
       [
         [22.64, 11.56],
@@ -852,16 +1149,13 @@ export function createAlunAlunTrafficFactory({
         width: MAIN_CARRIAGEWAY_WIDTH,
       },
     );
-    // The raised ribbons meet at several acute angles. A compact, clipped
-    // asphalt union covers only the open junction so the global renderer cannot
-    // leak triangular sidewalk/ground tongues between the carriageways. The
-    // landscaped island and checker-paved park corner render above this mask.
-    addRoadSurface(
+    // The mask begins at the exact terminal edge of the unified south surface.
+    // Sharing that edge, instead of extending the old mask 25 metres down the
+    // approach, removes the last coplanar asphalt overlap at this junction.
+    const junctionAsphaltSurface = addRoadSurface(
       [
-        [15.45, 12.35],
-        [15.42, 14.25],
-        [16.38, 15.55],
-        [18.25, 15.88],
+        ALUN_ALUN_SOUTH_APPROACH_DEFINITION.junctionWestJoin,
+        ALUN_ALUN_SOUTH_APPROACH_DEFINITION.junctionEastJoin,
         [21.4, 15.86],
         [23.7, 15.66],
         [24.72, 15.0],
@@ -869,12 +1163,9 @@ export function createAlunAlunTrafficFactory({
         [24.62, 12.1],
         [23.52, 10.82],
         [21.6, 10.58],
-        [19.4, 10.92],
-        [17.18, 11.12],
-        [16.3, 11.18],
       ],
-      ROAD_SURFACE_Y - 0.0002,
     );
+    junctionAsphaltSurface.name = "Clipped junction asphalt union";
     // The generic map sidewalk leaves a pale-green triangular tongue beside
     // the Alun-Alun corner. Street View shows continuous asphalt outside the
     // curved checker-paved curb. Keep this patch lower than the checker mesh so
@@ -888,15 +1179,12 @@ export function createAlunAlunTrafficFactory({
         [16.75, 12.45],
         [15.7, 12.15],
       ],
-      ROAD_SURFACE_Y - 0.0003,
     );
     parkCornerRoadUnderlay.name = "Alun-Alun corner asphalt underlay";
     // Reintroduce only the pedestrian strips that really border the junction.
     // The asphalt union above intentionally masks the generic OSM sidewalk
     // wedges, so these surveyed ribbons keep a continuous walkable-looking
     // route without spilling pale paving back across the vehicle lanes.
-    const southEastPedestrianRoute =
-      ALUN_ALUN_PEDESTRIAN_ROUTE_DEFINITIONS.southEast;
     const addPropertySideApron = (route, apronWidth, name) => {
       const propertySide = -route.curbSide;
       const apronCenterOffset =
@@ -913,23 +1201,20 @@ export function createAlunAlunTrafficFactory({
     // Street View shows paving from the curb-side footway all the way to the
     // adjoining walls and storefronts. The generic map surface left broad
     // grass wedges behind the narrower route ribbons.
-    addPropertySideApron(
-      southEastPedestrianRoute,
-      0.5,
-      "South-east property frontage apron",
-    );
-    addRoadRibbon(
-      southEastPedestrianRoute.points,
-      southEastPedestrianRoute.width,
+    addRoadsideBand(
+      ALUN_ALUN_SOUTH_APPROACH_DEFINITION.sidewalkOuterBoundary,
+      ALUN_ALUN_SOUTH_APPROACH_DEFINITION.frontageOuterBoundary,
+      0.058,
+      pedestrianConcrete,
+    ).name = "South-east property frontage apron";
+    addRoadsideBand(
+      ALUN_ALUN_SOUTH_APPROACH_DEFINITION.roadsideSeam,
+      ALUN_ALUN_SOUTH_APPROACH_DEFINITION.sidewalkOuterBoundary,
       0.061,
       pedestrianStone,
     ).name = "South-east pedestrian approach";
     addSegmentedCurbAlongPath(
-      offsetRoadPoints(
-        southEastPedestrianRoute.points,
-        southEastPedestrianRoute.curbSide *
-          southEastPedestrianRoute.width * 0.5,
-      ),
+      ALUN_ALUN_SOUTH_APPROACH_DEFINITION.roadsideSeam,
       [sidewalkCurbBlue, sidewalkCurbWhite],
     );
     // The north arm is pinched by the beige row on its west side and ARUM on
@@ -1653,6 +1938,13 @@ export function createAlunAlunTrafficFactory({
       if (child.isMesh) child.castShadow = true;
     });
     mergeDirectMeshesByMaterial(context);
+    context.children.forEach((child) => {
+      if (!child.isMesh || !flatSurfaceMaterials.has(child.material)) return;
+      child.castShadow = false;
+      // The landmark placement pass runs after this factory. Preserve the
+      // flat-surface exception when that pass configures all other shadows.
+      child.userData.disableShadowCasting = true;
+    });
     group.add(context);
   }
 

@@ -179,7 +179,9 @@ export function populateStops({
     group.scale.setScalar(baseScale);
     group.traverse((child) => {
       if (!child.isMesh) return;
-      child.castShadow = !child.material?.transparent;
+      child.castShadow =
+        child.userData.disableShadowCasting !== true &&
+        !child.material?.transparent;
       child.receiveShadow = true;
     });
     const editorLift = -surfaceSagitta(placementFootprint) - FOUNDATION_SINK;

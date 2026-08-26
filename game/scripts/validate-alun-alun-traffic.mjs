@@ -3,12 +3,16 @@ import * as THREE from "three";
 import { createAmbientAnimationSystem } from "../src/animation/ambient.js";
 import {
   ALUN_ALUN_PEDESTRIAN_ROUTE_DEFINITIONS,
+  ALUN_ALUN_SOUTH_APPROACH_DEFINITION,
   ALUN_ALUN_SOUTH_CROSSING_DEFINITION,
   ALUN_ALUN_TRAFFIC_LANE_OFFSETS,
   ALUN_ALUN_TRAFFIC_MINIMUM_SPEED,
   ALUN_ALUN_TRAFFIC_ROUTE_DEFINITIONS,
   ALUN_ALUN_TRAFFIC_SIGNAL_TIMING,
   createAlunAlunTrafficFactory,
+  createAlunAlunRoadRibbonGeometry,
+  createAlunAlunRoadsideBandGeometry,
+  createAlunAlunRoadShoulderGeometry,
   getAlunAlunTrafficSignalState,
 } from "../src/features/landmarks/alun-alun/traffic.js";
 import {
@@ -1068,6 +1072,27 @@ function polygonArea(polygon) {
   return Math.abs(twiceArea) * 0.5;
 }
 
+function pointInsidePolygon(point, polygon) {
+  let inside = false;
+  for (
+    let endIndex = 0, startIndex = polygon.length - 1;
+    endIndex < polygon.length;
+    startIndex = endIndex, endIndex += 1
+  ) {
+    const start = polygon[startIndex];
+    const end = polygon[endIndex];
+    const crossesEast =
+      (start[1] > point[1]) !== (end[1] > point[1]);
+    if (!crossesEast) continue;
+    const crossingNorth =
+      start[0] +
+      ((point[1] - start[1]) * (end[0] - start[0])) /
+        (end[1] - start[1]);
+    if (point[0] < crossingNorth) inside = !inside;
+  }
+  return inside;
+}
+
 function polygonBounds(polygon) {
   return polygon.reduce(
     (bounds, point) => ({
@@ -1902,11 +1927,224 @@ function formatDistance(value) {
   return `${value.toFixed(3)} world / ${(value * MAP_METERS_PER_WORLD_UNIT).toFixed(2)} m`;
 }
 
+function validateRoadSurfaceGeometry() {
+  const samplePath = [
+    [0, 0],
+    [1.2, 0],
+    [2.4, 0.25],
+  ];
+  const ribbon = createAlunAlunRoadRibbonGeometry(
+    samplePath,
+    [1.1, 1.2, 1.3],
+  );
+  const straightPath = [[0, 0], [2, 0]];
+  const innerWidth = 1.2;
+  const shoulder = createAlunAlunRoadShoulderGeometry(
+    straightPath,
+    innerWidth,
+    1.5,
+  );
+  const bandInnerBoundary = [[0, 0], [1.2, 0], [2.4, 0.25]];
+  const bandOuterBoundary = [[0, 0.4], [1.2, 0.4], [2.4, 0.65]];
+  const roadsideBand = createAlunAlunRoadsideBandGeometry(
+    bandInnerBoundary,
+    bandOuterBoundary,
+  );
+
+  try {
+    for (const [label, geometry] of [
+      ["road ribbon", ribbon],
+      ["road shoulder", shoulder],
+      ["roadside band", roadsideBand],
+    ]) {
+      const normals = geometry.getAttribute("normal");
+      if (!normals || normals.count === 0) {
+        throw new Error(`${label} geometry has no vertex normals`);
+      }
+      for (let index = 0; index < normals.count; index += 1) {
+        if (
+          !Number.isFinite(normals.getY(index)) ||
+          normals.getY(index) < 0.999
+        ) {
+          throw new Error(
+            `${label} triangle winding must face +Y (normal ${index} has ` +
+              `Y=${normals.getY(index).toFixed(3)})`,
+          );
+        }
+      }
+    }
+
+    const shoulderPositions = shoulder.getAttribute("position");
+    const innerHalfWidth = innerWidth * 0.5;
+    for (let index = 0; index < shoulderPositions.count; index += 1) {
+      if (Math.abs(shoulderPositions.getZ(index)) < innerHalfWidth - 1e-6) {
+        throw new Error(
+          "road shoulder geometry must not overlap the asphalt interior",
+        );
+      }
+    }
+
+    const bandPositions = roadsideBand.getAttribute("position");
+    bandInnerBoundary.forEach((point, index) => {
+      const vertexIndex = index * 2;
+      if (
+        Math.abs(bandPositions.getX(vertexIndex) - point[0]) > 1e-6 ||
+        Math.abs(bandPositions.getZ(vertexIndex) - point[1]) > 1e-6
+      ) {
+        throw new Error(
+          "roadside band must preserve its shared inner boundary exactly",
+        );
+      }
+    });
+  } finally {
+    ribbon.dispose();
+    shoulder.dispose();
+    roadsideBand.dispose();
+  }
+}
+
+function validateSouthApproachSurfaceDefinition() {
+  const definition = ALUN_ALUN_SOUTH_APPROACH_DEFINITION;
+  const {
+    frontageOuterBoundary,
+    junctionEastJoin,
+    junctionWestJoin,
+    roadsideSeam,
+    sidewalkCenterline,
+    sidewalkOuterBoundary,
+    sidewalkWidth,
+    surfaceOutline,
+  } = definition;
+  const boundaryCollections = [
+    ["roadside seam", roadsideSeam],
+    ["sidewalk centreline", sidewalkCenterline],
+    ["sidewalk outer boundary", sidewalkOuterBoundary],
+    ["frontage outer boundary", frontageOuterBoundary],
+  ];
+  const pointDistance = (first, second) =>
+    Math.hypot(first[0] - second[0], first[1] - second[1]);
+  const samePoint = (first, second, epsilon = 1e-8) =>
+    pointDistance(first, second) <= epsilon;
+
+  if (!Array.isArray(surfaceOutline) || surfaceOutline.length < 8) {
+    throw new Error("south approach needs one complete asphalt union outline");
+  }
+  if (polygonArea(surfaceOutline) < 1) {
+    throw new Error("south approach asphalt union has no usable area");
+  }
+  boundaryCollections.forEach(([label, points]) => {
+    if (!Array.isArray(points) || points.length !== roadsideSeam.length) {
+      throw new Error(
+        `south approach ${label} must match the roadside seam point count`,
+      );
+    }
+  });
+
+  const reversedSeam = [...roadsideSeam].reverse();
+  const seamStartIndex = surfaceOutline.findIndex((point) =>
+    samePoint(point, reversedSeam[0]),
+  );
+  if (
+    seamStartIndex < 0 ||
+    seamStartIndex + reversedSeam.length > surfaceOutline.length ||
+    reversedSeam.some(
+      (point, index) =>
+        !samePoint(point, surfaceOutline[seamStartIndex + index]),
+    )
+  ) {
+    throw new Error(
+      "south approach asphalt must terminate on the complete shared curb seam",
+    );
+  }
+  if (
+    seamStartIndex === 0 ||
+    !samePoint(surfaceOutline[seamStartIndex - 1], junctionWestJoin) ||
+    !samePoint(surfaceOutline[seamStartIndex], junctionEastJoin)
+  ) {
+    throw new Error(
+      "south approach junction edge must join the asphalt union only once",
+    );
+  }
+
+  const pedestrianRoute = ALUN_ALUN_PEDESTRIAN_ROUTE_DEFINITIONS.southEast;
+  if (
+    Math.abs(pedestrianRoute.width - sidewalkWidth) > 1e-9 ||
+    pedestrianRoute.points.length !== sidewalkCenterline.length ||
+    pedestrianRoute.points.some(
+      (point, index) => !samePoint(point, sidewalkCenterline[index]),
+    )
+  ) {
+    throw new Error(
+      "south-east pedestrian route must follow the shared roadside band",
+    );
+  }
+
+  roadsideSeam.forEach((seamPoint, index) => {
+    const centerPoint = sidewalkCenterline[index];
+    const sidewalkOuterPoint = sidewalkOuterBoundary[index];
+    const frontageOuterPoint = frontageOuterBoundary[index];
+    const expectedCenter = [
+      (seamPoint[0] + sidewalkOuterPoint[0]) * 0.5,
+      (seamPoint[1] + sidewalkOuterPoint[1]) * 0.5,
+    ];
+    if (
+      Math.abs(pointDistance(seamPoint, sidewalkOuterPoint) - sidewalkWidth) >
+        1e-8 ||
+      !samePoint(centerPoint, expectedCenter) ||
+      Math.abs(
+        pointDistance(sidewalkOuterPoint, frontageOuterPoint) -
+          definition.frontageWidth,
+      ) > 1e-8
+    ) {
+      throw new Error(
+        `south approach roadside bands diverge at point ${index}`,
+      );
+    }
+  });
+
+  for (let index = 0; index < roadsideSeam.length - 1; index += 1) {
+    const seamMidpoint = [
+      (roadsideSeam[index][0] + roadsideSeam[index + 1][0]) * 0.5,
+      (roadsideSeam[index][1] + roadsideSeam[index + 1][1]) * 0.5,
+    ];
+    const outerMidpoint = [
+      (sidewalkOuterBoundary[index][0] +
+        sidewalkOuterBoundary[index + 1][0]) * 0.5,
+      (sidewalkOuterBoundary[index][1] +
+        sidewalkOuterBoundary[index + 1][1]) * 0.5,
+    ];
+    const outward = [
+      outerMidpoint[0] - seamMidpoint[0],
+      outerMidpoint[1] - seamMidpoint[1],
+    ];
+    const outwardLength = Math.hypot(...outward);
+    const pedestrianSample = [
+      seamMidpoint[0] + outward[0] * 0.5,
+      seamMidpoint[1] + outward[1] * 0.5,
+    ];
+    const asphaltSample = [
+      seamMidpoint[0] - (outward[0] / outwardLength) * 0.002,
+      seamMidpoint[1] - (outward[1] / outwardLength) * 0.002,
+    ];
+    if (
+      outwardLength < sidewalkWidth * 0.9 ||
+      pointInsidePolygon(pedestrianSample, surfaceOutline) ||
+      !pointInsidePolygon(asphaltSample, surfaceOutline)
+    ) {
+      throw new Error(
+        `south approach asphalt/footway seam overlaps or gaps at segment ${index}`,
+      );
+    }
+  }
+}
+
 let routes;
 let pedestrianRoutes;
 let productionFleetConfigs;
 try {
   validateSignalTiming();
+  validateRoadSurfaceGeometry();
+  validateSouthApproachSurfaceDefinition();
   validateCollections(
     ALUN_ALUN_TRAFFIC_ROUTE_DEFINITIONS,
     ALUN_ALUN_TRAFFIC_COLLISION_OBSTACLES,
