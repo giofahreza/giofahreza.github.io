@@ -7,6 +7,7 @@ import {
   PLANET_RADIUS,
 } from "../src/config/runtime.js";
 import { createNavigationSystem } from "../src/navigation/navigation.js";
+import { sphericalPosition } from "../src/world/surface.js";
 import {
   ALUN_ALUN_FRONTAGE_APRON_Y,
   ALUN_ALUN_FRONTAGE_CURB_DEPTH,
@@ -24,10 +25,10 @@ import {
   ALUN_ALUN_ROAD_SURFACE_Y,
   ALUN_ALUN_SOUTH_APPROACH_DEFINITION,
   ALUN_ALUN_SOUTH_CORRIDOR_DEFINITION,
-  ALUN_ALUN_SOUTH_CROSSING_DEFINITION,
   ALUN_ALUN_SOUTH_LOCAL_ROAD_SURFACE_OUTLINE,
   ALUN_ALUN_SOUTH_PARK_BENCH_DEFINITIONS,
   ALUN_ALUN_SOUTH_PARK_TREE_CENTERS,
+  ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION,
   ALUN_ALUN_TRAFFIC_LANE_OFFSETS,
   ALUN_ALUN_TRAFFIC_MINIMUM_SPEED,
   ALUN_ALUN_TRAFFIC_ROUTE_DEFINITIONS,
@@ -83,7 +84,6 @@ const EXPECTED_ROUTE_NAMES = Object.freeze([
   "crossSouthbound",
 ]);
 const EXPECTED_PEDESTRIAN_ROUTE_NAMES = Object.freeze([
-  "southCrossing",
   "southEast",
   "northWest",
   "northEast",
@@ -118,8 +118,6 @@ const PEDESTRIAN_REQUIRED_CLEARANCE = 0.02;
 // near misses before interpolation or model changes turn them into overlap.
 const PRODUCTION_FLEET_REQUIRED_CLEARANCE = 0.02;
 const PEDESTRIAN_VEHICLE_REQUIRED_CLEARANCE = 0.02;
-const CROSSING_STRIPE_THICKNESS = 0.078;
-
 // These route-specific envelopes include the widest wheel/body on each route
 // plus that route's furthest runtime lane variation from its nominal centre.
 // Keeping the opposing directions separate avoids applying the unusually wide
@@ -131,9 +129,11 @@ const ROUTE_SWEPT_HALF_WIDTHS = Object.freeze({
   crossNorthbound: 0.26,
   crossSouthbound: 0.263,
 });
-// The longest model on each route, rounded outward by roughly .005 world
-// units. Applying the cross-street box-truck length to the shorter main-road
-// fleet creates a false overlap where the two main routes bend differently.
+// Main-route values follow the longest current models, rounded outward by
+// roughly .005 world units. The cross routes retain their former freight-fleet
+// headroom as a conservative bound; applying that larger envelope to the
+// shorter main-road fleet creates a false overlap where those routes bend
+// differently.
 const ROUTE_SWEPT_HALF_LENGTHS = Object.freeze({
   mainEastbound: 0.419,
   mainWestbound: 0.401,
@@ -158,8 +158,8 @@ const PHASE_REGRESSION_SPEEDS = Object.freeze([
   3,
 ]);
 // Deliberately retain large legacy-looking values on synthetic details. The
-// runtime must ignore these when choosing the physical stop target; otherwise
-// this fleet will cross the real bar on amber/red and fail the regression.
+// runtime must ignore these when choosing the internal yield target; otherwise
+// this fleet will enter the shared envelope while its approach is held.
 const PHASE_REGRESSION_QUEUE_OFFSETS = Object.freeze([0, 0.75, 2.5, 5]);
 const PRODUCTION_FLEET_FRAME_RATES = Object.freeze([30, 60, 120]);
 const PRODUCTION_FLEET_CHECK_CYCLES = 4;
@@ -368,7 +368,7 @@ function loadProductionFleetConfigs() {
   return configs;
 }
 
-function validateSignalTiming() {
+function validateJunctionReleaseTiming() {
   const timing = ALUN_ALUN_TRAFFIC_SIGNAL_TIMING;
   const orderedKeys = [
     "mainGreenEnd",
@@ -384,7 +384,7 @@ function validateSignalTiming() {
       isFiniteNumber,
     )
   ) {
-    throw new Error("traffic signal timing values must be finite");
+    throw new Error("internal junction release timing values must be finite");
   }
   if (
     timing.mainGreenEnd <= 0 ||
@@ -394,14 +394,14 @@ function validateSignalTiming() {
     )
   ) {
     throw new Error(
-      "traffic signal phases must be strictly ordered within one cycle",
+      "internal junction release phases must be strictly ordered within one cycle",
     );
   }
   if (
     timing.startOffset < 0 ||
     timing.startOffset >= timing.cycleLength
   ) {
-    throw new Error("traffic signal startOffset must lie inside the cycle");
+    throw new Error("junction release startOffset must lie inside the cycle");
   }
 
   const stateAtCyclePosition = (cyclePosition, route) =>
@@ -442,7 +442,7 @@ function validateSignalTiming() {
     const actualState = stateAtCyclePosition(cyclePosition, route);
     if (actualState !== expectedState) {
       throw new Error(
-        `${route} signal is ${actualState} instead of ${expectedState} at ` +
+        `${route} release state is ${actualState} instead of ${expectedState} at ` +
           `cycle position ${cyclePosition.toFixed(3)}`,
       );
     }
@@ -458,7 +458,7 @@ function validateSignalTiming() {
     const crossState = stateAtCyclePosition(cyclePosition, "cross");
     if (mainState === "green" && crossState === "green") {
       throw new Error(
-        `main and cross signals are green together at cycle position ` +
+        `main and cross traffic are released together at cycle position ` +
           cyclePosition.toFixed(3),
       );
     }
@@ -552,7 +552,7 @@ function buildRoute(name, definition) {
   };
 }
 
-function validatePedestrianCollections(routeDefinitions, crossingDefinition) {
+function validatePedestrianCollections(routeDefinitions) {
   if (
     !routeDefinitions ||
     typeof routeDefinitions !== "object" ||
@@ -573,9 +573,6 @@ function validatePedestrianCollections(routeDefinitions, crossingDefinition) {
         `${missingRouteNames.join(", ") || "none"}; unexpected: ` +
         `${unexpectedRouteNames.join(", ") || "none"})`,
     );
-  }
-  if (!crossingDefinition || typeof crossingDefinition !== "object") {
-    throw new Error("south crossing definition must be an object");
   }
 }
 
@@ -627,151 +624,6 @@ function buildPedestrianRoute(name, definition) {
     length: distances.at(-1),
     width: definition.width,
   };
-}
-
-function validateCrossingDefinition(
-  crossing,
-  collisionObstacles,
-  crossingRouteDefinition,
-) {
-  const numericKeys = [
-    "stripeStartEast",
-    "stripeEndEast",
-    "stripeStartNorth",
-    "stripeEndNorth",
-  ];
-  if (!numericKeys.every((key) => isFiniteNumber(crossing[key]))) {
-    throw new Error("south crossing stripe bounds must be finite");
-  }
-  if (
-    !Number.isInteger(crossing.stripeCount) ||
-    crossing.stripeCount < 2 ||
-    crossing.stripeEndEast <= crossing.stripeStartEast ||
-    crossing.stripeEndNorth <= crossing.stripeStartNorth
-  ) {
-    throw new Error("south crossing stripe dimensions are invalid");
-  }
-  if (
-    !Array.isArray(crossing.parkCurbEdge) ||
-    crossing.parkCurbEdge.length !== 2 ||
-    crossing.parkCurbEdge.some(
-      (point) =>
-        !Array.isArray(point) ||
-        point.length !== 2 ||
-        !point.every(isFiniteNumber),
-    ) ||
-    !crossing.parkCurbGap ||
-    ![crossing.parkCurbGap.start, crossing.parkCurbGap.end].every(
-      isFiniteNumber,
-    ) ||
-    crossing.parkCurbGap.start < 0 ||
-    crossing.parkCurbGap.end > 1 ||
-    crossing.parkCurbGap.end <= crossing.parkCurbGap.start
-  ) {
-    throw new Error("south crossing park curb opening is invalid");
-  }
-
-  const stripeCenterNorth =
-    (crossing.stripeStartNorth + crossing.stripeEndNorth) * 0.5;
-  const curbEdgeStart = crossing.parkCurbEdge[0];
-  const curbEdgeEnd = crossing.parkCurbEdge[1];
-  const curbGapPoints = [crossing.parkCurbGap.start, crossing.parkCurbGap.end]
-    .map((amount) => [
-      curbEdgeStart[0] + (curbEdgeEnd[0] - curbEdgeStart[0]) * amount,
-      curbEdgeStart[1] + (curbEdgeEnd[1] - curbEdgeStart[1]) * amount,
-    ]);
-  const curbGapDelta = [
-    curbGapPoints[1][0] - curbGapPoints[0][0],
-    curbGapPoints[1][1] - curbGapPoints[0][1],
-  ];
-  const curbGapLengthSquared = dot(curbGapDelta, curbGapDelta);
-  const entryDelta = [
-    stripeCenterNorth - curbGapPoints[0][0],
-    crossing.stripeStartEast - curbGapPoints[0][1],
-  ];
-  const entryAmount = Math.max(
-    0,
-    Math.min(1, dot(entryDelta, curbGapDelta) / curbGapLengthSquared),
-  );
-  const parkEntryGap = Math.hypot(
-    entryDelta[0] - curbGapDelta[0] * entryAmount,
-    entryDelta[1] - curbGapDelta[1] * entryAmount,
-  ) - CROSSING_STRIPE_THICKNESS * 0.5;
-  if (parkEntryGap > 0.005) {
-    throw new Error(
-      `zebra misses the diagonal park curb opening by ` +
-        `${formatDistance(parkEntryGap)}`,
-    );
-  }
-
-  const { droppedCurb, refuge } = crossing;
-  if (
-    !droppedCurb ||
-    !refuge ||
-    ![
-      droppedCurb.north,
-      droppedCurb.east,
-      droppedCurb.width,
-      droppedCurb.depth,
-      refuge.north,
-      refuge.east,
-      refuge.width,
-      refuge.depth,
-    ].every(isFiniteNumber)
-  ) {
-    throw new Error("south crossing refuge and dropped curb must be finite");
-  }
-  const crossingRoutePoints = crossingRouteDefinition?.points;
-  const crossingRouteStart = crossingRoutePoints?.[0];
-  const crossingRouteEnd = crossingRoutePoints?.at(-1);
-  if (
-    !Array.isArray(crossingRoutePoints) ||
-    crossingRoutePoints.length < 2 ||
-    !crossingRouteStart ||
-    !crossingRouteEnd ||
-    crossingRouteStart[1] > crossing.stripeStartEast ||
-    crossingRouteEnd[1] < refuge.east + refuge.depth * 0.5 - 0.001 ||
-    crossingRouteDefinition.width <
-      crossing.stripeEndNorth - crossing.stripeStartNorth - 0.001
-  ) {
-    throw new Error(
-      "south crossing pedestrian route must span the park curb, zebra and refuge",
-    );
-  }
-  const stripeHalfWidth =
-    (crossing.stripeEndNorth - crossing.stripeStartNorth) * 0.5;
-  const zebraToCurbEastGap =
-    Math.abs(droppedCurb.east - crossing.stripeEndEast) -
-    droppedCurb.depth * 0.5 -
-    CROSSING_STRIPE_THICKNESS * 0.5;
-  const curbToRefugeEastGap =
-    Math.abs(refuge.east - droppedCurb.east) -
-    refuge.depth * 0.5 -
-    droppedCurb.depth * 0.5;
-  const northCoverage = Math.min(
-    droppedCurb.width * 0.5 - Math.abs(droppedCurb.north - stripeCenterNorth),
-    refuge.width * 0.5 - Math.abs(refuge.north - stripeCenterNorth),
-  );
-  if (
-    zebraToCurbEastGap > 0.001 ||
-    curbToRefugeEastGap > 0.001 ||
-    northCoverage < stripeHalfWidth - 0.001
-  ) {
-    throw new Error(
-      `zebra, dropped curb and refuge are not physically continuous`,
-    );
-  }
-
-  const refugeCollisionGap = Math.min(
-    ...collisionObstacles
-      .filter((obstacle) => obstacle.playerCollision === false)
-      .map((obstacle) =>
-        pointObstacleSignedGap(refuge.north, refuge.east, obstacleEnvelope(obstacle)),
-      ),
-  );
-  if (!Number.isFinite(refugeCollisionGap) || refugeCollisionGap > 0) {
-    throw new Error("walkable refuge is not aligned with its collision opening");
-  }
 }
 
 function validateObstacle(obstacle, obstacleIndex) {
@@ -1061,6 +913,36 @@ function pointObstacleSignedGap(north, east, obstacle) {
   return outsideDistance + insideDistance;
 }
 
+function buildMonumentCirculationSamples(island, sampleCount = 16) {
+  const envelope = obstacleEnvelope({
+    north: island.center[0],
+    east: island.center[1],
+    width: island.collisionWidth,
+    depth: island.collisionDepth,
+    yaw: island.yaw,
+  });
+  const clearance =
+    RIDER_COLLISION_RADIUS + PEDESTRIAN_REQUIRED_CLEARANCE;
+  return Array.from({ length: sampleCount }, (_, index) => {
+    const angle = (index / sampleCount) * Math.PI * 2;
+    const direction = [Math.cos(angle), Math.sin(angle)];
+    const widthProjection = Math.abs(dot(direction, envelope.widthAxis));
+    const depthProjection = Math.abs(dot(direction, envelope.depthAxis));
+    const rayDistance = Math.min(
+      widthProjection > 1e-12
+        ? (envelope.halfWidth + clearance) / widthProjection
+        : Infinity,
+      depthProjection > 1e-12
+        ? (envelope.halfDepth + clearance) / depthProjection
+        : Infinity,
+    );
+    return [
+      island.center[0] + direction[0] * rayDistance,
+      island.center[1] + direction[1] * rayDistance,
+    ];
+  });
+}
+
 function pedestrianClearance(sample, route, obstacle) {
   return (
     pointObstacleSignedGap(sample.north, sample.east, obstacle) -
@@ -1297,6 +1179,69 @@ function polygonsOverlapOrTouch(firstPolygon, secondPolygon) {
   );
 }
 
+function polygonsHaveInteriorOverlap2D(firstPolygon, secondPolygon) {
+  for (let firstIndex = 0; firstIndex < firstPolygon.length; firstIndex += 1) {
+    const firstEnd = firstPolygon[(firstIndex + 1) % firstPolygon.length];
+    for (
+      let secondIndex = 0;
+      secondIndex < secondPolygon.length;
+      secondIndex += 1
+    ) {
+      const secondEnd =
+        secondPolygon[(secondIndex + 1) % secondPolygon.length];
+      const firstCrossStart = cross2D(
+        firstPolygon[firstIndex],
+        firstEnd,
+        secondPolygon[secondIndex],
+      );
+      const firstCrossEnd = cross2D(
+        firstPolygon[firstIndex],
+        firstEnd,
+        secondEnd,
+      );
+      const secondCrossStart = cross2D(
+        secondPolygon[secondIndex],
+        secondEnd,
+        firstPolygon[firstIndex],
+      );
+      const secondCrossEnd = cross2D(
+        secondPolygon[secondIndex],
+        secondEnd,
+        firstEnd,
+      );
+      const firstStraddles =
+        (firstCrossStart > 1e-8 && firstCrossEnd < -1e-8) ||
+        (firstCrossStart < -1e-8 && firstCrossEnd > 1e-8);
+      const secondStraddles =
+        (secondCrossStart > 1e-8 && secondCrossEnd < -1e-8) ||
+        (secondCrossStart < -1e-8 && secondCrossEnd > 1e-8);
+      if (firstStraddles && secondStraddles) return true;
+    }
+  }
+
+  const pointOnBoundary = (point, polygon) =>
+    polygon.some((start, index) =>
+      pointOnSegment2D(
+        point,
+        start,
+        polygon[(index + 1) % polygon.length],
+        1e-8,
+      ),
+    );
+  return (
+    firstPolygon.some(
+      (point) =>
+        pointInsidePolygon(point, secondPolygon) &&
+        !pointOnBoundary(point, secondPolygon),
+    ) ||
+    secondPolygon.some(
+      (point) =>
+        pointInsidePolygon(point, firstPolygon) &&
+        !pointOnBoundary(point, firstPolygon),
+    )
+  );
+}
+
 function polygonClearance(firstPolygon, secondPolygon) {
   if (polygonsOverlapOrTouch(firstPolygon, secondPolygon)) return 0;
   let minimum = Infinity;
@@ -1399,57 +1344,7 @@ function polygonPairGap(firstPolygon, secondPolygon) {
   return separatingGap;
 }
 
-function clipPolygonAtAxis(polygon, axisIndex, boundary, keepLess) {
-  if (polygon.length < 3) return [];
-  const clipped = [];
-  const inside = (point) =>
-    keepLess
-      ? point[axisIndex] <= boundary + 1e-10
-      : point[axisIndex] >= boundary - 1e-10;
-  polygon.forEach((end, index) => {
-    const start = polygon[(index + polygon.length - 1) % polygon.length];
-    const startInside = inside(start);
-    const endInside = inside(end);
-    if (startInside !== endInside) {
-      const delta = end[axisIndex] - start[axisIndex];
-      if (Math.abs(delta) > 1e-12) {
-        const amount = (boundary - start[axisIndex]) / delta;
-        clipped.push([
-          start[0] + (end[0] - start[0]) * amount,
-          start[1] + (end[1] - start[1]) * amount,
-        ]);
-      }
-    }
-    if (endInside) clipped.push(end);
-  });
-  return polygonArea(clipped) > 1e-9 ? clipped : [];
-}
-
-function polygonOutsideRectangle(polygon, rectangle) {
-  const fragments = [
-    clipPolygonAtAxis(polygon, 0, rectangle.minimumNorth, true),
-    clipPolygonAtAxis(polygon, 0, rectangle.maximumNorth, false),
-  ];
-  let middle = clipPolygonAtAxis(
-    polygon,
-    0,
-    rectangle.minimumNorth,
-    false,
-  );
-  middle = clipPolygonAtAxis(
-    middle,
-    0,
-    rectangle.maximumNorth,
-    true,
-  );
-  fragments.push(
-    clipPolygonAtAxis(middle, 1, rectangle.minimumEast, true),
-    clipPolygonAtAxis(middle, 1, rectangle.maximumEast, false),
-  );
-  return fragments.filter((fragment) => fragment.length >= 3);
-}
-
-function buildPedestrianRibbonFragments(route, allowedZebraZone) {
+function buildPedestrianRibbonFragments(route) {
   const halfWidth = route.width * 0.5;
   const edges = route.points.map(([north, east], index) => {
     const previous = route.points[Math.max(0, index - 1)];
@@ -1475,17 +1370,12 @@ function buildPedestrianRibbonFragments(route, allowedZebraZone) {
       edges[segmentIndex + 1].right,
       edges[segmentIndex + 1].left,
     ];
-    polygonOutsideRectangle(segmentPolygon, allowedZebraZone).forEach(
-      (polygon, fragmentIndex) => {
-        fragments.push({
-          bounds: polygonBounds(polygon),
-          fragmentIndex,
-          polygon,
-          route,
-          segmentIndex,
-        });
-      },
-    );
+    fragments.push({
+      bounds: polygonBounds(segmentPolygon),
+      polygon: segmentPolygon,
+      route,
+      segmentIndex,
+    });
   }
   return fragments;
 }
@@ -1496,22 +1386,10 @@ function validatePedestrianVehicleSeparation(
   pedestrianRoutes,
   productionDetails,
 ) {
-  // This is the one intentional pedestrian/vehicle intersection. The east
-  // bounds include the half-thickness of the first and last painted stripes;
-  // no sidewalk, apron, or unmarked carriageway is implicitly exempted.
-  const allowedZebraZone = {
-    minimumNorth: ALUN_ALUN_SOUTH_CROSSING_DEFINITION.stripeStartNorth,
-    maximumNorth: ALUN_ALUN_SOUTH_CROSSING_DEFINITION.stripeEndNorth,
-    minimumEast:
-      ALUN_ALUN_SOUTH_CROSSING_DEFINITION.stripeStartEast -
-      CROSSING_STRIPE_THICKNESS * 0.5,
-    maximumEast:
-      ALUN_ALUN_SOUTH_CROSSING_DEFINITION.stripeEndEast +
-      CROSSING_STRIPE_THICKNESS * 0.5,
-  };
-  const fragments = pedestrianRoutes.flatMap((route) =>
-    buildPedestrianRibbonFragments(route, allowedZebraZone),
-  );
+  // The real junction has no marked pedestrian crossing through moving
+  // traffic. Every remaining pedestrian ribbon must therefore retain full
+  // swept-envelope separation; no rectangle is silently exempted.
+  const fragments = pedestrianRoutes.flatMap(buildPedestrianRibbonFragments);
   const closestByPair = new Map();
   let checkedComparisons = 0;
   let closest = null;
@@ -1566,7 +1444,6 @@ function validatePedestrianVehicleSeparation(
   }
 
   return {
-    allowedZebraZone,
     checkedComparisons,
     closest,
     fragmentCount: fragments.length,
@@ -1924,7 +1801,7 @@ function createPhaseRegressionAnimation(details) {
 }
 
 // Rebuild the exact index.js fleet through the production model factory. SAT is
-// checked before its first update and throughout four signal cycles, so neither
+// checked before its first update and throughout four release cycles, so neither
 // a bad initial phase nor queue convergence can hide a same-route collision.
 function runProductionFleetRegression(configs, routesByName) {
   const frameRateResults = [];
@@ -2145,7 +2022,7 @@ function runPhaseTrafficRegression(routesByName) {
     }
 
     if (firstStopBarViolation) {
-      violations.push({ type: "stopBar", ...firstStopBarViolation });
+      violations.push({ type: "releaseLine", ...firstStopBarViolation });
     }
     if (firstConflictViolation) {
       violations.push({ type: "phaseConflict", ...firstConflictViolation });
@@ -2168,6 +2045,392 @@ function formatCoordinate(value) {
 
 function formatDistance(value) {
   return `${value.toFixed(3)} world / ${(value * MAP_METERS_PER_WORLD_UNIT).toFixed(2)} m`;
+}
+
+function validateSoutheastJunctionDefinition() {
+  const definition = ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION;
+  if (
+    !definition ||
+    definition.control !== "unsignalised-priority" ||
+    definition.physicalSignalCount !== 0 ||
+    definition.visibleStopBarCount !== 0
+  ) {
+    throw new Error(
+      "Ahmad Jafar junction must remain an open unsignalised-priority junction without visible stop bars",
+    );
+  }
+
+  validateFiniteSimplePolygon(
+    "Ahmad Jafar junction asphalt infill",
+    definition.junctionAsphaltOutline,
+  );
+  validateFiniteSimplePolygon(
+    "undivided Ahmad Yani east asphalt infill",
+    definition.eastAsphaltInfillOutline,
+  );
+  const eastInfillSeamEndpoints = [
+    definition.eastAsphaltInfillOutline[0],
+    definition.eastAsphaltInfillOutline.at(-1),
+  ];
+  const sharedJunctionEdge = definition.junctionAsphaltOutline.findIndex(
+    (start, index, polygon) => {
+      const end = polygon[(index + 1) % polygon.length];
+      return eastInfillSeamEndpoints.every((point) =>
+        pointOnSegment2D(point, start, end, 1e-8),
+      );
+    },
+  );
+  if (sharedJunctionEdge < 0) {
+    throw new Error(
+      "east asphalt infill must butt exactly against one junction edge without coplanar overlap",
+    );
+  }
+  if (
+    polygonsHaveInteriorOverlap2D(
+      definition.junctionAsphaltOutline,
+      definition.eastAsphaltInfillOutline,
+    )
+  ) {
+    throw new Error(
+      "east asphalt infill overlaps the junction asphalt away from their shared seam",
+    );
+  }
+  if (
+    !isFiniteNumber(definition.asphaltInfillY) ||
+    Math.abs(
+      definition.asphaltInfillY - (ALUN_ALUN_ROAD_SURFACE_Y - 0.001)
+    ) > 1e-12
+  ) {
+    throw new Error(
+      "Ahmad Jafar asphalt infill must sit 0.001 world below the custom road surface",
+    );
+  }
+
+  const pointInsideOrOnPolygon = (point, polygon) =>
+    pointInsidePolygon(point, polygon) ||
+    polygon.some((start, index) =>
+      pointOnSegment2D(point, start, polygon[(index + 1) % polygon.length]),
+    );
+  const formerRaisedSurfaceSamples = [
+    [16.68, 14.14],
+    [18.0, 13.912],
+    [19.0, 13.739],
+    [23.55, 18.92],
+    [24.55, 23.2],
+    [25.55, 27.82],
+  ];
+  const replacementAsphalt = [
+    definition.junctionAsphaltOutline,
+    definition.eastAsphaltInfillOutline,
+    ALUN_ALUN_SOUTH_APPROACH_DEFINITION.surfaceOutline,
+  ];
+  formerRaisedSurfaceSamples.forEach((point, index) => {
+    if (
+      !replacementAsphalt.some((polygon) =>
+        pointInsideOrOnPolygon(point, polygon),
+      )
+    ) {
+      throw new Error(
+        `former raised median sample ${index + 1} is not replaced by asphalt`,
+      );
+    }
+  });
+
+  const island = definition.monumentIsland;
+  if (
+    !island ||
+    !Array.isArray(island.center) ||
+    island.center.length !== 2 ||
+    ![
+      ...island.center,
+      island.width,
+      island.depth,
+      island.yaw,
+      island.curbHeight,
+      island.collisionWidth,
+      island.collisionDepth,
+      island.curbBlocks?.width,
+      island.curbBlocks?.depth,
+    ].every(isFiniteNumber) ||
+    island.width <= 0 ||
+    island.depth <= 0 ||
+    island.curbHeight <= 0 ||
+    island.yaw !== 0 ||
+    island.collisionWidth < island.width ||
+    island.collisionDepth < island.depth ||
+    !Number.isInteger(island.curbBlocks?.count) ||
+    island.curbBlocks.count < 8 ||
+    island.curbBlocks.width <= 0 ||
+    island.curbBlocks.depth <= 0
+  ) {
+    throw new Error("Ahmad Jafar monument-island dimensions are invalid");
+  }
+  const islandEnvelope = obstacleEnvelope({
+    north: island.center[0],
+    east: island.center[1],
+    width: island.collisionWidth,
+    depth: island.collisionDepth,
+    yaw: island.yaw,
+  });
+  const islandCorners = [
+    [-1, -1],
+    [-1, 1],
+    [1, 1],
+    [1, -1],
+  ].map(([widthSide, depthSide]) => [
+    islandEnvelope.center[0] +
+      islandEnvelope.widthAxis[0] * islandEnvelope.halfWidth * widthSide +
+      islandEnvelope.depthAxis[0] * islandEnvelope.halfDepth * depthSide,
+    islandEnvelope.center[1] +
+      islandEnvelope.widthAxis[1] * islandEnvelope.halfWidth * widthSide +
+      islandEnvelope.depthAxis[1] * islandEnvelope.halfDepth * depthSide,
+  ]);
+  if (
+    islandCorners.some(
+      (corner) =>
+        !pointInsideOrOnPolygon(corner, definition.junctionAsphaltOutline),
+    )
+  ) {
+    throw new Error("complete monument-island collision leaves junction asphalt");
+  }
+
+  for (let index = 0; index < island.curbBlocks.count; index += 1) {
+    const angle = (index / island.curbBlocks.count) * Math.PI * 2;
+    const tangentNorth = -island.width * 0.5 * Math.sin(angle);
+    const tangentEast = island.depth * 0.5 * Math.cos(angle);
+    const rotation = -Math.atan2(tangentEast, tangentNorth);
+    const blockEnvelope = obstacleEnvelope({
+      north: island.center[0] + Math.cos(angle) * island.width * 0.5,
+      east: island.center[1] + Math.sin(angle) * island.depth * 0.5,
+      width: island.curbBlocks.width,
+      depth: island.curbBlocks.depth,
+      yaw: rotation,
+    });
+    const blockCorners = [
+      [-1, -1],
+      [-1, 1],
+      [1, 1],
+      [1, -1],
+    ].map(([widthSide, depthSide]) => [
+      blockEnvelope.center[0] +
+        blockEnvelope.widthAxis[0] * blockEnvelope.halfWidth * widthSide +
+        blockEnvelope.depthAxis[0] * blockEnvelope.halfDepth * depthSide,
+      blockEnvelope.center[1] +
+        blockEnvelope.widthAxis[1] * blockEnvelope.halfWidth * widthSide +
+        blockEnvelope.depthAxis[1] * blockEnvelope.halfDepth * depthSide,
+    ]);
+    if (
+      blockCorners.some(
+        (corner) =>
+          pointObstacleSignedGap(corner[0], corner[1], islandEnvelope) >
+          1e-8,
+      )
+    ) {
+      throw new Error(
+        `monument curb block ${index + 1} leaves its collision envelope`,
+      );
+    }
+  }
+
+  const monumentCirculationSamples =
+    buildMonumentCirculationSamples(island);
+  const circulationClearance =
+    RIDER_COLLISION_RADIUS + PEDESTRIAN_REQUIRED_CLEARANCE;
+  monumentCirculationSamples.forEach((sample, index) => {
+    if (
+      !pointInsideOrOnPolygon(sample, definition.junctionAsphaltOutline) ||
+      pointObstacleSignedGap(sample[0], sample[1], islandEnvelope) <
+        circulationClearance - 1e-8
+    ) {
+      throw new Error(
+        `monument circulation ring is not walkable at sample ${index + 1}`,
+      );
+    }
+  });
+
+  const monumentObstacles = ALUN_ALUN_TRAFFIC_COLLISION_OBSTACLES.filter(
+    (obstacle) => obstacle.label === "Ahmad Jafar monument island",
+  );
+  if (
+    monumentObstacles.length !== 1 ||
+    !samePoint(
+      [monumentObstacles[0].north, monumentObstacles[0].east],
+      island.center,
+    ) ||
+    monumentObstacles[0].width !== island.collisionWidth ||
+    monumentObstacles[0].depth !== island.collisionDepth ||
+    (monumentObstacles[0].yaw ?? 0) !== island.yaw
+  ) {
+    throw new Error(
+      "monument-island collision must exactly match its rendered definition",
+    );
+  }
+
+  const supports = definition.barrierSupports;
+  const barrierCollision = definition.barrierCollision;
+  if (
+    !Array.isArray(supports) ||
+    supports.length !== 2 ||
+    new Set(supports.map(({ center }) => center?.join(","))).size !==
+      supports.length ||
+    !barrierCollision ||
+    ![barrierCollision.width, barrierCollision.depth].every(isFiniteNumber) ||
+    barrierCollision.width <= 0 ||
+    barrierCollision.depth <= 0
+  ) {
+    throw new Error("Ahmad Jafar junction must retain two unique barriers");
+  }
+  supports.forEach((support, index) => {
+    if (
+      !support ||
+      !Array.isArray(support.center) ||
+      support.center.length !== 2 ||
+      ![...support.center, support.yaw].every(isFiniteNumber)
+    ) {
+      throw new Error(`Ahmad Jafar barrier ${index + 1} is invalid`);
+    }
+    const obstacle = ALUN_ALUN_TRAFFIC_COLLISION_OBSTACLES.find(
+      (candidate) =>
+        candidate.label === `Ahmad Jafar temporary barrier ${index + 1}`,
+    );
+    if (
+      !obstacle ||
+      !samePoint([obstacle.north, obstacle.east], support.center) ||
+      obstacle.width !== barrierCollision.width ||
+      obstacle.depth !== barrierCollision.depth ||
+      obstacle.yaw !== support.yaw
+    ) {
+      throw new Error(
+        `Ahmad Jafar barrier ${index + 1} collision does not match its rendered support`,
+      );
+    }
+  });
+  const barrierObstacles = ALUN_ALUN_TRAFFIC_COLLISION_OBSTACLES.filter(
+    (obstacle) => /^Ahmad Jafar temporary barrier \d+$/.test(obstacle.label),
+  );
+  if (barrierObstacles.length !== supports.length) {
+    throw new Error(
+      "Ahmad Jafar barrier collision count must match its rendered supports",
+    );
+  }
+
+  const forbiddenCollision = ALUN_ALUN_TRAFFIC_COLLISION_OBSTACLES.find(
+    (obstacle) =>
+      /(?:south|east) median|traffic signal|bound signal|junction island/i.test(
+        obstacle.label ?? "",
+      ),
+  );
+  if (forbiddenCollision) {
+    throw new Error(
+      `obsolete junction collision remains: ${forbiddenCollision.label}`,
+    );
+  }
+  const formerMedianOpenSamples = [
+    [17.5, 14.0],
+    [23.13, 17.33],
+    [24.41, 22.43],
+    [25.56, 27.08],
+  ];
+  formerMedianOpenSamples.forEach((point, index) => {
+    const nearestGap = Math.min(
+      ...ALUN_ALUN_TRAFFIC_COLLISION_OBSTACLES
+        .filter((obstacle) => obstacle.playerCollision !== false)
+        .map((obstacle) =>
+          pointObstacleSignedGap(
+            point[0],
+            point[1],
+            obstacleEnvelope(obstacle),
+          ),
+        ),
+    );
+    if (nearestGap < RIDER_COLLISION_RADIUS + 1e-8) {
+      throw new Error(
+        `former median opening ${index + 1} remains blocked for the rider`,
+      );
+    }
+  });
+
+  for (const [label, path] of [
+    ["south white guide", definition.southGuidePath],
+    ["east dashed guide", definition.eastGuidePath],
+    ["green roadside edge", definition.greenEdgePath],
+  ]) {
+    if (
+      !Array.isArray(path) ||
+      path.length < 2 ||
+      path.some(
+        (point) =>
+          !Array.isArray(point) ||
+          point.length !== 2 ||
+          !point.every(isFiniteNumber),
+      )
+    ) {
+      throw new Error(`${label} must be one finite path`);
+    }
+  }
+
+  let greenBackingSamples = 0;
+  const greenBackingPolygons = [
+    definition.junctionAsphaltOutline,
+    ALUN_ALUN_SOUTH_APPROACH_DEFINITION.surfaceOutline,
+  ];
+  definition.greenEdgePath.slice(0, -1).forEach((start, segmentIndex) => {
+    const end = definition.greenEdgePath[segmentIndex + 1];
+    const deltaNorth = end[0] - start[0];
+    const deltaEast = end[1] - start[1];
+    const length = Math.hypot(deltaNorth, deltaEast);
+    const normal = [-deltaEast / length, deltaNorth / length];
+    const subdivisions = Math.ceil(length / 0.01);
+    for (let step = 0; step <= subdivisions; step += 1) {
+      const amount = step / subdivisions;
+      for (const offset of [-0.105, 0, 0.105]) {
+        const sample = [
+          start[0] + deltaNorth * amount + normal[0] * offset,
+          start[1] + deltaEast * amount + normal[1] * offset,
+        ];
+        if (
+          !greenBackingPolygons.some((polygon) =>
+            pointInsideOrOnPolygon(sample, polygon),
+          )
+        ) {
+          throw new Error(
+            `green junction edge leaves rendered asphalt at segment ${segmentIndex + 1}`,
+          );
+        }
+        greenBackingSamples += 1;
+      }
+    }
+  });
+
+  const trafficSource = readFileSync(TRAFFIC_SOURCE_URL, "utf8");
+  if (
+    /\baddAlunAlunTrafficSignal\b|type:\s*["']trafficSignal["']|\baddStopBar\s*\(/.test(
+      trafficSource,
+    ) ||
+    !/const junctionAsphalt = addRoadSurface\(\s*ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION\.junctionAsphaltOutline/s.test(
+      trafficSource,
+    ) ||
+    !/const eastApproachAsphalt = addRoadSurface\(\s*ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION\.eastAsphaltInfillOutline/s.test(
+      trafficSource,
+    ) ||
+    !/junctionDefinition\.barrierSupports\.forEach/.test(trafficSource) ||
+    !/curbBlock\.rotation\.y\s*=\s*-Math\.atan2\(tangentEast, tangentNorth\)/.test(
+      trafficSource,
+    ) ||
+    !/Tugu simpang Jalan Ahmad Jafar/.test(trafficSource)
+  ) {
+    throw new Error(
+      "Ahmad Jafar renderer must retain asphalt, monument and barriers without physical signals or stop bars",
+    );
+  }
+
+  return {
+    barrierCount: supports.length,
+    circulationSamples: monumentCirculationSamples.length,
+    formerMedianOpenSamples: formerMedianOpenSamples.length,
+    formerRaisedSurfaceSamples: formerRaisedSurfaceSamples.length,
+    greenBackingSamples,
+  };
 }
 
 function validateRoadSurfaceGeometry() {
@@ -5439,6 +5702,16 @@ function validateSouthCorridorNavigationSurfaces() {
       height: ALUN_ALUN_ROAD_SURFACE_Y,
     },
     {
+      points:
+        ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.junctionAsphaltOutline,
+      height: ALUN_ALUN_ROAD_SURFACE_Y,
+    },
+    {
+      points:
+        ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.eastAsphaltInfillOutline,
+      height: ALUN_ALUN_ROAD_SURFACE_Y,
+    },
+    {
       points: corridor.sidewalkOutline,
       height: ALUN_ALUN_FRONTAGE_SIDEWALK_Y,
     },
@@ -5516,6 +5789,23 @@ function validateSouthCorridorNavigationSurfaces() {
     navigation.walkableSurfaces.length !== combinedSurfaces.length
   ) {
     throw new Error("south-corridor polygon navigation surfaces were not registered");
+  }
+  const runtimeCollisionObstacles = [
+    ...ALUN_ALUN_TRAFFIC_COLLISION_OBSTACLES,
+    ...ALUN_ALUN_SOUTH_PROMENADE_COLLISION_OBSTACLES,
+  ].filter((obstacle) => obstacle.playerCollision !== false);
+  runtimeCollisionObstacles.forEach((obstacle) =>
+    navigation.addBoxObstacle(
+      obstacle.east,
+      -obstacle.north,
+      obstacle.width,
+      obstacle.depth,
+      obstacle.yaw ?? 0,
+      obstacle.label,
+    ),
+  );
+  if (navigation.obstacles.length !== runtimeCollisionObstacles.length) {
+    throw new Error("south-corridor runtime collision obstacles were not registered");
   }
   const liftAtLocalPoint = ([north, east]) =>
     navigation.navigationSurfaceLiftAt(east, -north);
@@ -5629,7 +5919,49 @@ function validateSouthCorridorNavigationSurfaces() {
     previousTreadSample = sample;
   });
 
+  const monumentCirculationSamples = buildMonumentCirculationSamples(
+    ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.monumentIsland,
+  );
+  const junctionNavigationSamples = [
+    ...ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.greenEdgePath,
+    [17.5, 14.0],
+    [23.13, 17.33],
+    [24.41, 22.43],
+    [25.56, 27.08],
+    ...monumentCirculationSamples,
+  ];
+  junctionNavigationSamples.forEach((sample, index) => {
+    if (
+      Math.abs(
+        liftAtLocalPoint(sample) -
+          (testBaseLift + ALUN_ALUN_ROAD_SURFACE_Y),
+      ) > 1e-7
+    ) {
+      throw new Error(
+        `Ahmad Jafar road navigation leaves rendered asphalt at sample ${index + 1}`,
+      );
+    }
+  });
+  monumentCirculationSamples.forEach((sample, index) => {
+    const surfacePoint = sphericalPosition(sample[1], -sample[0], 1).normalize();
+    const closestObstacle = navigation.obstacles.reduce((closest, obstacle) => {
+      const gap = navigation.obstacleGapAtSurfacePoint(surfacePoint, obstacle);
+      return !closest || gap < closest.gap ? { gap, obstacle } : closest;
+    }, null);
+    if (
+      !closestObstacle ||
+      closestObstacle.gap < PEDESTRIAN_REQUIRED_CLEARANCE - 1e-6
+    ) {
+      throw new Error(
+        `monument circulation sample ${index + 1} is blocked by ` +
+          `${closestObstacle?.obstacle.label ?? "an unknown obstacle"} at ` +
+          `${formatDistance(closestObstacle?.gap ?? -Infinity)}`,
+      );
+    }
+  });
+
   return {
+    junctionRoadSamples: junctionNavigationSamples.length,
     roadSamples,
     surfaceCount: ALUN_ALUN_SOUTH_CORRIDOR_NAVIGATION_SURFACES.length,
     treadSamples: clearInnerPath.length,
@@ -5922,8 +6254,9 @@ let westLocalCorridorResult;
 let utilityCorridorResult;
 let parkNavigationResult;
 let parkSurfaceOwnershipResult;
+let southeastJunctionResult;
 try {
-  validateSignalTiming();
+  validateJunctionReleaseTiming();
   validateRoadSurfaceGeometry();
   parkSurfaceOwnershipResult = validateParkSurfaceOwnership();
   parkNavigationResult = validateParkNavigationSurfaces();
@@ -5934,6 +6267,7 @@ try {
   frontageNavigationResult = validateFrontageNavigationSurfaces();
   southNavigationResult = validateSouthCorridorNavigationSurfaces();
   validateSouthApproachSurfaceDefinition();
+  southeastJunctionResult = validateSoutheastJunctionDefinition();
   validateCollections(
     ALUN_ALUN_TRAFFIC_ROUTE_DEFINITIONS,
     ALUN_ALUN_TRAFFIC_COLLISION_OBSTACLES,
@@ -5942,20 +6276,12 @@ try {
     buildRoute(name, ALUN_ALUN_TRAFFIC_ROUTE_DEFINITIONS[name]),
   );
   ALUN_ALUN_TRAFFIC_COLLISION_OBSTACLES.forEach(validateObstacle);
-  validatePedestrianCollections(
-    ALUN_ALUN_PEDESTRIAN_ROUTE_DEFINITIONS,
-    ALUN_ALUN_SOUTH_CROSSING_DEFINITION,
-  );
+  validatePedestrianCollections(ALUN_ALUN_PEDESTRIAN_ROUTE_DEFINITIONS);
   pedestrianRoutes = EXPECTED_PEDESTRIAN_ROUTE_NAMES.map((name) =>
     buildPedestrianRoute(
       name,
       ALUN_ALUN_PEDESTRIAN_ROUTE_DEFINITIONS[name],
     ),
-  );
-  validateCrossingDefinition(
-    ALUN_ALUN_SOUTH_CROSSING_DEFINITION,
-    ALUN_ALUN_TRAFFIC_COLLISION_OBSTACLES,
-    ALUN_ALUN_PEDESTRIAN_ROUTE_DEFINITIONS.southCrossing,
   );
   productionFleetConfigs = loadProductionFleetConfigs();
 } catch (error) {
@@ -6151,15 +6477,10 @@ if (
       `${(VEHICLE_HALF_WIDTH * 2 * MAP_METERS_PER_WORLD_UNIT).toFixed(2)} m lateral ` +
       `(includes runtime lane variation).`,
   );
-  const zebra = pedestrianVehicleResult.allowedZebraZone;
   console.error(
     `Pedestrian/vehicle ribbon clearance: ` +
-      `${formatDistance(PEDESTRIAN_VEHICLE_REQUIRED_CLEARANCE)}; only zebra ` +
-      `north ${formatCoordinate(zebra.minimumNorth)}–` +
-      `${formatCoordinate(zebra.maximumNorth)}, east ` +
-      `${formatCoordinate(zebra.minimumEast)}–` +
-      `${formatCoordinate(zebra.maximumEast)} is exempt. Production ` +
-      `same-route clearance: ` +
+      `${formatDistance(PEDESTRIAN_VEHICLE_REQUIRED_CLEARANCE)}; no road ` +
+      `crossing ribbon is exempt. Production same-route clearance: ` +
       `${formatDistance(PRODUCTION_FLEET_REQUIRED_CLEARANCE)}.`,
   );
   console.error(
@@ -6242,8 +6563,7 @@ if (
         `${violation.fragment.segmentIndex + 1} vs swept ` +
         `${violation.route.name} ${productionConfig.kind} ` +
         `${productionConfig.variant} (index.js:${productionConfig.sourceLine}): ` +
-        `${condition}; shortfall ` +
-        `${formatDistance(shortfall)} outside the allowed zebra zone at ` +
+        `${condition}; shortfall ${formatDistance(shortfall)} at ` +
         `vehicle route distance ${formatDistance(violation.sample.distance)}, ` +
         `north=${formatCoordinate(violation.sample.north)}, ` +
         `east=${formatCoordinate(violation.sample.east)}.`,
@@ -6264,13 +6584,13 @@ if (
     );
   }
   for (const violation of phaseTrafficRegression.violations) {
-    if (violation.type === "stopBar") {
+    if (violation.type === "releaseLine") {
       console.error(
-        `- ${violation.detail.routeName} crossed its physical stop bar on ` +
+        `- ${violation.detail.routeName} crossed its internal yield line while ` +
           `${violation.signalState} at ${violation.frameRate} Hz, ` +
           `elapsed=${violation.elapsed.toFixed(3)} s: ` +
           `${formatDistance(violation.previous)} -> ` +
-          `${formatDistance(violation.current)}, bar target ` +
+          `${formatDistance(violation.current)}, yield target ` +
           `${formatDistance(violation.physicalStopTarget)}.`,
       );
       continue;
@@ -6377,7 +6697,8 @@ if (
       `${southCorridorResult.obstacleCount} exact shared promenade obstacles; ` +
       `${southNavigationResult.surfaceCount} absolute-height navigation polygons, ` +
       `${southNavigationResult.roadSamples} road and ` +
-      `${southNavigationResult.treadSamples} tread samples.`,
+      `${southNavigationResult.treadSamples} tread samples, plus ` +
+      `${southNavigationResult.junctionRoadSamples} Ahmad Jafar road probes.`,
   );
   console.log(
     `Frontage navigation: ${frontageNavigationResult.surfaceCount} absolute-height ` +
@@ -6398,11 +6719,21 @@ if (
     `Routes: ${routes.length}; collision boxes: ${obstacles.length}; ` +
       `route samples: ${checkedSamples.toLocaleString("en-US")}`,
   );
+  console.log(
+    `Ahmad Jafar junction: open unsignalised asphalt; ` +
+      `${southeastJunctionResult.formerRaisedSurfaceSamples} former-median ` +
+      `asphalt samples restored and ` +
+      `${southeastJunctionResult.formerMedianOpenSamples} rider openings clear; ` +
+      `${southeastJunctionResult.circulationSamples} ` +
+      `walkable monument-ring samples; ` +
+      `${southeastJunctionResult.greenBackingSamples.toLocaleString("en-US")} ` +
+      `green-edge asphalt samples; ${southeastJunctionResult.barrierCount} barriers.`,
+  );
   const closestPedestrianLabel =
     closestPedestrianClearanceDetail?.obstacle.definition.label ??
     "unknown obstacle";
   console.log(
-    `Pedestrian routes: ${pedestrianRoutes.length}; crossing: connected; ` +
+    `Pedestrian routes: ${pedestrianRoutes.length}; no invented road crossing; ` +
       `path samples: ${checkedPedestrianSamples.toLocaleString("en-US")}; ` +
       `minimum edge+rider clearance: ` +
       `${formatDistance(closestPedestrianClearance)} ` +
@@ -6410,27 +6741,28 @@ if (
       `${closestPedestrianLabel})`,
   );
   const pedestrianVehicleClosest = pedestrianVehicleResult.closest;
-  const pedestrianVehicleClosestConfig =
-    pedestrianVehicleClosest.productionDetail.validation.config;
-  const zebra = pedestrianVehicleResult.allowedZebraZone;
-  console.log(
-    `Pedestrian/vehicle swept-ribbon audit: ` +
-      `${pedestrianVehicleResult.fragmentCount} ribbon fragments outside ` +
-      `the explicit zebra; ` +
-      `${pedestrianVehicleResult.checkedComparisons.toLocaleString("en-US")} ` +
-      `nearby SAT comparisons; minimum clearance ` +
-      `${formatDistance(pedestrianVehicleClosest.rawGap)} ` +
-      `(${pedestrianVehicleClosest.fragment.route.name} vs ` +
-      `${pedestrianVehicleClosest.route.name} ` +
-      `${pedestrianVehicleClosestConfig.variant}); required ` +
-      `${formatDistance(PEDESTRIAN_VEHICLE_REQUIRED_CLEARANCE)}.`,
-  );
-  console.log(
-    `Allowed zebra zone: north ${formatCoordinate(zebra.minimumNorth)}–` +
-      `${formatCoordinate(zebra.maximumNorth)}, east ` +
-      `${formatCoordinate(zebra.minimumEast)}–` +
-      `${formatCoordinate(zebra.maximumEast)}; no unmarked ribbon exemption.`,
-  );
+  if (pedestrianVehicleClosest) {
+    const pedestrianVehicleClosestConfig =
+      pedestrianVehicleClosest.productionDetail.validation.config;
+    console.log(
+      `Pedestrian/vehicle swept-ribbon audit: ` +
+        `${pedestrianVehicleResult.fragmentCount} fully protected ribbon ` +
+        `fragments; ` +
+        `${pedestrianVehicleResult.checkedComparisons.toLocaleString("en-US")} ` +
+        `nearby SAT comparisons; minimum clearance ` +
+        `${formatDistance(pedestrianVehicleClosest.rawGap)} ` +
+        `(${pedestrianVehicleClosest.fragment.route.name} vs ` +
+        `${pedestrianVehicleClosest.route.name} ` +
+        `${pedestrianVehicleClosestConfig.variant}); required ` +
+        `${formatDistance(PEDESTRIAN_VEHICLE_REQUIRED_CLEARANCE)}.`,
+    );
+  } else {
+    console.log(
+      `Pedestrian/vehicle swept-ribbon audit: ` +
+        `${pedestrianVehicleResult.fragmentCount} fully protected ribbon ` +
+        `fragments; no vehicle entered the nearby broad phase.`,
+    );
+  }
   console.log(
     `Opposing route pairs: ${OPPOSING_ROUTE_PAIRS.length}; ` +
       `nearby envelope comparisons: ` +
@@ -6456,13 +6788,13 @@ if (
   }
   const timing = ALUN_ALUN_TRAFFIC_SIGNAL_TIMING;
   console.log(
-    `Signal cycle: ${timing.cycleLength.toFixed(1)} s; ` +
-      `main green/amber ${timing.mainGreenEnd.toFixed(1)}/` +
+    `Internal junction release schedule: ${timing.cycleLength.toFixed(1)} s; ` +
+      `main release/caution ${timing.mainGreenEnd.toFixed(1)}/` +
       `${(timing.mainAmberEnd - timing.mainGreenEnd).toFixed(1)} s; ` +
-      `cross green/amber ` +
+      `cross release/caution ` +
       `${(timing.crossGreenEnd - timing.crossGreenStart).toFixed(1)}/` +
       `${(timing.crossAmberEnd - timing.crossGreenEnd).toFixed(1)} s; ` +
-      `all-red ${(
+      `clearance holds ${(
         timing.crossGreenStart - timing.mainAmberEnd
       ).toFixed(1)}/${(
         timing.cycleLength - timing.crossAmberEnd
@@ -6499,7 +6831,8 @@ if (
       `${Math.max(...PHASE_REGRESSION_SPEEDS).toFixed(2)} world/s; ` +
       `${regressionFrames.toLocaleString("en-US")} frames and ` +
       `${regressionComparisons.toLocaleString("en-US")} nearby ` +
-      `main/cross comparisons; no SAT overlap or amber/red stop-bar crossing; ` +
+      `main/cross comparisons; no SAT overlap or held-approach ` +
+      `release-line crossing; ` +
       `minimum gaps: ${regressionFrameSummary}.`,
   );
   const productionFrameSummary = productionFleetRegression.frameRateResults
@@ -6520,7 +6853,7 @@ if (
   console.log(
     `Production same-route regression: ${productionFleetConfigs.length} ` +
       `vehicles parsed from index.js with their actual phases, speeds, lane and ` +
-      `queue offsets; ${PRODUCTION_FLEET_CHECK_CYCLES} signal cycles at ` +
+      `queue offsets; ${PRODUCTION_FLEET_CHECK_CYCLES} release cycles at ` +
       `${PRODUCTION_FLEET_FRAME_RATES.join("/")} Hz; ` +
       `${productionFrames.toLocaleString("en-US")} frames and ` +
       `${productionComparisons.toLocaleString("en-US")} same-route SAT comparisons; ` +

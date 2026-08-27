@@ -13,6 +13,7 @@ import {
   ALUN_ALUN_SOUTH_LOCAL_ROAD_SURFACE_OUTLINE,
   ALUN_ALUN_SOUTH_PARK_BENCH_DEFINITIONS,
   ALUN_ALUN_SOUTH_PARK_TREE_CENTERS,
+  ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION,
   ALUN_ALUN_WEST_MEDIAN_PATH,
   ALUN_ALUN_WEST_MEDIAN_WIDTHS,
   ALUN_ALUN_WEST_FRONTAGE_DEFINITION,
@@ -22,9 +23,6 @@ import {
   ALUN_ALUN_WEST_PROPERTY_SIDEWALK_OUTLINE,
   ALUN_ALUN_WEST_PROPERTY_TREE_CENTERS,
   ALUN_ALUN_WEST_SOUTH_PARK_ASPHALT_FILL_OUTLINE,
-  ALUN_ALUN_SOUTH_MEDIAN_PATH,
-  ALUN_ALUN_SOUTH_MEDIAN_WIDTHS,
-  ALUN_ALUN_SOUTH_CROSSING_DEFINITION,
   ALUN_ALUN_PARK_OUTLINE,
   ALUN_ALUN_ROAD_SURFACE_Y,
   createAlunAlunTrafficFactory,
@@ -159,6 +157,18 @@ export const ALUN_ALUN_SOUTH_CORRIDOR_NAVIGATION_SURFACES = Object.freeze([
   }),
   Object.freeze({
     shape: "polygon",
+    points: ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.junctionAsphaltOutline,
+    height: ALUN_ALUN_ROAD_SURFACE_Y,
+    label: "open Ahmad Jafar junction asphalt",
+  }),
+  Object.freeze({
+    shape: "polygon",
+    points: ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.eastAsphaltInfillOutline,
+    height: ALUN_ALUN_ROAD_SURFACE_Y,
+    label: "undivided Ahmad Yani east asphalt infill",
+  }),
+  Object.freeze({
+    shape: "polygon",
     points: ALUN_ALUN_SOUTH_CORRIDOR_DEFINITION.sidewalkOutline,
     height: ALUN_ALUN_FRONTAGE_SIDEWALK_Y,
     label: "Jalan Kartini 1.5-metre clear sidewalk",
@@ -220,9 +230,10 @@ export const ALUN_ALUN_SOUTH_PROMENADE_COLLISION_OBSTACLES = Object.freeze([
   ),
 ]);
 
-// Collision objects that belong to the signalised junction are kept separate
-// from the landmark/building list so the traffic validator can audit the exact
-// same envelopes used by player navigation.
+// Roadside and junction collision objects share the same frozen definitions as
+// their visual meshes. The open Ahmad Jafar junction contributes only its
+// monument island and the two temporary barriers—never invisible median or
+// signal boxes.
 export const ALUN_ALUN_TRAFFIC_COLLISION_OBSTACLES = Object.freeze([
   // The detailed Planet Ban architecture scales its 2.92 x 3.34 shell by
   // 1.64 x 0.96 in plan; keep collision aligned with the actual rendered body.
@@ -231,33 +242,6 @@ export const ALUN_ALUN_TRAFFIC_COLLISION_OBSTACLES = Object.freeze([
   freezeTrafficObstacle({ label: "frontage beige row", north: 25.85, east: 9.65, width: 2.95, depth: 4.4 }),
   freezeTrafficObstacle({ label: "frontage ARUM shop", north: 26.35, east: 16.25, width: 2.7, depth: 1.85 }),
   freezeTrafficObstacle({ label: "park vendor cart", north: 16.2, east: 9.45, width: 0.7, depth: 0.9 }),
-  ...ALUN_ALUN_SOUTH_MEDIAN_PATH.slice(0, -1).map((start, index) => {
-    const end = ALUN_ALUN_SOUTH_MEDIAN_PATH[index + 1];
-    const deltaNorth = end[0] - start[0];
-    const deltaEast = end[1] - start[1];
-    const segmentNorthStart = Math.min(start[0], end[0]);
-    const segmentNorthEnd = Math.max(start[0], end[0]);
-    const crossingGap =
-      ALUN_ALUN_SOUTH_CROSSING_DEFINITION.medianCurbGapNorth;
-    const overlapsCrossingGap =
-      Math.min(segmentNorthEnd, crossingGap.end) -
-        Math.max(segmentNorthStart, crossingGap.start) > 0.0001;
-    return freezeTrafficObstacle({
-      label: `south median ${index + 1}`,
-      north: (start[0] + end[0]) * 0.5,
-      east: (start[1] + end[1]) * 0.5,
-      width:
-        Math.max(
-          ALUN_ALUN_SOUTH_MEDIAN_WIDTHS[index],
-          ALUN_ALUN_SOUTH_MEDIAN_WIDTHS[index + 1],
-        ) + 0.12,
-      depth: Math.hypot(deltaNorth, deltaEast) + 0.1,
-      yaw: Math.atan2(deltaNorth, deltaEast),
-      // Any segment underneath the pedestrian refuge remains solid to animated
-      // traffic checks but is omitted from player navigation collision.
-      playerCollision: overlapsCrossingGap ? false : undefined,
-    });
-  }),
   ...ALUN_ALUN_WEST_MEDIAN_PATH.slice(0, -1).map((start, index) => {
     const end = ALUN_ALUN_WEST_MEDIAN_PATH[index + 1];
     const deltaNorth = end[0] - start[0];
@@ -275,15 +259,31 @@ export const ALUN_ALUN_TRAFFIC_COLLISION_OBSTACLES = Object.freeze([
       yaw: Math.atan2(deltaNorth, deltaEast),
     });
   }),
-  freezeTrafficObstacle({ label: "junction island", north: 21.9, east: 13.08, width: 1.55, depth: 0.95 }),
-  freezeTrafficObstacle({ label: "east median nose", north: 23.13, east: 17.33, width: 1.05, depth: 3.55, yaw: 0.27 }),
-  freezeTrafficObstacle({ label: "east median middle", north: 24.41, east: 22.43, width: 0.8, depth: 7.3, yaw: 0.235 }),
-  freezeTrafficObstacle({ label: "east median tail", north: 25.56, east: 27.08, width: 0.62, depth: 2.6, yaw: 0.26 }),
-  freezeTrafficObstacle({ label: "eastbound signal", north: 21.72, east: 10.65, width: 0.2, depth: 0.2 }),
-  freezeTrafficObstacle({ label: "westbound signal", north: 23.15, east: 15.72, width: 0.2, depth: 0.2 }),
-  freezeTrafficObstacle({ label: "northbound signal", north: 17.32, east: 11.55, width: 0.2, depth: 0.2 }),
-  freezeTrafficObstacle({ label: "southbound signal", north: 24.6, east: 15.05, width: 0.2, depth: 0.2 }),
-  freezeTrafficObstacle({ label: "east median barrier", north: 22.85, east: 16.55, width: 0.22, depth: 0.58, yaw: 0.25 }),
+  freezeTrafficObstacle({
+    label: "Ahmad Jafar monument island",
+    north:
+      ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.monumentIsland.center[0],
+    east:
+      ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.monumentIsland.center[1],
+    width:
+      ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.monumentIsland.collisionWidth,
+    depth:
+      ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.monumentIsland.collisionDepth,
+    yaw: ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.monumentIsland.yaw,
+  }),
+  ...ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.barrierSupports.map(
+    ({ center: [north, east], yaw }, index) =>
+      freezeTrafficObstacle({
+        label: `Ahmad Jafar temporary barrier ${index + 1}`,
+        north,
+        east,
+        width:
+          ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.barrierCollision.width,
+        depth:
+          ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.barrierCollision.depth,
+        yaw,
+      }),
+  ),
 ]);
 
 export function createAlunAlunModelFactory({
@@ -1254,11 +1254,8 @@ export function createAlunAlunModelFactory({
       2,
     );
     addAlunAlunCurb(group, ALUN_ALUN_PARK_OUTLINE, curbMaterials, {
-      // A short dropped-curb opening aligns with the compact crossing at the
-      // signalised north-east corner.
-      // Edges are zero-based: edge 9 is the short diagonal corner from
-      // (16.13, 11.96) to (17.10, 10.85), directly beside the zebra.
-      gaps: [ALUN_ALUN_SOUTH_CROSSING_DEFINITION.parkCurbGap],
+      // Street View shows a continuous corner curb here; the former zebra and
+      // dropped refuge were invented and left an unsupported opening.
       height: ALUN_ALUN_PARK_SURFACE_HEIGHTS.outerCurbHeight,
       y: ALUN_ALUN_PARK_SURFACE_HEIGHTS.outerCurbCenter,
     });
@@ -1659,9 +1656,12 @@ export function createAlunAlunModelFactory({
     ].forEach(([color, phase, laneNorth, speed, queueOffset, variant]) =>
       addAlunAlunMotorbike(group, color, phase, laneNorth, speed, queueOffset, variant),
     );
+    // Street View shows passenger vehicles and motorbikes circulating here,
+    // not the two tall freight bodies that repeatedly hid the monument on the
+    // mobile camera. Keep the following literal JSON-like for fleet validation.
     [
-      [0x4f7180, 0.04, -0.78, 1.7, 1.15, "cargoTruck", 0xc4a84f],
-      [0xe4e0d7, 0.33, 0.78, -1.75, 1.45, "boxTruck", 0x8b918b],
+      [0x4f7180, 0.04, -0.78, 1.7, 1.15, "pickup", null],
+      [0xe4e0d7, 0.33, 0.78, -1.75, 1.45, "mpv", null],
       [0xb2aea4, 0.58, -1.32, 1.9, 2.35, "pickup", null],
       [0x596c70, 0.91, 1.32, -1.95, 2.55, "minivan", null],
     ].forEach(([color, phase, laneOffset, speed, queueOffset, variant, cargoColor]) =>
@@ -1702,9 +1702,9 @@ export function createAlunAlunModelFactory({
       { north: 25.1, east: 0.42, width: 4.65, depth: 5.25 },
       { north: 24.54, east: -3.38, width: 8.1, depth: 2.42 },
       { north: 23.55, east: -12.35, width: 1.08, depth: 1.42 },
-      // Signals, frontage around the open north arm, the relocated vendor,
-      // medians, island and barrier share one collision definition with the
-      // route-clearance validator.
+      // Frontage around the open north arm, the relocated vendor, retained
+      // west median, monument island and barriers share one collision
+      // definition with the route-clearance validator.
       ...ALUN_ALUN_TRAFFIC_COLLISION_OBSTACLES.filter(
         (obstacle) => obstacle.playerCollision !== false,
       ),

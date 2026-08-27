@@ -8,8 +8,8 @@ import {
   toonMaterial,
 } from "../../../rendering/materials.js";
 
-// Midline between the two surveyed carriageways west of the signalised
-// junction.  The earlier straight median at north=21 crossed the eastbound
+// Midline between the two surveyed carriageways west of the Ahmad Jafar
+// junction. The earlier straight median at north=21 crossed the eastbound
 // carriageway for roughly 6.5 metres.  Keeping the path and its taper exported
 // lets the visual mesh and navigation collision use the same geometry.
 export const ALUN_ALUN_WEST_MEDIAN_PATH = Object.freeze([
@@ -273,11 +273,11 @@ export function createAlunAlunRoadsideBandGeometry(
   return geometry;
 }
 
-// Nine seconds of green and two seconds of amber are followed by a five-second
-// clearance interval. The junction's long, channelised paths need more than
-// the former one-second all-red interval for the slowest truck to leave every
-// perpendicular conflict point. Starting at the cross green keeps the initial
-// scene lively without changing the phase lengths.
+// The real Ahmad Jafar junction has no visible signal installation. Runtime
+// traffic still needs deterministic right-of-way gaps because the four route
+// envelopes physically cross around the monument island. Keep this legacy
+// export as the internal release schedule consumed by ambient.js and older
+// validators; it no longer describes, or renders, a traffic-light cycle.
 export const ALUN_ALUN_TRAFFIC_SIGNAL_TIMING = Object.freeze({
   cycleLength: 32,
   startOffset: 16,
@@ -288,9 +288,9 @@ export const ALUN_ALUN_TRAFFIC_SIGNAL_TIMING = Object.freeze({
   crossAmberEnd: 27,
 });
 
-// The fixed-time clearance interval is validated against this lower bound.
+// The internal release clearance is validated against this lower bound.
 // Keeping it in the runtime path prevents a future decorative vehicle from
-// silently moving too slowly to leave the junction before cross traffic starts.
+// moving too slowly to leave the shared circulation envelope.
 export const ALUN_ALUN_TRAFFIC_MINIMUM_SPEED = 1.7;
 
 export function getAlunAlunTrafficSignalState(elapsed, route = "main") {
@@ -316,71 +316,8 @@ export const ALUN_ALUN_TRAFFIC_LANE_OFFSETS = Object.freeze({
   cross: -0.33,
 });
 
-// Midline of the narrow divider between the two south-arm carriageways. The
-// two surveyed OSM centrelines merge near north=10 and separate toward the
-// junction. Leaving that gap uncovered exposed a large pale/green map wedge
-// where Street View instead shows a tapered blue-white median.
-export const ALUN_ALUN_SOUTH_MEDIAN_PATH = Object.freeze([
-  Object.freeze([15.5, 14.287]),
-  Object.freeze([15.86, 14.226]),
-  // Exact edges of the dropped pedestrian opening. The extra margin around
-  // the 2.8-metre zebra keeps the avatar radius clear of the adjacent raised
-  // median collision while the soil ribbon remains visually continuous.
-  Object.freeze([16.22, 14.174]),
-  Object.freeze([17.14, 14.045]),
-  Object.freeze([17.44, 14.009]),
-  Object.freeze([18.0, 13.912]),
-  Object.freeze([19.0, 13.739]),
-  Object.freeze([19.25, 13.695]),
-]);
-
-export const ALUN_ALUN_SOUTH_MEDIAN_WIDTHS = Object.freeze([
-  0.02,
-  0.09,
-  0.19,
-  0.32,
-  0.38,
-  0.34,
-  0.27,
-  0.02,
-]);
-
 const freezePath = (points) =>
   Object.freeze(points.map((point) => Object.freeze(point)));
-
-// Keep every part of the single Street View crossing in one definition. The
-// zebra, both curb openings and the median refuge must move together or a small
-// but impassable-looking asphalt gap reappears.
-export const ALUN_ALUN_SOUTH_CROSSING_DEFINITION = Object.freeze({
-  stripeCount: 14,
-  stripeStartEast: 11.35,
-  stripeEndEast: 13.9,
-  stripeStartNorth: 16.4,
-  stripeEndNorth: 16.96,
-  parkCurbGap: Object.freeze({ edge: 9, start: 0.3, end: 0.82 }),
-  parkCurbEdge: freezePath([
-    [16.13, 11.96],
-    [17.1, 10.85],
-  ]),
-  medianCurbGapNorth: Object.freeze({ start: 16.22, end: 17.14 }),
-  refuge: Object.freeze({
-    north: 16.68,
-    east: 14.14,
-    width: 0.72,
-    depth: 0.4,
-  }),
-  droppedCurb: Object.freeze({
-    north: 16.68,
-    east: 13.94,
-    width: 0.72,
-    depth: 0.12,
-  }),
-});
-
-// Retain the focused export for collision code and existing consumers while
-// making the complete crossing definition the source of truth.
-export const ALUN_ALUN_SOUTH_CROSSING_REFUGE =
-  ALUN_ALUN_SOUTH_CROSSING_DEFINITION.refuge;
 
 // Google satellite imagery and the OSM source both show Jalan Jenderal Achmad
 // Yani continuing past road 102 at its full 11-metre width. The split
@@ -1486,37 +1423,26 @@ export const ALUN_ALUN_WEST_SOUTH_PARK_ASPHALT_FILL_OUTLINE = freezePath([
   [12.8975853325, -16.6],
 ]);
 
-// Keep the compact junction's custom loop and masking polygon available to
-// validation. The generic OSM loop bends farther west at its south-west nose
-// than the traffic centreline below; the extra [21.04, 10.86] boundary point
-// covers that measured core without reaching the park or either footway.
-export const ALUN_ALUN_JUNCTION_LOOP_PATH = freezePath([
-  [22.64, 11.56],
-  [23.12, 11.92],
-  [23.42, 12.36],
-  [23.58, 12.86],
-  [23.58, 13.4],
-  [23.4, 13.92],
-  [23.0, 14.44],
-  [22.42, 14.76],
-  [21.76, 14.84],
-  [21.12, 14.68],
-  [20.52, 14.22],
-  [20.18, 13.54],
-  [20.16, 12.78],
-  [20.46, 12.08],
-  [20.9, 11.9],
-  [21.46, 11.9],
-  [22.06, 11.9],
-  [22.64, 11.82],
+const southeastGreenEdgePath = freezePath([
+  [15.6, 15.56],
+  [17.55, 15.54],
+  [20.34, 15.2],
+  [20.77, 16.42],
+  [21.36, 18.28],
+  [21.78, 19.38],
 ]);
-export const ALUN_ALUN_JUNCTION_LOOP_CORE_WIDTH = 1.32;
-export const ALUN_ALUN_JUNCTION_LOOP_SURFACE_WIDTH =
-  ALUN_ALUN_JUNCTION_LOOP_CORE_WIDTH +
-  Math.min(0.28, ALUN_ALUN_JUNCTION_LOOP_CORE_WIDTH * 0.18);
+// Back the complete 85-centimetre green band with asphalt and retain a small
+// margin at its sharp fan corner. The old compact polygon stopped at east
+// 15.86, leaving roughly 91 square metres of pale generated footway inside
+// what Street View shows as one open carriageway.
+const southeastGreenEdgeAsphaltBoundary = freezePath(
+  offsetAlunAlunRoadPath(southeastGreenEdgePath, 0.22).slice(2),
+);
+
 export const ALUN_ALUN_JUNCTION_ASPHALT_OUTLINE = freezePath([
   ALUN_ALUN_SOUTH_APPROACH_DEFINITION.junctionWestJoin,
-  ALUN_ALUN_SOUTH_APPROACH_DEFINITION.junctionEastJoin,
+  ...southeastGreenEdgeAsphaltBoundary,
+  [22.08, 19.5],
   [21.4, 15.86],
   [23.7, 15.66],
   [24.72, 15.0],
@@ -1527,6 +1453,67 @@ export const ALUN_ALUN_JUNCTION_ASPHALT_OUTLINE = freezePath([
   [21.04, 10.86],
 ]);
 
+// May 2025 Street View shows an open, unsignalised four-way junction. The
+// former east/south raised medians, refuge and four signal poles are absent;
+// the only raised object inside the circulation area is this compact planted
+// island and its distinctive green-and-gold monument. One shared definition
+// drives rendering, player collision, navigation and offline validation.
+export const ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION = Object.freeze({
+  control: "unsignalised-priority",
+  physicalSignalCount: 0,
+  visibleStopBarCount: 0,
+  junctionAsphaltOutline: ALUN_ALUN_JUNCTION_ASPHALT_OUTLINE,
+  // This was previously covered by a 63-metre raised median. It now remains
+  // plain asphalt beneath the two surveyed carriageway ribbons.
+  eastAsphaltInfillOutline: freezePath([
+    // The first and final points lie exactly on the junction polygon's
+    // [21.4,15.86] -> [23.7,15.66] edge. The former rounded coordinates
+    // overlapped the coplanar infill by about 1.3 world units squared
+    // (roughly 32 square metres at the map scale).
+    [23.2, 15.7034782609],
+    [24.0, 18.9],
+    [25.48, 25.9],
+    [26.15, 28.3],
+    [25.58, 28.2],
+    [25.0, 25.9],
+    [23.15, 19.0],
+    [22.15, 15.7947826087],
+  ]),
+  asphaltInfillY: ALUN_ALUN_ROAD_SURFACE_Y - 0.001,
+  monumentIsland: Object.freeze({
+    center: Object.freeze([21.9, 13.08]),
+    width: 1.35,
+    depth: 0.82,
+    yaw: 0,
+    curbHeight: 0.075,
+    collisionWidth: 1.49,
+    collisionDepth: 0.95,
+    curbBlocks: Object.freeze({ count: 22, width: 0.205, depth: 0.095 }),
+  }),
+  // Worn white approach guides and the turquoise edge sweep are the only
+  // strong lane graphics visible in the reference frame.
+  southGuidePath: freezePath([
+    [-12.84, 20.78],
+    [-8.5, 19.6],
+    [-1.52, 17.94],
+    [10.06, 15.2],
+    [15.5, 14.287],
+    [19.15, 13.72],
+  ]),
+  eastGuidePath: freezePath([
+    [22.32, 15.18],
+    [23.28, 19.08],
+    [25.2, 26.0],
+    [26.05, 29.38],
+  ]),
+  greenEdgePath: southeastGreenEdgePath,
+  barrierSupports: Object.freeze([
+    Object.freeze({ center: Object.freeze([25.02, 16.74]), yaw: 0.25 }),
+    Object.freeze({ center: Object.freeze([25.13, 17.22]), yaw: 0.25 }),
+  ]),
+  barrierCollision: Object.freeze({ width: 0.22, depth: 0.58 }),
+});
+
 const definePedestrianRoute = (points, width, curbSide) => Object.freeze({
   points: freezePath(points),
   width,
@@ -1534,14 +1521,6 @@ const definePedestrianRoute = (points, width, curbSide) => Object.freeze({
 });
 
 export const ALUN_ALUN_PEDESTRIAN_ROUTE_DEFINITIONS = Object.freeze({
-  // This is the only marked vehicle/pedestrian conflict at the junction. Keep
-  // it explicit so validation covers the whole walk from the checker-paved
-  // park curb, over the zebra and dropped curb, onto the median refuge.
-  southCrossing: definePedestrianRoute([
-    [16.68, 11.08],
-    [16.68, 13.9],
-    [16.68, 14.34],
-  ], 0.56, 1),
   southEast: definePedestrianRoute(
     ALUN_ALUN_SOUTH_APPROACH_DEFINITION.sidewalkCenterline,
     ALUN_ALUN_SOUTH_APPROACH_DEFINITION.sidewalkWidth,
@@ -1558,9 +1537,9 @@ export const ALUN_ALUN_PEDESTRIAN_ROUTE_DEFINITIONS = Object.freeze({
     [32.48, 13.85],
   ], 0.3, 1),
   northEast: definePedestrianRoute([
-    // The footway begins behind the signal pole instead of projecting into
-    // the channelised junction.  Street View shows pedestrians joining the
-    // north arm at the curb return, not walking through the turning lane.
+    // The footway begins at the curb return instead of projecting into the
+    // open circulation area. Street View shows pedestrians joining the north
+    // arm here, outside the swept turning envelope.
     [24.9, 14.7],
     [26.9, 14.92],
     [27.5, 14.98],
@@ -1633,7 +1612,7 @@ export const ALUN_ALUN_TRAFFIC_ROUTE_DEFINITIONS = Object.freeze({
     [23.58, 12.86],
     [29.16, 14.28],
     [32.2, 15.1],
-  ], 6),
+  ], 9),
   crossSouthbound: defineTrafficRoute([
     [32.2, 15.1],
     [29.16, 14.28],
@@ -1682,52 +1661,6 @@ export function createAlunAlunTrafficFactory({
     addAlunAlunWestRoadsideContext,
   },
 }) {
-  function addAlunAlunTrafficSignal(
-    group,
-    north,
-    east,
-    roadDirection,
-    faceDirection,
-    signalMaterials,
-    yaw = 0,
-    headReach = 0.96,
-  ) {
-    const signal = new THREE.Group();
-    signal.position.set(north, 0.05, east);
-    signal.rotation.y = yaw;
-    const poleMaterial = toonMaterial({ color: 0x7d8581 });
-    const housingMaterial = toonMaterial({ color: 0x252b2b });
-    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.027, 0.043, 1.7, 8), poleMaterial);
-    pole.position.y = 0.85;
-    signal.add(pole);
-    const arm = new THREE.Mesh(
-      roundedBox(headReach + 0.08, 0.04, 0.04, 0.011),
-      poleMaterial,
-    );
-    arm.position.set(roadDirection * headReach * 0.5, 1.64, 0);
-    signal.add(arm);
-    const headX = roadDirection * headReach;
-    const housing = new THREE.Mesh(roundedBox(0.12, 0.25, 0.1, 0.02), housingMaterial);
-    housing.position.set(headX, 1.48, 0);
-    signal.add(housing);
-    [
-      [1.56, signalMaterials.red],
-      [1.48, signalMaterials.amber],
-      [1.4, signalMaterials.green],
-    ].forEach(([height, material]) => {
-      const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.036, 10, 7), material);
-      bulb.position.set(headX, height, faceDirection * 0.061);
-      bulb.scale.z = 0.42;
-      signal.add(bulb);
-    });
-    signal.traverse((child) => {
-      if (child.isMesh) child.castShadow = true;
-    });
-    mergeDirectMeshesByMaterial(signal);
-    group.add(signal);
-    return signal;
-  }
-
   const createAnimatedRoadRoute = (points, stopIndex) => {
     const distances = [0];
     for (let index = 1; index < points.length; index += 1) {
@@ -1747,8 +1680,8 @@ export function createAlunAlunTrafficFactory({
   };
 
   // The four traffic paths use the same surveyed OSM centrelines as the road
-  // meshes below. Each direction takes the left-hand lane around the small
-  // channelising island instead of travelling through it.
+  // meshes below. Each direction takes the left-hand lane around the monument
+  // island instead of travelling through it.
   const MAIN_EASTBOUND_ROUTE = createAnimatedRoadRoute(
     ALUN_ALUN_TRAFFIC_ROUTE_DEFINITIONS.mainEastbound.points,
     ALUN_ALUN_TRAFFIC_ROUTE_DEFINITIONS.mainEastbound.stopIndex,
@@ -1879,9 +1812,6 @@ export function createAlunAlunTrafficFactory({
     // blue-white curb visible in Street View.
     const sidewalkCurbBlue = toonMaterial({ color: 0x4d82a5 });
     const sidewalkCurbWhite = toonMaterial({ color: 0xe1ddd0 });
-    const medianGrass = hideMaterialOutline(
-      toonMaterial({ color: 0x657f51 }),
-    );
     const flatSurfaceMaterials = new Set([
       asphaltSurface,
       gutterMaterial,
@@ -1894,30 +1824,10 @@ export function createAlunAlunTrafficFactory({
       planetBanRedTile,
       pos90TanPaver,
       medianSoil,
-      medianGrass,
     ]);
     const postGrey = toonMaterial({ color: 0x596360 });
     const wireMaterial = toonMaterial({ color: 0x252c2d });
     const blue = toonMaterial({ color: 0x246aa0 });
-    const createSignalMaterials = () => ({
-      red: toonMaterial({
-        color: 0xe05245,
-        emissive: 0xe05245,
-        emissiveIntensity: 1.1,
-      }),
-      amber: toonMaterial({
-        color: 0xd6a53c,
-        emissive: 0xd6a53c,
-        emissiveIntensity: 0.04,
-      }),
-      green: toonMaterial({
-        color: 0x4b9a68,
-        emissive: 0x4b9a68,
-        emissiveIntensity: 0.04,
-      }),
-    });
-    const mainSignalMaterials = createSignalMaterials();
-    const crossSignalMaterials = createSignalMaterials();
 
     // The Alun-Alun landmark is sunk by about .01025 world units. These local
     // lifts therefore finish just above the global .034-.036 inferred
@@ -2054,6 +1964,43 @@ export function createAlunAlunTrafficFactory({
         addRoadMark(startNorth, startEast, endNorth, endEast, material, thickness);
       }
     };
+    const addDashedRoadPathMark = (
+      points,
+      material,
+      thickness = 0.026,
+      dashLength = 0.42,
+      gapLength = 0.34,
+    ) => {
+      let phaseDistance = 0;
+      for (let index = 0; index < points.length - 1; index += 1) {
+        const start = points[index];
+        const end = points[index + 1];
+        const deltaNorth = end[0] - start[0];
+        const deltaEast = end[1] - start[1];
+        const segmentLength = Math.hypot(deltaNorth, deltaEast);
+        if (segmentLength <= 1e-9) continue;
+        const patternLength = dashLength + gapLength;
+        let distance = -phaseDistance;
+        while (distance < segmentLength) {
+          const dashStart = Math.max(0, distance);
+          const dashEnd = Math.min(segmentLength, distance + dashLength);
+          if (dashEnd > dashStart + 1e-6) {
+            const startAmount = dashStart / segmentLength;
+            const endAmount = dashEnd / segmentLength;
+            addRoadMark(
+              THREE.MathUtils.lerp(start[0], end[0], startAmount),
+              THREE.MathUtils.lerp(start[1], end[1], startAmount),
+              THREE.MathUtils.lerp(start[0], end[0], endAmount),
+              THREE.MathUtils.lerp(start[1], end[1], endAmount),
+              material,
+              thickness,
+            );
+          }
+          distance += patternLength;
+        }
+        phaseDistance = (phaseDistance + segmentLength) % patternLength;
+      }
+    };
     const addSegmentedCurbAlongPath = (
       points,
       materials,
@@ -2103,25 +2050,6 @@ export function createAlunAlunTrafficFactory({
         }
       }
     };
-    const addStopBar = (route, pointIndex, width) => {
-      const center = route.points[pointIndex];
-      const previous = route.points[Math.max(0, pointIndex - 1)];
-      const next = route.points[Math.min(route.points.length - 1, pointIndex + 1)];
-      const deltaNorth = next[0] - previous[0];
-      const deltaEast = next[1] - previous[1];
-      const length = Math.hypot(deltaNorth, deltaEast) || 1;
-      const acrossNorth = -deltaEast / length * width * 0.5;
-      const acrossEast = deltaNorth / length * width * 0.5;
-      addRoadMark(
-        center[0] - acrossNorth,
-        center[1] - acrossEast,
-        center[0] + acrossNorth,
-        center[1] + acrossEast,
-        roadWhite,
-        0.075,
-      );
-    };
-
     // Local dimensions are world units (five metres each), while the surveyed
     // road widths are metres. The old 8.8-unit value made every approach about
     // 44 metres wide and buried the Alun-Alun pedestrian apron. These widths
@@ -2236,6 +2164,16 @@ export function createAlunAlunTrafficFactory({
       ALUN_ALUN_SOUTH_APPROACH_DEFINITION.surfaceOutline,
     );
     southApproachSurface.name = "South approach unified asphalt surface";
+    const junctionAsphalt = addRoadSurface(
+      ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.junctionAsphaltOutline,
+      ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.asphaltInfillY,
+    );
+    junctionAsphalt.name = "Open Ahmad Jafar junction asphalt infill";
+    const eastApproachAsphalt = addRoadSurface(
+      ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.eastAsphaltInfillOutline,
+      ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.asphaltInfillY,
+    );
+    eastApproachAsphalt.name = "Undivided Ahmad Yani east asphalt infill";
     const perimeterAsphaltFill = addRoadSurface(
       ALUN_ALUN_WEST_SOUTH_PARK_ASPHALT_FILL_OUTLINE,
     );
@@ -2669,7 +2607,7 @@ export function createAlunAlunTrafficFactory({
 
     // Follow the real split between OSM carriageways #110 and #111.  A
     // variable-width ribbon makes the western nose merge naturally where the
-    // two carriageways meet, then widens toward the signalised junction.
+    // two carriageways meet, then widens toward the open junction.
     addRoadRibbon(
       ALUN_ALUN_WEST_MEDIAN_PATH,
       ALUN_ALUN_WEST_MEDIAN_WIDTHS,
@@ -2797,282 +2735,164 @@ export function createAlunAlunTrafficFactory({
       context.add(bollard);
     });
 
-    // Street View shows one compact zebra from the checker-paved park corner
-    // to the blue-white divider nose. It does not continue across the opposing
-    // carriageway, as the former 20 metre stripe field did.
-    const crossing = ALUN_ALUN_SOUTH_CROSSING_DEFINITION;
-    for (let index = 0; index < crossing.stripeCount; index += 1) {
-      const east = THREE.MathUtils.lerp(
-        crossing.stripeStartEast,
-        crossing.stripeEndEast,
-        index / (crossing.stripeCount - 1),
-      );
-      addRoadMark(
-        crossing.stripeStartNorth,
-        east,
-        crossing.stripeEndNorth,
-        east,
-        roadWhite,
-        0.078,
-      );
-    }
+    // The real junction has no zebra, refuge, south splitter or painted stop
+    // bars. Keep only its restrained white guides and turquoise roadside sweep.
+    const junctionDefinition = ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION;
+    addRoadPathMark(junctionDefinition.southGuidePath, roadWhite, 0.028);
+    addDashedRoadPathMark(
+      junctionDefinition.eastGuidePath,
+      roadWhite,
+      0.026,
+      0.42,
+      0.34,
+    );
+    addRoadPathMark(junctionDefinition.greenEdgePath, westGreenEdge, 0.17);
+    addRoadPathMark(
+      offsetRoadPoints(junctionDefinition.greenEdgePath, -0.085),
+      roadWhite,
+      0.025,
+    );
 
-    // Rebuild the complete south-arm divider, rather than placing a short box
-    // in the middle of the generic map wedge. The narrow end begins only after
-    // the two carriageways have separated and the far end stops before the
-    // open intersection envelope around the channelising island.
-    addRoadRibbon(
-      ALUN_ALUN_SOUTH_MEDIAN_PATH,
-      ALUN_ALUN_SOUTH_MEDIAN_WIDTHS,
-      0.078,
-      medianSoil,
-    ).name = "South-arm tapered median";
-    [-1, 1].forEach((side, sideIndex) => {
-      const edgePoints = ALUN_ALUN_SOUTH_MEDIAN_PATH.map((_, index) =>
-        offsetRoadPoint(
-          ALUN_ALUN_SOUTH_MEDIAN_PATH,
-          index,
-          ALUN_ALUN_SOUTH_MEDIAN_WIDTHS[index] * 0.5 * side,
-        ),
-      );
-      addSegmentedCurbAlongPath(
-        edgePoints,
-        sideIndex === 0
-          ? [medianBlue, medianWhite]
-          : [medianWhite, medianBlue],
-        {
-          // The zebra arrives from the park on the west edge. Keep this curb
-          // opening low and unobstructed so the refuge is visibly usable.
-          skip: (north) =>
-            side < 0 &&
-            north >= crossing.medianCurbGapNorth.start &&
-            north <= crossing.medianCurbGapNorth.end,
-        },
-      );
-    });
-
-    const crossingMedianStart = ALUN_ALUN_SOUTH_MEDIAN_PATH[2];
-    const crossingMedianEnd = ALUN_ALUN_SOUTH_MEDIAN_PATH[3];
-    const crossingMedianYaw = -Math.atan2(
-      crossingMedianEnd[1] - crossingMedianStart[1],
-      crossingMedianEnd[0] - crossingMedianStart[0],
-    );
-    const refugePad = new THREE.Mesh(
-      roundedBox(
-        crossing.refuge.width,
-        0.018,
-        crossing.refuge.depth,
-        0.045,
-      ),
-      pedestrianStone,
-    );
-    refugePad.name = "South crossing pedestrian refuge";
-    refugePad.position.set(
-      crossing.refuge.north,
-      0.072,
-      crossing.refuge.east,
-    );
-    refugePad.rotation.y = crossingMedianYaw;
-    context.add(refugePad);
-
-    const droppedCurb = new THREE.Mesh(
-      roundedBox(
-        crossing.droppedCurb.width,
-        0.025,
-        crossing.droppedCurb.depth,
-        0.018,
-      ),
-      medianWhite,
-    );
-    droppedCurb.name = "South crossing dropped curb";
-    droppedCurb.position.set(
-      crossing.droppedCurb.north,
-      0.061,
-      crossing.droppedCurb.east,
-    );
-    droppedCurb.rotation.y = crossingMedianYaw;
-    context.add(droppedCurb);
-
-    // Street View terminates the zebra at a signed median nose. A compact
-    // keep-left marker and three striped bollards make the refuge read as part
-    // of that tapered divider rather than as an unrelated paving tile. They
-    // sit beyond the open curb gap, inside the median's existing collision.
-    const crossingKeepLeft = new THREE.Group();
-    crossingKeepLeft.position.set(17.34, 0.11, 14.02);
-    crossingKeepLeft.scale.setScalar(0.76);
-    const crossingSignPole = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.022, 0.03, 0.68, 7),
+    const island = junctionDefinition.monumentIsland;
+    const [islandNorth, islandEast] = island.center;
+    const junctionCurb = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.5, 0.5, island.curbHeight, 28),
       medianDark,
     );
-    crossingSignPole.position.y = 0.34;
-    crossingKeepLeft.add(crossingSignPole);
-    const crossingSignFace = new THREE.Mesh(
-      new THREE.CircleGeometry(0.17, 24),
-      blue,
+    junctionCurb.name = "Ahmad Jafar monument island base";
+    junctionCurb.position.set(
+      islandNorth,
+      ROAD_SURFACE_Y + island.curbHeight * 0.5,
+      islandEast,
     );
-    crossingSignFace.position.set(-0.018, 0.77, 0);
-    crossingSignFace.rotation.y = -Math.PI * 0.5;
-    crossingKeepLeft.add(crossingSignFace);
-    const crossingSignMark = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.045, 0.2),
-      roadWhite,
-    );
-    crossingSignMark.position.set(-0.024, 0.77, 0.015);
-    crossingSignMark.rotation.y = -Math.PI * 0.5;
-    crossingSignMark.rotation.z = -0.42;
-    crossingKeepLeft.add(crossingSignMark);
-    const crossingSignHead = new THREE.Mesh(
-      new THREE.ConeGeometry(0.055, 0.09, 3),
-      roadWhite,
-    );
-    crossingSignHead.position.set(-0.028, 0.69, 0.047);
-    crossingSignHead.rotation.y = -Math.PI * 0.5;
-    crossingSignHead.rotation.z = -0.42;
-    crossingKeepLeft.add(crossingSignHead);
-    context.add(crossingKeepLeft);
-    [17.13, 17.29, 17.45].forEach((north, index) => {
-      const bollard = new THREE.Group();
-      bollard.position.set(north, 0.105, 14.02 + (index % 2) * 0.025);
-      for (let segment = 0; segment < 4; segment += 1) {
-        const stripe = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.021, 0.026, 0.065, 8),
-          segment % 2 === 0 ? medianDark : roadYellow,
-        );
-        stripe.position.y = 0.0325 + segment * 0.065;
-        bollard.add(stripe);
-      }
-      context.add(bollard);
-    });
-
-    // Stop bars sit behind the zebra and island envelope on every approach.
-    // Their locations are the same points used by the queueing system below,
-    // so vehicles no longer stop at an invisible or unrelated line.
-    addStopBar(
-      MAIN_EASTBOUND_ROUTE,
-      ALUN_ALUN_TRAFFIC_ROUTE_DEFINITIONS.mainEastbound.stopIndex,
-      1.28,
-    );
-    addStopBar(
-      MAIN_WESTBOUND_ROUTE,
-      ALUN_ALUN_TRAFFIC_ROUTE_DEFINITIONS.mainWestbound.stopIndex,
-      1.28,
-    );
-    addStopBar(
-      CROSS_NORTHBOUND_ROUTE,
-      ALUN_ALUN_TRAFFIC_ROUTE_DEFINITIONS.crossNorthbound.stopIndex,
-      1.28,
-    );
-    addStopBar(
-      CROSS_SOUTHBOUND_ROUTE,
-      ALUN_ALUN_TRAFFIC_ROUTE_DEFINITIONS.crossSouthbound.stopIndex,
-      1.28,
-    );
-
-    const junctionIsland = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.58, 0.64, 0.11, 20),
-      medianBlue,
-    );
-    junctionIsland.position.set(21.9, 0.105, 13.08);
-    junctionIsland.scale.set(1.12, 1, 0.62);
-    context.add(junctionIsland);
-    for (let index = 0; index < 18; index += 1) {
-      const angle = (index / 18) * Math.PI * 2;
-      const islandCurb = new THREE.Mesh(
-        roundedBox(0.22, 0.075, 0.1, 0.012),
-        index % 2 === 0 ? medianWhite : medianBlue,
+    junctionCurb.scale.set(island.width, 1, island.depth);
+    context.add(junctionCurb);
+    const islandHalfWidth = island.width * 0.5;
+    const islandHalfDepth = island.depth * 0.5;
+    for (let index = 0; index < island.curbBlocks.count; index += 1) {
+      const angle = (index / island.curbBlocks.count) * Math.PI * 2;
+      const curbBlock = new THREE.Mesh(
+        roundedBox(
+          island.curbBlocks.width,
+          island.curbHeight + 0.008,
+          island.curbBlocks.depth,
+          0.012,
+        ),
+        index % 2 === 0 ? medianDark : medianWhite,
       );
-      islandCurb.position.set(
-        21.9 + Math.cos(angle) * 0.68,
-        0.12,
-        13.08 + Math.sin(angle) * 0.42,
+      curbBlock.position.set(
+        islandNorth + Math.cos(angle) * islandHalfWidth,
+        ROAD_SURFACE_Y + island.curbHeight * 0.58,
+        islandEast + Math.sin(angle) * islandHalfDepth,
       );
-      islandCurb.rotation.y = -angle;
-      context.add(islandCurb);
+      // Follow the derivative of the ellipse rather than a circular tangent;
+      // otherwise the long curb blocks turn into a starburst near the ends.
+      const tangentNorth = -islandHalfWidth * Math.sin(angle);
+      const tangentEast = islandHalfDepth * Math.cos(angle);
+      curbBlock.rotation.y = -Math.atan2(tangentEast, tangentNorth);
+      context.add(curbBlock);
     }
-    const junctionIslandSoil = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.45, 0.5, 0.055, 20),
+    const islandSoil = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.5, 0.5, 0.055, 28),
       medianSoil,
     );
-    junctionIslandSoil.position.set(21.9, 0.205, 13.08);
-    junctionIslandSoil.scale.set(1.12, 1, 0.62);
-    context.add(junctionIslandSoil);
-    const islandShrub = new THREE.Mesh(
-      new THREE.SphereGeometry(0.25, 10, 7),
-      toonMaterial({ color: 0x5d8052 }),
-    );
-    islandShrub.position.set(21.9, 0.38, 13.08);
-    islandShrub.scale.set(1.35, 0.68, 0.72);
-    context.add(islandShrub);
+    islandSoil.position.set(islandNorth, 0.145, islandEast);
+    islandSoil.scale.set(island.width * 0.82, 1, island.depth * 0.76);
+    context.add(islandSoil);
+    const monumentHedge = toonMaterial({ color: 0x416947 });
+    for (let index = 0; index < 14; index += 1) {
+      const angle = (index / 14) * Math.PI * 2;
+      const shrub = new THREE.Mesh(
+        new THREE.SphereGeometry(0.115 + (index % 3) * 0.012, 9, 6),
+        monumentHedge,
+      );
+      shrub.position.set(
+        islandNorth + Math.cos(angle) * islandHalfWidth * 0.68,
+        0.24 + (index % 2) * 0.018,
+        islandEast + Math.sin(angle) * islandHalfDepth * 0.58,
+      );
+      shrub.scale.y = 0.72;
+      context.add(shrub);
+    }
 
-    // The two surveyed east-side carriageways are separated by a narrow,
-    // tapered physical median. Cover the generic white auto-sidewalk in that
-    // gap with the low soil bed and blue-white curb seen in Street View.
-    const eastApproachMedianOutline = [
-      [23.2, 15.6],
-      [24.0, 18.9],
-      [25.48, 25.9],
-      [26.15, 28.3],
-      [25.58, 28.2],
-      [25.0, 25.9],
-      [23.15, 19.0],
-      [22.15, 15.8],
-    ];
-    const eastApproachMedian = new THREE.Mesh(
-      createRoadSurfaceGeometry(eastApproachMedianOutline),
-      medianSoil,
+    const monument = new THREE.Group();
+    monument.name = "Tugu simpang Jalan Ahmad Jafar";
+    monument.position.set(islandNorth, 0.17, islandEast);
+    const monumentGreen = toonMaterial({ color: 0x315d49 });
+    const monumentPale = toonMaterial({ color: 0xcfd2bf });
+    const monumentGold = toonMaterial({
+      color: 0xc79a3c,
+      emissive: 0x6f4a11,
+      emissiveIntensity: 0.08,
+    });
+    const monumentFoundation = new THREE.Mesh(
+      roundedBox(0.5, 0.16, 0.34, 0.035),
+      monumentGreen,
     );
-    eastApproachMedian.position.y = 0.078;
-    eastApproachMedian.receiveShadow = true;
-    context.add(eastApproachMedian);
-    const eastApproachMedianGrass = new THREE.Mesh(
-      createRoadSurfaceGeometry([
-        [23.82, 18.92],
-        [25.34, 25.92],
-        [25.98, 28.12],
-        [25.7, 28.08],
-        [24.86, 25.94],
-        [23.3, 19.06],
-      ]),
-      medianGrass,
-    );
-    eastApproachMedianGrass.position.y = 0.081;
-    eastApproachMedianGrass.receiveShadow = true;
-    context.add(eastApproachMedianGrass);
-    const addSegmentedMedianCurb = (points) => {
-      points.forEach((start, edgeIndex) => {
-        const end = points[edgeIndex + 1];
-        if (!end) return;
-        const deltaNorth = end[0] - start[0];
-        const deltaEast = end[1] - start[1];
-        const length = Math.hypot(deltaNorth, deltaEast);
-        const segmentCount = Math.max(1, Math.ceil(length / 0.24));
-        for (let segmentIndex = 0; segmentIndex < segmentCount; segmentIndex += 1) {
-          const amount = (segmentIndex + 0.5) / segmentCount;
-          const curb = new THREE.Mesh(
-            new THREE.BoxGeometry(length / segmentCount + 0.01, 0.07, 0.08),
-            segmentIndex % 2 === 0 ? medianBlue : medianWhite,
-          );
-          curb.position.set(
-            THREE.MathUtils.lerp(start[0], end[0], amount),
-            0.105,
-            THREE.MathUtils.lerp(start[1], end[1], amount),
-          );
-          curb.rotation.y = -Math.atan2(deltaEast, deltaNorth);
-          context.add(curb);
-        }
+    monumentFoundation.position.y = 0.13;
+    monument.add(monumentFoundation);
+    [-0.17, 0.17].forEach((northOffset) => {
+      [-0.105, 0.105].forEach((eastOffset, index) => {
+        const column = new THREE.Mesh(
+          roundedBox(0.09, 0.72, 0.09, 0.018),
+          index % 2 === 0 ? monumentPale : monumentGreen,
+        );
+        column.position.set(northOffset, 0.57, eastOffset);
+        monument.add(column);
       });
-    };
-    addSegmentedMedianCurb(eastApproachMedianOutline.slice(0, 4));
-    addSegmentedMedianCurb(eastApproachMedianOutline.slice(4));
-    addSegmentedMedianCurb([
-      eastApproachMedianOutline[3],
-      eastApproachMedianOutline[4],
-    ]);
-    addSegmentedMedianCurb([
-      eastApproachMedianOutline[7],
-      eastApproachMedianOutline[0],
-    ]);
-    addAlunAlunRoadBarrier(context, 22.85, 16.55, 0.25);
+    });
+    const innerPier = new THREE.Mesh(
+      roundedBox(0.19, 0.58, 0.16, 0.025),
+      monumentGreen,
+    );
+    innerPier.position.y = 0.57;
+    monument.add(innerPier);
+    const cornice = new THREE.Mesh(
+      roundedBox(0.55, 0.1, 0.41, 0.025),
+      monumentPale,
+    );
+    cornice.position.y = 0.97;
+    monument.add(cornice);
+    const cap = new THREE.Mesh(
+      roundedBox(0.68, 0.1, 0.52, 0.03),
+      monumentGreen,
+    );
+    cap.position.y = 1.07;
+    monument.add(cap);
+    const crownStem = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.075, 0.11, 0.23, 10),
+      monumentGold,
+    );
+    crownStem.position.y = 1.22;
+    monument.add(crownStem);
+    const crown = new THREE.Mesh(
+      new THREE.SphereGeometry(0.23, 14, 10),
+      monumentGold,
+    );
+    crown.position.y = 1.46;
+    crown.scale.set(0.88, 1.08, 0.88);
+    monument.add(crown);
+    const crownBand = new THREE.Mesh(
+      new THREE.TorusGeometry(0.205, 0.032, 7, 20),
+      monumentGreen,
+    );
+    crownBand.position.y = 1.46;
+    crownBand.rotation.x = Math.PI * 0.5;
+    monument.add(crownBand);
+    const finial = new THREE.Mesh(
+      new THREE.ConeGeometry(0.055, 0.16, 8),
+      monumentGold,
+    );
+    finial.position.y = 1.76;
+    monument.add(finial);
+    monument.traverse((child) => {
+      if (child.isMesh) child.castShadow = true;
+    });
+    context.add(monument);
+
+    junctionDefinition.barrierSupports.forEach(({ center, yaw }) =>
+      addAlunAlunRoadBarrier(context, center[0], center[1], yaw),
+    );
     addAlunAlunIntersectionBoards(context);
 
     const utilityCorridor = ALUN_ALUN_WEST_UTILITY_CORRIDOR_DEFINITION;
@@ -3284,7 +3104,7 @@ export function createAlunAlunTrafficFactory({
     addAlunAlunParkedVehicle(context, -3.2, -17.6409, 0x9d4d43, 1.77, 0.9);
     addAlunAlunParkedVehicle(context, -10.2, -16.2292, 0xd8d4c9, 1.77, 0.92);
     // Keep the vendor on the checker-paved park apron, clear of both the
-    // northbound vehicle envelope and the dropped-curb/zebra access.
+    // northbound vehicle envelope and the open corner's turning area.
     addAlunAlunVendorCart(context, 16.2, 9.45);
 
     [
@@ -3294,64 +3114,6 @@ export function createAlunAlunTrafficFactory({
     ].forEach(([north, east, height, spread], index) =>
       addAlunAlunTree(context, north, east, height, spread, 31 + index * 0.86, false, 0.018),
     );
-
-    // The west-approach signal is mounted on the curved median nose and hangs
-    // above the matching eastbound stop bar.  Its former position was 27 m
-    // away beside the cross street.
-    addAlunAlunTrafficSignal(
-      context,
-      21.72,
-      10.65,
-      1,
-      -1,
-      mainSignalMaterials,
-      0,
-      1.3,
-    );
-    addAlunAlunTrafficSignal(
-      context,
-      23.15,
-      15.72,
-      -1,
-      1,
-      mainSignalMaterials,
-      0,
-      2.12,
-    );
-    addAlunAlunTrafficSignal(
-      context,
-      17.32,
-      11.55,
-      -1,
-      -1,
-      crossSignalMaterials,
-      Math.PI * 0.5,
-      1.58,
-    );
-    addAlunAlunTrafficSignal(
-      context,
-      24.6,
-      15.05,
-      1,
-      1,
-      crossSignalMaterials,
-      Math.PI * 0.5,
-      1.32,
-    );
-    animatedStopDetails.push({
-      object: context,
-      type: "trafficSignal",
-      phase: 0,
-      route: "main",
-      materials: mainSignalMaterials,
-    });
-    animatedStopDetails.push({
-      object: context,
-      type: "trafficSignal",
-      phase: 0,
-      route: "cross",
-      materials: crossSignalMaterials,
-    });
 
     context.traverse((child) => {
       if (child.isMesh) child.castShadow = true;
