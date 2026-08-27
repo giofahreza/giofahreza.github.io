@@ -11,6 +11,10 @@ import {
   ALUN_ALUN_WEST_MEDIAN_WIDTHS,
   ALUN_ALUN_WEST_FRONTAGE_DEFINITION,
   ALUN_ALUN_WESTERN_ASPHALT_UNION_OUTLINE,
+  ALUN_ALUN_WEST_PARK_TREE_CENTERS,
+  ALUN_ALUN_WEST_PROPERTY_ASPHALT_INFILL_OUTLINE,
+  ALUN_ALUN_WEST_PROPERTY_SIDEWALK_OUTLINE,
+  ALUN_ALUN_WEST_PROPERTY_TREE_CENTERS,
   ALUN_ALUN_SOUTH_MEDIAN_PATH,
   ALUN_ALUN_SOUTH_MEDIAN_WIDTHS,
   ALUN_ALUN_SOUTH_CROSSING_DEFINITION,
@@ -86,6 +90,18 @@ export const ALUN_ALUN_FRONTAGE_NAVIGATION_SURFACES = Object.freeze([
     points: ALUN_ALUN_WESTERN_ASPHALT_UNION_OUTLINE,
     height: ALUN_ALUN_ROAD_SURFACE_Y,
     label: "full-width Ahmad Yani western asphalt union",
+  }),
+  Object.freeze({
+    shape: "polygon",
+    points: ALUN_ALUN_WEST_PROPERTY_ASPHALT_INFILL_OUTLINE,
+    height: ALUN_ALUN_ROAD_SURFACE_Y,
+    label: "full-width KH Wahid Hasyim property-side asphalt infill",
+  }),
+  Object.freeze({
+    shape: "polygon",
+    points: ALUN_ALUN_WEST_PROPERTY_SIDEWALK_OUTLINE,
+    height: ALUN_ALUN_FRONTAGE_SIDEWALK_Y,
+    label: "KH Wahid Hasyim 1.5-metre clear sidewalk",
   }),
   Object.freeze({
     shape: "polygon",
@@ -340,14 +356,15 @@ export function createAlunAlunModelFactory({
     phase,
     narrow = false,
     motionStrength = narrow ? 0.025 : 0.04,
+    trunkScale = 1,
   ) {
     const tree = new THREE.Group();
     tree.position.set(north, 0.06, east);
     const trunkHeight = height * (narrow ? 0.68 : 0.48);
     const trunk = new THREE.Mesh(
       new THREE.CylinderGeometry(
-        spread * (narrow ? 0.055 : 0.08),
-        spread * (narrow ? 0.08 : 0.12),
+        spread * (narrow ? 0.055 : 0.08) * trunkScale,
+        spread * (narrow ? 0.08 : 0.12) * trunkScale,
         trunkHeight,
         8,
       ),
@@ -1322,6 +1339,72 @@ export function createAlunAlunModelFactory({
     boulder.scale.set(1.25, 0.88, 1.05);
     group.add(boulder);
 
+    // The west edge is a shaded promenade in Street View, not an exposed
+    // ceramic apron. Tree wells keep the new mature trunks from appearing to
+    // grow directly out of the checker paving, while the central park entrance
+    // remains open between the two halves of the row.
+    const westTreeWellMaterial = toonMaterial({ color: 0x514a3b });
+    ALUN_ALUN_WEST_PARK_TREE_CENTERS.forEach(([north, east], index) => {
+      const well = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.27, 0.29, 0.012, 14),
+        westTreeWellMaterial,
+      );
+      well.position.set(north, 0.063, east);
+      group.add(well);
+      addAlunAlunTree(
+        group,
+        north,
+        east,
+        3.55 + (index % 4) * 0.18,
+        1.3 + (index % 3) * 0.14,
+        40 + index * 0.73,
+        false,
+        0.018,
+        0.42,
+      );
+    });
+    ALUN_ALUN_WEST_PROPERTY_TREE_CENTERS.forEach(
+      ([north, east], index) =>
+        addAlunAlunTree(
+          group,
+          north,
+          east,
+          3.7 + (index % 3) * 0.22,
+          1.42 + (index % 4) * 0.1,
+          60 + index * 0.81,
+          false,
+          0.016,
+          0.55,
+        ),
+    );
+
+    // Preserve the real SD gates as openings instead of drawing one invented
+    // wall. The mosque already owns its surveyed name wall and fence, so it
+    // deliberately receives no duplicate hedge here.
+    [
+      [[-0.1885297087, -19.2072863383], [1.4093018454, -19.5295196774]],
+      [[4.1246352226, -20.0771186645], [7.359508921, -20.7294929092]],
+    ].forEach(([start, end]) => {
+      const deltaNorth = end[0] - start[0];
+      const deltaEast = end[1] - start[1];
+      const hedge = new THREE.Mesh(
+        roundedBox(
+          Math.hypot(deltaNorth, deltaEast),
+          0.42,
+          0.16,
+          0.04,
+        ),
+        hedgeMaterial,
+      );
+      hedge.position.set(
+        (start[0] + end[0]) * 0.5,
+        0.27,
+        (start[1] + end[1]) * 0.5,
+      );
+      hedge.rotation.y = -Math.atan2(deltaEast, deltaNorth);
+      group.add(hedge);
+    });
+
     const tallTreePositions = [
       [10.15, -11.5, 4.08, 0.9], [10.35, -10.25, 4.34, 0.96],
       [10.2, -9.0, 4.18, 0.88], [10.0, -7.75, 4.42, 0.94],
@@ -1417,6 +1500,27 @@ export function createAlunAlunModelFactory({
       startEast: 8.35,
       endNorth: 7.9,
       endEast: -7.55,
+    });
+    addAlunAlunWalker(group, 0x8a5d49, 1.35, 0, 0, 0.22, 0, 0, {
+      type: "line",
+      startNorth: 13.8744,
+      startEast: -21.7679,
+      endNorth: -15.3516,
+      endEast: -15.8739,
+    });
+    addAlunAlunWalker(group, 0x4f7180, 8.1, 0, 0, 0.19, 0, 0, {
+      type: "line",
+      startNorth: -15.3516,
+      startEast: -15.8739,
+      endNorth: 13.8744,
+      endEast: -21.7679,
+    });
+    addAlunAlunWalker(group, 0xb66b50, 3.7, 0, 0, 0.21, 0, 0, {
+      type: "line",
+      startNorth: 8.97,
+      startEast: -16.48,
+      endNorth: -13.63,
+      endEast: -11.79,
     });
     addAlunAlunKantorPerpustakaan(group);
     addAlunAlunBankBri(group);
@@ -1523,6 +1627,10 @@ export function createAlunAlunModelFactory({
       { north: 20.95, east: -5.55, width: 0.65, depth: 1.2, yaw: 0.08 },
       { north: 24.55, east: -8.1, width: 0.62, depth: 1.05 },
       { north: 24.55, east: -10.15, width: 0.62, depth: 1.0 },
+      { north: 6.4, east: -19.5769, width: 0.58, depth: 1.02, yaw: 1.77 },
+      { north: 4.1, east: -16.82, width: 0.58, depth: 1.0, yaw: 1.77 },
+      { north: -3.2, east: -17.6409, width: 0.56, depth: 0.98, yaw: 1.77 },
+      { north: -10.2, east: -16.2292, width: 0.57, depth: 1.0, yaw: 1.77 },
       { north: 15.6, east: 1.2, width: 0.2, depth: 0.95 },
     ];
 

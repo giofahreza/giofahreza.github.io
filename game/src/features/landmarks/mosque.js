@@ -262,7 +262,6 @@ export function createMosqueModelFactory({
     const nameWall = toonMaterial({ color: 0x4a403c });
     const metal = toonMaterial({ color: 0x666d69 });
     const fenceAccent = toonMaterial({ color: 0x424b49 });
-    const curbBlue = toonMaterial({ color: 0x2376a0 });
     const greenGlow = toonMaterial({
       color: 0x81ffd0,
       emissive: 0x44ffad,
@@ -278,29 +277,43 @@ export function createMosqueModelFactory({
     site.position.set(0, 0.06, -0.14);
     architecture.add(site);
 
-    const forecourt = new THREE.Mesh(roundedBox(7.8, 0.08, 1.55, 0.035), paver);
-    forecourt.position.set(0, 0.04, 4.72);
+    // Clip the private forecourt at the surveyed property line. The public
+    // 1.50-metre sidewalk and its 15-cm blue-white road curb are owned by the
+    // adjoining Alun-Alun corridor, so the old 1.55-metre slab must not extend
+    // back across that tread.
+    const frontagePropertyEdgeZ = 5.3130374848;
+    const forecourtInnerZ = 3.945;
+    const forecourtDepth = frontagePropertyEdgeZ - forecourtInnerZ;
+    const forecourtCenterZ = (frontagePropertyEdgeZ + forecourtInnerZ) * 0.5;
+    const forecourt = new THREE.Mesh(
+      roundedBox(7.8, 0.08, forecourtDepth, 0.035),
+      paver,
+    );
+    forecourt.position.set(0, 0.04, forecourtCenterZ);
     architecture.add(forecourt);
+    const stripeInnerZ = 4.02;
+    const stripeDepth = frontagePropertyEdgeZ - stripeInnerZ;
+    const stripeCenterZ = (frontagePropertyEdgeZ + stripeInnerZ) * 0.5;
     for (let index = 0; index < 15; index += 1) {
       const stripe = new THREE.Mesh(
-        roundedBox(0.48, 0.014, 1.4, 0.006),
+        roundedBox(0.48, 0.014, stripeDepth, 0.006),
         index % 3 === 0 ? paverLight : index % 2 === 0 ? sandstone : paver,
       );
-      stripe.position.set(-3.36 + index * 0.48, 0.088, 4.72);
+      stripe.position.set(-3.36 + index * 0.48, 0.088, stripeCenterZ);
       architecture.add(stripe);
     }
-    const approach = new THREE.Mesh(roundedBox(1.18, 0.024, 1.48, 0.012), pale);
-    approach.position.set(0.28, 0.102, 4.72);
+    const approachInnerZ = 3.98;
+    const approachDepth = frontagePropertyEdgeZ - approachInnerZ;
+    const approach = new THREE.Mesh(
+      roundedBox(1.18, 0.024, approachDepth, 0.012),
+      pale,
+    );
+    approach.position.set(
+      0.28,
+      0.102,
+      (frontagePropertyEdgeZ + approachInnerZ) * 0.5,
+    );
     architecture.add(approach);
-
-    for (let index = 0; index < 18; index += 1) {
-      const curb = new THREE.Mesh(
-        roundedBox(0.44, 0.16, 0.28, 0.018),
-        index % 2 === 0 ? curbBlue : pale,
-      );
-      curb.position.set(-3.74 + index * 0.44, 0.08, 5.56);
-      architecture.add(curb);
-    }
 
     const baseCourse = new THREE.Mesh(roundedBox(6.84, 0.24, 7.84, 0.055), stone);
     baseCourse.position.set(0, 0.22, -0.14);
@@ -941,8 +954,10 @@ export function createMosqueModelFactory({
 
     group.userData.navigation = {
       surfaces: [
-        { x: 0, z: 5.72, width: 8.1, depth: 0.86, height: 0.045, label: "front sidewalk" },
-        { x: 0, z: 4.72, width: 7.8, depth: 1.55, height: 0.08, label: "front forecourt" },
+        // The public KH Wahid Hasyim sidewalk is now one surveyed polygon in
+        // the Alun-Alun landmark. The former local box extended 2.5 metres
+        // into the reconstructed asphalt and produced a hidden height seam.
+        { x: 0, z: forecourtCenterZ, width: 7.8, depth: forecourtDepth, height: 0.08, label: "front forecourt" },
         { x: 0.28, z: 4.08, width: 1.32, depth: 0.26, height: 0.105, label: "entrance stair 1" },
         { x: 0.28, z: 3.88, width: 1.22, depth: 0.24, height: 0.145, label: "entrance stair 2" },
         { x: 0.28, z: 3.7, width: 1.12, depth: 0.2, height: 0.18, label: "entrance landing" },

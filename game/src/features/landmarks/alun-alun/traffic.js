@@ -831,6 +831,125 @@ export const ALUN_ALUN_WEST_LOCAL_ROAD_PATH = freezePath([
   [-6.32, -15.5],
   [-17.66, -12.68],
 ]);
+
+// Google satellite imagery and the June 2025 Street View survey show the
+// western KH Wahid Hasyim corridor as one broad, continuously paved street.
+// The OSM centre line is correct, but its generic 5.2-metre ribbon leaves an
+// 8-metre raw-ground strip in front of SD Al-Abror and the mosque. Keep that
+// traffic core untouched and complete only the property-side asphalt envelope.
+// Its northern closing edge is clipped to the Ahmad Yani union boundary; the
+// southern taper rejoins the independently rendered local-road shoulder. This
+// keeps each coplanar asphalt area under exactly one owner.
+export const ALUN_ALUN_WEST_PROPERTY_ASPHALT_INFILL_OUTLINE = freezePath([
+  [12.0952212095, -19.8326079914],
+  [-6.4513744767, -16.0993710928],
+  [-17.9732347121, -13.2343972888],
+  [-15.5568172014, -15.6489171352],
+  [11.7951928564, -21.1649738856],
+]);
+
+// The frontage is surveyed as one straight SD-to-mosque property line. A
+// 15-cm curb sits outside a full 1.50-metre clear red/cream tread; these paths
+// stay separate so the validator can measure the usable tread rather than the
+// combined curb-and-paving band.
+export const ALUN_ALUN_WEST_PROPERTY_SIDEWALK_WIDTH = 0.3;
+export const ALUN_ALUN_WEST_PROPERTY_ROADSIDE_SEAM = freezePath([
+  [14.0837575923, -21.6265068016],
+  [-15.5568172014, -15.6489171352],
+]);
+export const ALUN_ALUN_WEST_PROPERTY_CURB_CENTERLINE = freezePath([
+  [14.0949052608, -21.644056931],
+  [-15.5642185182, -15.6627265064],
+]);
+export const ALUN_ALUN_WEST_PROPERTY_CLEAR_TREAD_INNER = freezePath([
+  [14.1060544986, -21.6616073768],
+  [-15.5716198349, -15.6765358775],
+]);
+export const ALUN_ALUN_WEST_PROPERTY_SIDEWALK_OUTER = freezePath([
+  [14.2309033811, -21.9928253146],
+  [-15.7196461693, -15.952723301],
+]);
+export const ALUN_ALUN_WEST_PROPERTY_SIDEWALK_OUTLINE = freezePath([
+  ...ALUN_ALUN_WEST_PROPERTY_ROADSIDE_SEAM,
+  ...[...ALUN_ALUN_WEST_PROPERTY_SIDEWALK_OUTER].reverse(),
+]);
+
+// The green edge/cycle marking seen beside the park is paint on the existing
+// asphalt, not a raised island and not a narrower traffic lane. It wraps the
+// north-west corner and crosses the pedestrian entrance at road level, just as
+// the Street View marking does.
+export const ALUN_ALUN_WEST_GREEN_EDGE_WIDTH = 0.25;
+export const ALUN_ALUN_WEST_GREEN_EDGE_OUTLINES = Object.freeze([
+  freezePath([
+    [12.41, -16.6],
+    [11.4, -17.34],
+    [9.97, -17.55],
+    [-14.93, -12.39],
+    [-14.9807294209, -12.6347989499],
+    [9.9625717751, -17.8037722098],
+    [11.4977074888, -17.5783326993],
+    [12.557754341, -16.8016647087],
+  ]),
+]);
+export const ALUN_ALUN_WEST_GREEN_EDGE_WHITE_LINES = Object.freeze([
+  freezePath([
+    [12.557754341, -16.8016647087],
+    [11.4977074888, -17.5783326993],
+    [9.9625717751, -17.8037722098],
+    [-14.9807294209, -12.6347989499],
+  ]),
+]);
+
+// Mature trees form the continuous shaded wall visible along both sides of
+// the real corridor. Park-side trunks sit 1.70 m behind the blue-white curb
+// and leave the central checker entrance open; property-side trunks remain
+// behind the school/mosque frontage and therefore never consume the tread.
+export const ALUN_ALUN_WEST_PARK_TREE_CENTERS = freezePath([
+  [9.5301641229, -17.0605672659],
+  [8.1734942416, -16.7079388027],
+  [7.1054629678, -16.588736461],
+  [5.7629973244, -16.1675642918],
+  [4.8067359422, -16.0510989794],
+  [3.528755651, -15.6637149641],
+  [2.2429181983, -15.5606516569],
+  [-2.2410907107, -14.5293107317],
+  [-3.6359610258, -14.3117405036],
+  [-4.524292174, -14.0153155197],
+  [-5.9256039458, -13.8781101325],
+  [-7.1333652803, -13.5461273639],
+  [-8.145287455, -13.254728132],
+  [-9.5425408732, -13.0979388286],
+  [-10.4447223331, -12.819068584],
+  [-11.7592278073, -12.6079398125],
+  [-12.9980402665, -12.2286725046],
+  [-14.0215240302, -12.19018893],
+]);
+export const ALUN_ALUN_WEST_PROPERTY_TREE_CENTERS = freezePath([
+  [10.2, -21.6],
+  [7, -20.9],
+  [3.8, -20.2],
+  [0.160462167, -19.6460529514],
+  [-3.239537833, -18.8960529514],
+  [-6.468468508, -18.2394608941],
+  [-10.0641, -17.3177],
+  [-14.1597, -16.4917],
+]);
+
+export const ALUN_ALUN_WEST_UTILITY_SUPPORTS = freezePath([
+  [10.3584682143, -21.5791223105],
+  [5.4571444287, -20.5906764853],
+  [-0.6695103032, -19.3551192037],
+  [-6.7961650351, -18.1195619222],
+  [-11.5994623449, -17.1508850135],
+  [-15.3734816598, -16.389781728],
+]);
+export const ALUN_ALUN_WEST_PARK_LAMP_CENTERS = freezePath([
+  [8.9365251831, -17.1520098163],
+  [3.0365251831, -15.9293592139],
+  [-3.3634748169, -14.6030941537],
+  [-9.7634748169, -13.2768290935],
+  [-14.2634748169, -12.344298973],
+]);
 export const ALUN_ALUN_SOUTH_LOCAL_ROAD_PATH = freezePath([
   [-17.66, -12.68],
   [-18.74, -11.62],
@@ -1407,6 +1526,9 @@ export function createAlunAlunTrafficFactory({
     const asphaltTrim = toonMaterial({ color: 0x303635 });
     const roadWhite = toonMaterial({ color: 0xe7e4d8 });
     const roadYellow = toonMaterial({ color: 0xf0c047 });
+    const westGreenEdge = hideMaterialOutline(
+      toonMaterial({ color: 0x45a578 }),
+    );
     const gutterMaterial = hideMaterialOutline(
       toonMaterial({ color: 0x555850 }),
     );
@@ -1510,6 +1632,7 @@ export function createAlunAlunTrafficFactory({
       gutterMaterial,
       roadWhite,
       roadYellow,
+      westGreenEdge,
       pedestrianStone,
       pedestrianConcrete,
       pedestrianPaleConcrete,
@@ -1864,6 +1987,22 @@ export function createAlunAlunTrafficFactory({
     );
     perimeterAsphaltFill.name =
       "West-south park curb-aligned asphalt fill";
+    const westPropertyAsphaltInfill = addRoadSurface(
+      ALUN_ALUN_WEST_PROPERTY_ASPHALT_INFILL_OUTLINE,
+    );
+    westPropertyAsphaltInfill.name =
+      "KH Wahid Hasyim full-width property-side asphalt infill";
+    ALUN_ALUN_WEST_GREEN_EDGE_OUTLINES.forEach((outline, index) => {
+      const greenEdge = addRoadSurface(
+        outline,
+        ROAD_MARK_Y - 0.0005,
+        westGreenEdge,
+      );
+      greenEdge.name = `West park green edge marking ${index + 1}`;
+    });
+    ALUN_ALUN_WEST_GREEN_EDGE_WHITE_LINES.forEach((line) =>
+      addRoadPathMark(line, roadWhite, 0.028),
+    );
     // Reintroduce only the pedestrian strips that really border the junction.
     // The asphalt union above intentionally masks the generic OSM sidewalk
     // wedges, so these surveyed ribbons keep a continuous walkable-looking
@@ -1976,6 +2115,14 @@ export function createAlunAlunTrafficFactory({
     );
     oppositePegadaianSidewalk.name =
       "Pegadaian opposite one-metre sidewalk";
+    const westPropertySidewalk = addRoadsideBand(
+      ALUN_ALUN_WEST_PROPERTY_CLEAR_TREAD_INNER,
+      ALUN_ALUN_WEST_PROPERTY_SIDEWALK_OUTER,
+      ALUN_ALUN_FRONTAGE_SIDEWALK_Y,
+      pedestrianStone,
+    );
+    westPropertySidewalk.name =
+      "KH Wahid Hasyim red-cream 1.5-metre clear sidewalk";
     const curbIsLowered = (_north, east) =>
       ALUN_ALUN_WEST_FRONTAGE_DEFINITION.loweredCurbEastSpans.some(
         ([start, end]) => east >= start && east <= end,
@@ -2011,6 +2158,179 @@ export function createAlunAlunTrafficFactory({
           ROAD_SURFACE_Y + ALUN_ALUN_FRONTAGE_CURB_HEIGHT * 0.5,
       },
     );
+    addSegmentedCurbAlongPath(
+      ALUN_ALUN_WEST_PROPERTY_CURB_CENTERLINE,
+      [sidewalkCurbBlue, sidewalkCurbWhite],
+      {
+        depth: ALUN_ALUN_FRONTAGE_CURB_DEPTH,
+        normalHeight: ALUN_ALUN_FRONTAGE_CURB_HEIGHT,
+        normalCenterY:
+          ROAD_SURFACE_Y + ALUN_ALUN_FRONTAGE_CURB_HEIGHT * 0.5,
+      },
+    );
+
+    // Street View's western corridor is visually enclosed by a property-side
+    // PLN bundle and slim park lamps. Every base below is either behind the
+    // public sidewalk or inside the park curb; none occupies asphalt or the
+    // 1.50-metre clear tread.
+    const westUtilityFrames = ALUN_ALUN_WEST_UTILITY_SUPPORTS.map(
+      (center, index, supports) => {
+        const previous = supports[Math.max(0, index - 1)];
+        const next = supports[Math.min(supports.length - 1, index + 1)];
+        const deltaNorth = next[0] - previous[0];
+        const deltaEast = next[1] - previous[1];
+        const length = Math.hypot(deltaNorth, deltaEast) || 1;
+        return {
+          center,
+          normal: [-deltaEast / length, deltaNorth / length],
+        };
+      },
+    );
+    westUtilityFrames.forEach(({ center, normal }, index) => {
+      const pole = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.025, 0.035, 2.15, 8),
+        postGrey,
+      );
+      pole.name = `KH Wahid Hasyim PLN pole ${index + 1}`;
+      pole.position.set(center[0], 1.12, center[1]);
+      context.add(pole);
+
+      const crossArm = new THREE.Mesh(
+        roundedBox(0.52, 0.045, 0.045, 0.012),
+        postGrey,
+      );
+      crossArm.position.set(center[0], 2.03, center[1]);
+      crossArm.rotation.y = -Math.atan2(normal[1], normal[0]);
+      context.add(crossArm);
+      [-0.18, -0.09, 0, 0.09, 0.18].forEach((offset) => {
+        const insulator = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.018, 0.024, 0.1, 7),
+          asphaltTrim,
+        );
+        insulator.position.set(
+          center[0] + normal[0] * offset,
+          2.1,
+          center[1] + normal[1] * offset,
+        );
+        context.add(insulator);
+      });
+    });
+    [-0.18, -0.09, 0, 0.09, 0.18].forEach(
+      (lateralOffset, conductorIndex) => {
+        westUtilityFrames.slice(0, -1).forEach((start, index) => {
+          const end = westUtilityFrames[index + 1];
+          const endpoint = (frame) =>
+            new THREE.Vector3(
+              frame.center[0] + frame.normal[0] * lateralOffset,
+              2.1,
+              frame.center[1] + frame.normal[1] * lateralOffset,
+            );
+          const startPoint = endpoint(start);
+          const endPoint = endpoint(end);
+          const midpoint = new THREE.Vector3(
+            (startPoint.x + endPoint.x) * 0.5,
+            Math.min(startPoint.y, endPoint.y) - 0.18,
+            (startPoint.z + endPoint.z) * 0.5,
+          );
+          const wire = new THREE.Mesh(
+            new THREE.TubeGeometry(
+              new THREE.QuadraticBezierCurve3(
+                startPoint,
+                midpoint,
+                endPoint,
+              ),
+              24,
+              0.0045,
+              5,
+              false,
+            ),
+            wireMaterial,
+          );
+          wire.name =
+            `KH Wahid Hasyim conductor ${conductorIndex + 1}, span ${index + 1}`;
+          context.add(wire);
+        });
+      },
+    );
+
+    const westParkEdgeDelta = [
+      ALUN_ALUN_PARK_OUTLINE[1][0] - ALUN_ALUN_PARK_OUTLINE[0][0],
+      ALUN_ALUN_PARK_OUTLINE[1][1] - ALUN_ALUN_PARK_OUTLINE[0][1],
+    ];
+    const westParkEdgeLength = Math.hypot(...westParkEdgeDelta);
+    const westParkRoadNormal = [
+      -westParkEdgeDelta[1] / westParkEdgeLength,
+      westParkEdgeDelta[0] / westParkEdgeLength,
+    ];
+    ALUN_ALUN_WEST_PARK_LAMP_CENTERS.forEach((center, index) => {
+      const lampCurve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(center[0], 0.06, center[1]),
+        new THREE.Vector3(center[0], 1.2, center[1]),
+        new THREE.Vector3(
+          center[0] + westParkRoadNormal[0] * 0.08,
+          1.9,
+          center[1] + westParkRoadNormal[1] * 0.08,
+        ),
+        new THREE.Vector3(
+          center[0] + westParkRoadNormal[0] * 0.38,
+          2.18,
+          center[1] + westParkRoadNormal[1] * 0.38,
+        ),
+      ]);
+      const lampPole = new THREE.Mesh(
+        new THREE.TubeGeometry(lampCurve, 24, 0.035, 7, false),
+        postGrey,
+      );
+      lampPole.name = `West park curved street lamp ${index + 1}`;
+      context.add(lampPole);
+      const lampHead = new THREE.Mesh(
+        roundedBox(0.32, 0.065, 0.12, 0.022),
+        asphaltTrim,
+      );
+      lampHead.position.set(
+        center[0] + westParkRoadNormal[0] * 0.43,
+        2.16,
+        center[1] + westParkRoadNormal[1] * 0.43,
+      );
+      lampHead.rotation.y =
+        -Math.atan2(westParkRoadNormal[1], westParkRoadNormal[0]);
+      context.add(lampHead);
+    });
+
+    const westBenchMaterial = toonMaterial({ color: 0x8b7358 });
+    const addWestParkBench = (north, east) => {
+      const bench = new THREE.Group();
+      bench.position.set(north, 0.075, east);
+      bench.rotation.y =
+        -Math.atan2(westParkEdgeDelta[1], westParkEdgeDelta[0]);
+      const seat = new THREE.Mesh(
+        roundedBox(0.72, 0.07, 0.24, 0.018),
+        westBenchMaterial,
+      );
+      seat.position.y = 0.24;
+      bench.add(seat);
+      const back = new THREE.Mesh(
+        roundedBox(0.72, 0.28, 0.055, 0.018),
+        westBenchMaterial,
+      );
+      back.position.set(0, 0.4, 0.1);
+      bench.add(back);
+      [-0.25, 0.25].forEach((offset) => {
+        const leg = new THREE.Mesh(
+          roundedBox(0.055, 0.24, 0.055, 0.012),
+          postGrey,
+        );
+        leg.position.set(offset, 0.12, 0);
+        bench.add(leg);
+      });
+      mergeDirectMeshesByMaterial(bench);
+      context.add(bench);
+    };
+    [
+      [6.35, -15.46],
+      [-4.15, -13.28],
+      [-10.45, -11.97],
+    ].forEach(([north, east]) => addWestParkBench(north, east));
     // Exact ribbons replace the former straight asphalt boxes. The park's
     // checker apron remains the highest layer and therefore wraps the corner
     // continuously, as it does in Street View.
@@ -2633,6 +2953,12 @@ export function createAlunAlunTrafficFactory({
     addAlunAlunParkedPickup(context, 20.95, -5.55, 0xe7e4da, 0.08, 1.08);
     addAlunAlunParkedVehicle(context, 24.55, -8.1, 0xf0eee7, 0, 0.98);
     addAlunAlunParkedVehicle(context, 24.55, -10.15, 0xd7d6cf, 0, 0.94);
+    // Sparse curbside parking is part of the real west-corridor street wall;
+    // keep every vehicle half a world unit inside the new asphalt edge.
+    addAlunAlunParkedVehicle(context, 6.4, -19.5769, 0x30393d, 1.77, 0.94);
+    addAlunAlunParkedVehicle(context, 4.1, -16.82, 0x273238, 1.77, 0.92);
+    addAlunAlunParkedVehicle(context, -3.2, -17.6409, 0x9d4d43, 1.77, 0.9);
+    addAlunAlunParkedVehicle(context, -10.2, -16.2292, 0xd8d4c9, 1.77, 0.92);
     // Keep the vendor on the checker-paved park apron, clear of both the
     // northbound vehicle envelope and the dropped-curb/zebra access.
     addAlunAlunVendorCart(context, 16.2, 9.45);
