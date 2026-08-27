@@ -7,6 +7,7 @@ import {
   ALUN_ALUN_INTERIOR_TACTILE_PAVER_DEFINITION,
   ALUN_ALUN_FRONTAGE_APRON_Y,
   ALUN_ALUN_FRONTAGE_SIDEWALK_Y,
+  ALUN_ALUN_PEDESTRIAN_ROUTE_DEFINITIONS,
   ALUN_ALUN_PEGADAIAN_ROAD_DEFINITION,
   ALUN_ALUN_SOUTH_APPROACH_DEFINITION,
   ALUN_ALUN_SOUTH_CORRIDOR_DEFINITION,
@@ -155,6 +156,15 @@ export const ALUN_ALUN_SOUTH_CORRIDOR_NAVIGATION_SURFACES = Object.freeze([
     height: ALUN_ALUN_ROAD_SURFACE_Y,
     label: "full-width south-approach asphalt union",
   }),
+  ...ALUN_ALUN_SOUTH_APPROACH_DEFINITION.terminalHardstandOutlines.map(
+    (points, index) =>
+      Object.freeze({
+        shape: "polygon",
+        points,
+        height: ALUN_ALUN_SOUTH_APPROACH_DEFINITION.terminalHardstandHeight,
+        label: `flush south-approach showroom hardstand ${index + 1}`,
+      }),
+  ),
   Object.freeze({
     shape: "polygon",
     points: ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.junctionAsphaltOutline,
@@ -207,6 +217,60 @@ export const ALUN_ALUN_SOUTH_CORRIDOR_NAVIGATION_SURFACES = Object.freeze([
   }),
 ]);
 
+// The generic map footways are masked around the open junction, so navigation
+// must consume the same surveyed ribbons and parcel bands as the renderer.
+// Absolute heights avoid inheriting the landmark tangent plane's local sag.
+export const ALUN_ALUN_SOUTHEAST_JUNCTION_NAVIGATION_SURFACES = Object.freeze([
+  Object.freeze({
+    shape: "polygon",
+    points:
+      ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.openFrontageAsphaltOutline,
+    height: ALUN_ALUN_ROAD_SURFACE_Y,
+    label: "open Ahmad Jafar showroom-side asphalt hardstand",
+  }),
+  ...["northWest", "northEast"].flatMap((routeName) => {
+    const route = ALUN_ALUN_PEDESTRIAN_ROUTE_DEFINITIONS[routeName];
+    return [
+      Object.freeze({
+        shape: "polygon",
+        points: route.sidewalkOutline,
+        height: ALUN_ALUN_FRONTAGE_SIDEWALK_Y,
+        label: `Ahmad Jafar ${routeName} sidewalk`,
+      }),
+      Object.freeze({
+        shape: "polygon",
+        points: route.frontageApronOutline,
+        height: ALUN_ALUN_FRONTAGE_APRON_Y,
+        label: `Ahmad Jafar ${routeName} frontage apron`,
+      }),
+    ];
+  }),
+  Object.freeze({
+    shape: "polygon",
+    points: ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.parcel.landOutline,
+    height: ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.parcel.forecourtHeight,
+    label: "Ahmad Jafar flat frontage hardscape",
+  }),
+  Object.freeze({
+    shape: "polygon",
+    points: ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.showroom.forecourtOutline,
+    height: ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.showroom.forecourtHeight,
+    label: "SEWA Billboard flush weathered forecourt",
+  }),
+  Object.freeze({
+    shape: "polygon",
+    points: ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.parcel.sidewalkOutline,
+    height: ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.parcel.sidewalkHeight,
+    label: "Ahmad Jafar tapered parcel sidewalk",
+  }),
+  Object.freeze({
+    shape: "polygon",
+    points: ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.parcel.apronOutline,
+    height: ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.parcel.apronHeight,
+    label: "Ahmad Jafar parcel frontage apron",
+  }),
+]);
+
 export const ALUN_ALUN_SOUTH_PROMENADE_COLLISION_OBSTACLES = Object.freeze([
   ...ALUN_ALUN_SOUTH_PARK_TREE_CENTERS.map(([north, east], index) =>
     freezeTrafficObstacle({
@@ -231,16 +295,23 @@ export const ALUN_ALUN_SOUTH_PROMENADE_COLLISION_OBSTACLES = Object.freeze([
 ]);
 
 // Roadside and junction collision objects share the same frozen definitions as
-// their visual meshes. The open Ahmad Jafar junction contributes only its
-// monument island and the two temporary barriers—never invisible median or
-// signal boxes.
+// their visual meshes. The open Ahmad Jafar junction contributes its real
+// frontage, monument, barriers, trees, utility supports and parked vehicle—
+// never an invisible median or signal box.
 export const ALUN_ALUN_TRAFFIC_COLLISION_OBSTACLES = Object.freeze([
   // The detailed Planet Ban architecture scales its 2.92 x 3.34 shell by
   // 1.64 x 0.96 in plan; keep collision aligned with the actual rendered body.
   freezeTrafficObstacle({ label: "Planet Ban", north: 26.04, east: 4.7, width: 4.8, depth: 3.21 }),
   freezeTrafficObstacle({ label: "frontage blue office", north: 25.7, east: 6.9, width: 2.8, depth: 1.09 }),
-  freezeTrafficObstacle({ label: "frontage beige row", north: 25.85, east: 9.65, width: 2.95, depth: 4.4 }),
-  freezeTrafficObstacle({ label: "frontage ARUM shop", north: 26.35, east: 16.25, width: 2.7, depth: 1.85 }),
+  freezeTrafficObstacle({ label: "frontage beige row", north: 25.85, east: 9.35, width: 2.95, depth: 4.4 }),
+  freezeTrafficObstacle({
+    label: "SEWA Billboard corner showroom",
+    north: ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.showroom.center[0],
+    east: ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.showroom.center[1],
+    width: ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.showroom.width,
+    depth: ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.showroom.depth,
+    yaw: ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.showroom.yaw,
+  }),
   freezeTrafficObstacle({ label: "park vendor cart", north: 16.2, east: 9.45, width: 0.7, depth: 0.9 }),
   ...ALUN_ALUN_WEST_MEDIAN_PATH.slice(0, -1).map((start, index) => {
     const end = ALUN_ALUN_WEST_MEDIAN_PATH[index + 1];
@@ -281,6 +352,45 @@ export const ALUN_ALUN_TRAFFIC_COLLISION_OBSTACLES = Object.freeze([
           ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.barrierCollision.width,
         depth:
           ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.barrierCollision.depth,
+        yaw,
+      }),
+  ),
+  ...ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.contextTrees.map(
+    ({ center: [north, east], collisionWidth, collisionDepth }, index) =>
+      freezeTrafficObstacle({
+        label: `Ahmad Jafar context tree ${index + 1}`,
+        north,
+        east,
+        width: collisionWidth,
+        depth: collisionDepth,
+      }),
+  ),
+  ...ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.utilityCorridor.supports.map(
+    ({ center: [north, east], yaw }, index) =>
+      freezeTrafficObstacle({
+        label: `Ahmad Jafar utility support ${index + 1}`,
+        north,
+        east,
+        width:
+          ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.utilityCorridor
+            .collisionWidth,
+        depth:
+          ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.utilityCorridor
+            .collisionDepth,
+        yaw,
+      }),
+  ),
+  ...ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.parkedVehicles.map(
+    (
+      { center: [north, east], yaw, collisionWidth, collisionDepth },
+      index,
+    ) =>
+      freezeTrafficObstacle({
+        label: `Ahmad Jafar parked vehicle ${index + 1}`,
+        north,
+        east,
+        width: collisionWidth,
+        depth: collisionDepth,
         yaw,
       }),
   ),
@@ -1170,6 +1280,9 @@ export function createAlunAlunModelFactory({
     helpers: {
       getSitubondoSignMaterial,
     },
+    junction: {
+      showroom: ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.showroom,
+    },
   });
   const {
     addAlunAlunMotorbike,
@@ -1634,24 +1747,19 @@ export function createAlunAlunModelFactory({
     addAlunAlunSdAlAbror(group);
     addAlunAlunSdNegeri6Dawuhan(group);
     addAlunAlunRoadContext(group);
+    // Balanced May 2025 fleet: retain one car in each main-road direction
+    // without allowing an eastbound platoon to hide the compact monument.
     [
       [0xe9e5d8, 0.02, 21.48, 2.35, 0, "mpv"],
-      [0x4f5f63, 0.27, 23.05, 2.15, 1.44, "pickup"],
-      [0x9e584a, 0.54, 21.62, 2.45, 2.88, "minivan"],
-      [0xd8d6cd, 0.14, 19.2, -2.25, 0, "minivan"],
       [0xb94f4a, 0.43, 19.76, -2.4, 1.44, "sedan"],
-      [0x596c70, 0.74, 19.25, -2.2, 2.88, "mpv"],
     ].forEach(([color, phase, laneNorth, speed, queueOffset, variant]) =>
       addAlunAlunStreetVehicle(group, color, phase, laneNorth, speed, queueOffset, variant),
     );
+    // B3, B4, B5 and B8 balance the main-road motorbikes two per direction.
     [
-      [0xd36a45, 0.08, 21.4, 2.85, 0.72, "commuter"],
-      [0xe7e1d5, 0.31, 23.0, 2.7, 2.16, "scooter"],
-      [0x4d7889, 0.57, 21.58, 3.0, 3.6, "delivery"],
+      [0x4d7889, 0.57, 21.58, 3.0, 3.6, "scooter"],
       [0xcaa548, 0.82, 23.2, 2.8, 5.04, "scooter"],
       [0x3e7280, 0.19, 19.35, -2.75, 0.72, "commuter"],
-      [0x5b655e, 0.45, 19.86, -2.9, 2.16, "scooter"],
-      [0xb64f49, 0.69, 19.42, -2.7, 3.6, "delivery"],
       [0xe6e0d3, 0.94, 19.92, -3.0, 5.04, "scooter"],
     ].forEach(([color, phase, laneNorth, speed, queueOffset, variant]) =>
       addAlunAlunMotorbike(group, color, phase, laneNorth, speed, queueOffset, variant),
@@ -1660,10 +1768,8 @@ export function createAlunAlunModelFactory({
     // not the two tall freight bodies that repeatedly hid the monument on the
     // mobile camera. Keep the following literal JSON-like for fleet validation.
     [
-      [0x4f7180, 0.04, -0.78, 1.7, 1.15, "pickup", null],
       [0xe4e0d7, 0.33, 0.78, -1.75, 1.45, "mpv", null],
       [0xb2aea4, 0.58, -1.32, 1.9, 2.35, "pickup", null],
-      [0x596c70, 0.91, 1.32, -1.95, 2.55, "minivan", null],
     ].forEach(([color, phase, laneOffset, speed, queueOffset, variant, cargoColor]) =>
       addAlunAlunStreetVehicle(
         group,
@@ -1702,9 +1808,8 @@ export function createAlunAlunModelFactory({
       { north: 25.1, east: 0.42, width: 4.65, depth: 5.25 },
       { north: 24.54, east: -3.38, width: 8.1, depth: 2.42 },
       { north: 23.55, east: -12.35, width: 1.08, depth: 1.42 },
-      // Frontage around the open north arm, the relocated vendor, retained
-      // west median, monument island and barriers share one collision
-      // definition with the route-clearance validator.
+      // Frontage around the open north arm and every visible junction fixture
+      // share one collision definition with the route-clearance validator.
       ...ALUN_ALUN_TRAFFIC_COLLISION_OBSTACLES.filter(
         (obstacle) => obstacle.playerCollision !== false,
       ),
@@ -1751,6 +1856,7 @@ export function createAlunAlunModelFactory({
         ...ALUN_ALUN_PARK_NAVIGATION_SURFACES,
         ...ALUN_ALUN_FRONTAGE_NAVIGATION_SURFACES,
         ...ALUN_ALUN_SOUTH_CORRIDOR_NAVIGATION_SURFACES,
+        ...ALUN_ALUN_SOUTHEAST_JUNCTION_NAVIGATION_SURFACES,
       ],
     };
 
