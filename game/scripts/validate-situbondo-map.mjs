@@ -1,11 +1,10 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import {
-  ALUN_ALUN_JUNCTION_ASPHALT_OUTLINE,
-  ALUN_ALUN_JUNCTION_LOOP_PATH,
-  ALUN_ALUN_JUNCTION_LOOP_SURFACE_WIDTH,
   ALUN_ALUN_PARK_OUTLINE,
   ALUN_ALUN_SOUTH_APPROACH_DEFINITION,
+  ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION,
+  ALUN_ALUN_WESTERN_ASPHALT_UNION_OUTLINE,
   createAlunAlunRoadRibbonGeometry,
 } from "../src/features/landmarks/alun-alun/traffic.js";
 import {
@@ -244,17 +243,6 @@ function roadRibbonTriangles(points, width) {
   } finally {
     geometry.dispose();
   }
-}
-
-function pointInTriangle(point, triangle) {
-  const first = segmentCross(triangle[0], triangle[1], point);
-  const second = segmentCross(triangle[1], triangle[2], point);
-  const third = segmentCross(triangle[2], triangle[0], point);
-  const epsilon = 1e-8;
-  return (
-    (first >= -epsilon && second >= -epsilon && third >= -epsilon) ||
-    (first <= epsilon && second <= epsilon && third <= epsilon)
-  );
 }
 
 function triangleMaximumEdgeLength(triangle) {
@@ -621,40 +609,16 @@ const compactLoopSourceRoad = compactLoopReplacement
       ),
     )?.[0]
   : null;
-const adjacentJunctionLabels = new Set([
-  "east inbound carriageway",
-  "east opposing carriageway",
-  "east outbound carriageway",
-  "north-arm junction connector",
-  "west park-side carriageway",
-  "west post-office-side carriageway",
-]);
-const junctionCoverageTriangles = roadRibbonTriangles(
-  ALUN_ALUN_JUNCTION_LOOP_PATH,
-  ALUN_ALUN_JUNCTION_LOOP_SURFACE_WIDTH,
-);
-ALUN_ALUN_GENERATED_ROAD_REPLACEMENTS.filter((replacement) =>
-  adjacentJunctionLabels.has(replacement.label),
-).forEach((replacement) => {
-  const sourceRoad = sourceRoadsByFingerprint.get(
-    roadFingerprint(replacement.style, replacement.coordinates),
-  )?.[0];
-  if (!sourceRoad) return;
-  const coreWidth =
-    sourceRoad[1] /
-    map.coordinatePrecision /
-    MAP_METERS_PER_WORLD_UNIT;
-  const renderedWidth = coreWidth + Math.min(0.28, coreWidth * 0.18);
-  junctionCoverageTriangles.push(
-    ...roadRibbonTriangles(
-      decodeRoadCenterline(sourceRoad).map(([north, east]) => [
-        north / MAP_METERS_PER_WORLD_UNIT,
-        east / MAP_METERS_PER_WORLD_UNIT,
-      ]),
-      renderedWidth,
-    ),
-  );
-});
+// Audit only polygons that addAlunAlunRoadContext() actually renders. The
+// former check counted the masked OSM loop and adjacent source ribbons as
+// coverage even though neither existed in the scene, allowing a real asphalt
+// gap at the loop's south-west nose to pass unnoticed.
+const renderedJunctionAsphaltPolygons = [
+  ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.junctionAsphaltOutline,
+  ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.eastAsphaltInfillOutline,
+  ALUN_ALUN_SOUTH_APPROACH_DEFINITION.surfaceOutline,
+  ALUN_ALUN_WESTERN_ASPHALT_UNION_OUTLINE,
+];
 let compactLoopCoverageSamples = 0;
 let firstCompactLoopCoverageGap = null;
 if (compactLoopSourceRoad) {
@@ -688,15 +652,9 @@ if (compactLoopSourceRoad) {
             triangle[2][1] * secondWeight,
         ];
         compactLoopCoverageSamples += 1;
-        const covered =
-          pointInPolygon(point, ALUN_ALUN_JUNCTION_ASPHALT_OUTLINE) ||
-          pointInPolygon(
-            point,
-            ALUN_ALUN_SOUTH_APPROACH_DEFINITION.surfaceOutline,
-          ) ||
-          junctionCoverageTriangles.some((coverageTriangle) =>
-            pointInTriangle(point, coverageTriangle),
-          );
+        const covered = renderedJunctionAsphaltPolygons.some((polygon) =>
+          pointInPolygon(point, polygon),
+        );
         if (!covered && !firstCompactLoopCoverageGap) {
           firstCompactLoopCoverageGap = point;
         }
