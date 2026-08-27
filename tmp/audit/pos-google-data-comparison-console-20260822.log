@@ -1,9 +1,0 @@
-Total messages: 4 (Errors: 0, Warnings: 4)
-Returning 6 messages for level "warning"
-
-[WARNING] No available adapters. @ https://www.google.com/maps/search/Kantor+Pos+Situbondo+Alun-Alun+Situbondo:0
-[WARNING] No available adapters. @ https://www.google.com/maps/@-7.70573334010061,114.00541004549552,20z/data=!3m1!1e3:0
-[WARNING] [.WebGL-0x3c7401551000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels @ http://127.0.0.1:8101/:0
-[WARNING] [.WebGL-0x3c7401551000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels @ http://127.0.0.1:8101/:0
-[WARNING] [.WebGL-0x3c7401551000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels @ http://127.0.0.1:8101/:0
-[WARNING] [.WebGL-0x3c7401551000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat) @ http://127.0.0.1:8101/:0

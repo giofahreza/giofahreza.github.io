@@ -1,6 +1,0 @@
-Total messages: 4 (Errors: 0, Warnings: 4)
-
-[WARNING] [.WebGL-0x9b400c39c00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels @ https://test.qif.us/:0
-[WARNING] [.WebGL-0x9b400c39c00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels @ https://test.qif.us/:0
-[WARNING] [.WebGL-0x9b400c39c00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels @ https://test.qif.us/:0
-[WARNING] [.WebGL-0x9b400c39c00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat) @ https://test.qif.us/:0

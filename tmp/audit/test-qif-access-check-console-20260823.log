@@ -1,3 +1,0 @@
-Total messages: 1 (Errors: 0, Warnings: 1)
-
-[WARNING] [.WebGL-0x23340140d600]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels @ https://test.qif.us/?v=access-check-20260823-1011:0

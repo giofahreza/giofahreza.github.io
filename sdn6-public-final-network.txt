@@ -1,2 +1,0 @@
-[GET] https://test.qif.us/data/situbondo-map.json => [200] 
-[POST] https://test.qif.us/cdn-cgi/rum? => [204] 
