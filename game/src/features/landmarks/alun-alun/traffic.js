@@ -667,6 +667,106 @@ export const ALUN_ALUN_WEST_FRONTAGE_DEFINITION = Object.freeze({
   ]),
 });
 
+// Street View places the PLN line on the property side of the public
+// footway. The former utility row used one fixed north coordinate even though
+// Jalan Jenderal Achmad Yani bends around the Alun-Alun; that put one pole in
+// the live carriageway and the following poles inside the park. Derive every
+// support from the surveyed sidewalk boundary so the complete assembly keeps
+// following the frontage when that boundary is refined.
+const interpolateFrontageBoundaryAtEast = (boundary, stationEast) => {
+  const segmentIndex = boundary.findIndex((start, index) => {
+    const end = boundary[index + 1];
+    if (!end) return false;
+    return (
+      stationEast >= Math.min(start[1], end[1]) - 1e-10 &&
+      stationEast <= Math.max(start[1], end[1]) + 1e-10
+    );
+  });
+  if (segmentIndex < 0) {
+    throw new Error(
+      `PLN frontage station ${stationEast} lies outside the sidewalk boundary`,
+    );
+  }
+  const start = boundary[segmentIndex];
+  const end = boundary[segmentIndex + 1];
+  const deltaNorth = end[0] - start[0];
+  const deltaEast = end[1] - start[1];
+  const length = Math.hypot(deltaNorth, deltaEast);
+  if (length <= 1e-10 || Math.abs(deltaEast) <= 1e-10) {
+    throw new Error("PLN frontage requires finite non-vertical segments");
+  }
+  const amount = (stationEast - start[1]) / deltaEast;
+  const tangent = [deltaNorth / length, deltaEast / length];
+  // The boundary runs west-to-east. Its right-hand normal points away from
+  // the carriageway and into the shop/property frontage.
+  const propertyNormal = [tangent[1], -tangent[0]];
+  return {
+    boundaryPoint: [
+      start[0] + deltaNorth * amount,
+      stationEast,
+    ],
+    tangent,
+    propertyNormal,
+  };
+};
+
+const westUtilityPoleStations = Object.freeze([-10.5, -4.8, 3.06, 7.67]);
+const westUtilityPropertySetback = 0.06;
+const westUtilitySupports = Object.freeze(
+  westUtilityPoleStations.map((stationEast, index) => {
+    const frame = interpolateFrontageBoundaryAtEast(
+      ahmadYaniFrontageSidewalkOuterBoundary,
+      stationEast,
+    );
+    const center = [
+      frame.boundaryPoint[0] +
+        frame.propertyNormal[0] * westUtilityPropertySetback,
+      frame.boundaryPoint[1] +
+        frame.propertyNormal[1] * westUtilityPropertySetback,
+    ];
+    return Object.freeze({
+      index,
+      stationEast,
+      boundaryPoint: Object.freeze(frame.boundaryPoint),
+      center: Object.freeze(center),
+      tangent: Object.freeze(frame.tangent),
+      propertyNormal: Object.freeze(frame.propertyNormal),
+      crossArmYaw: Math.atan2(
+        -frame.propertyNormal[1],
+        frame.propertyNormal[0],
+      ),
+    });
+  }),
+);
+
+export const ALUN_ALUN_WEST_UTILITY_CORRIDOR_DEFINITION = Object.freeze({
+  stationEasts: westUtilityPoleStations,
+  propertySetback: westUtilityPropertySetback,
+  poleTopRadius: 0.025,
+  poleBaseRadius: 0.035,
+  poleHeight: 2.15,
+  crossArmLength: 0.62,
+  crossArmBaseHeight: 1.82,
+  supportHeightStep: 0.035,
+  transformerSupportIndex: 2,
+  insulatorOffsets: Object.freeze([-0.22, 0, 0.22]),
+  conductors: Object.freeze(
+    [
+      [-0.21, 1.4, 0.075],
+      [-0.15, 1.47, 0.095],
+      [-0.1, 1.54, 0.065],
+      [-0.05, 1.61, 0.11],
+      [0, 1.69, 0.08],
+      [0.05, 1.78, 0.12],
+      [0.09, 1.9, 0.095],
+      [0.13, 2.03, 0.135],
+    ].map(([lateralOffset, height, sag]) =>
+      Object.freeze({ lateralOffset, height, sag }),
+    ),
+  ),
+  supports: westUtilitySupports,
+});
+
 // Road 3 is the narrow branch beside Pegadaian. The generated final two
 // segments bend twice within roughly 56 metres and bring a 1.45 m generic
 // sidewalk into the new frontage. Replace only that suffix with one chord,
@@ -2331,31 +2431,67 @@ export function createAlunAlunTrafficFactory({
     addAlunAlunRoadBarrier(context, 22.85, 16.55, 0.25);
     addAlunAlunIntersectionBoards(context);
 
-    [-10.5, -4.8, 4.8, 10.4].forEach((east, index) => {
-      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.065, 2.15, 8), postGrey);
-      pole.position.set(17.15, 1.08, east);
-      context.add(pole);
-      const crossArm = new THREE.Mesh(
-        roundedBox(0.62, 0.035, 0.035, 0.008),
+    const utilityCorridor = ALUN_ALUN_WEST_UTILITY_CORRIDOR_DEFINITION;
+    utilityCorridor.supports.forEach((support, index) => {
+      const pole = new THREE.Mesh(
+        new THREE.CylinderGeometry(
+          utilityCorridor.poleTopRadius,
+          utilityCorridor.poleBaseRadius,
+          utilityCorridor.poleHeight,
+          8,
+        ),
         postGrey,
       );
-      crossArm.position.set(17.15, 1.82 + index * 0.035, east);
+      pole.name = `PLN frontage pole ${index + 1}`;
+      pole.position.set(
+        support.center[0],
+        utilityCorridor.poleHeight * 0.5 + 0.005,
+        support.center[1],
+      );
+      context.add(pole);
+      const crossArm = new THREE.Mesh(
+        roundedBox(
+          utilityCorridor.crossArmLength,
+          0.035,
+          0.035,
+          0.008,
+        ),
+        postGrey,
+      );
+      crossArm.name = `PLN frontage crossarm ${index + 1}`;
+      crossArm.position.set(
+        support.center[0],
+        utilityCorridor.crossArmBaseHeight +
+          index * utilityCorridor.supportHeightStep,
+        support.center[1],
+      );
+      crossArm.rotation.y = support.crossArmYaw;
       context.add(crossArm);
-      [-0.22, 0, 0.22].forEach((northOffset) => {
+      utilityCorridor.insulatorOffsets.forEach((lateralOffset) => {
         const insulator = new THREE.Mesh(
           new THREE.CylinderGeometry(0.025, 0.032, 0.12, 7),
           asphaltTrim,
         );
         insulator.position.set(
-          17.15 + northOffset,
+          support.center[0] +
+            support.propertyNormal[0] * lateralOffset,
           1.9 + index * 0.035,
-          east,
+          support.center[1] +
+            support.propertyNormal[1] * lateralOffset,
         );
         context.add(insulator);
       });
     });
+    const transformerSupport =
+      utilityCorridor.supports[utilityCorridor.transformerSupportIndex];
     const transformerAssembly = new THREE.Group();
-    transformerAssembly.position.set(17.16, 0.05, 4.8);
+    transformerAssembly.name = "Planet Ban frontage transformer";
+    transformerAssembly.position.set(
+      transformerSupport.center[0],
+      0.05,
+      transformerSupport.center[1],
+    );
+    transformerAssembly.rotation.y = transformerSupport.crossArmYaw;
     const transformerMaterial = toonMaterial({ color: 0x777b74 });
     const transformer = new THREE.Mesh(
       new THREE.CylinderGeometry(0.13, 0.15, 0.4, 12),
@@ -2388,7 +2524,9 @@ export function createAlunAlunTrafficFactory({
     mergeDirectMeshesByMaterial(transformerAssembly);
     context.add(transformerAssembly);
 
-    [-11.8, 4.8].forEach((east) => {
+    // Street View only shows the western frontage lamp. The former east=4.8
+    // duplicate occupied this same corridor and read as another road pole.
+    [-11.8].forEach((east) => {
       const lampCurve = new THREE.CatmullRomCurve3([
         new THREE.Vector3(17.02, 0.08, east),
         new THREE.Vector3(17.02, 1.35, east),
@@ -2421,48 +2559,45 @@ export function createAlunAlunTrafficFactory({
       context.add(lampGlow);
     });
 
-    const cableSupports = [-15.8, -10.5, -4.8, 4.8, 10.4, 15.8];
-    [
-      [16.94, 1.4, 0.075, 0.1],
-      [17.0, 1.47, 0.095, 0.8],
-      [17.05, 1.54, 0.065, 1.5],
-      [17.1, 1.61, 0.11, 2.2],
-      [17.15, 1.69, 0.08, 2.9],
-      [17.2, 1.78, 0.12, 3.6],
-      [17.24, 1.9, 0.095, 4.3],
-      [17.28, 2.03, 0.135, 5.0],
-    ].forEach(([north, height, sag, phase]) => {
-      const points = [];
-      cableSupports.forEach((east, supportIndex) => {
-        if (supportIndex > 0) {
-          const previousEast = cableSupports[supportIndex - 1];
-          points.push(
-            new THREE.Vector3(
-              north + Math.sin(phase + supportIndex) * 0.012,
-              height - sag * (0.92 + Math.sin(phase + supportIndex) * 0.08),
-              (previousEast + east) * 0.5,
-            ),
-          );
-        }
-        points.push(
+    utilityCorridor.conductors.forEach((conductor, conductorIndex) => {
+      utilityCorridor.supports.slice(0, -1).forEach((start, supportIndex) => {
+        const end = utilityCorridor.supports[supportIndex + 1];
+        const endpoint = (support) =>
           new THREE.Vector3(
-            north + Math.sin(phase + supportIndex * 0.7) * 0.008,
-            height + Math.sin(phase + supportIndex * 0.9) * 0.012,
-            east,
-          ),
+            support.center[0] +
+              support.propertyNormal[0] * conductor.lateralOffset,
+            conductor.height,
+            support.center[1] +
+              support.propertyNormal[1] * conductor.lateralOffset,
+          );
+        const startPoint = endpoint(start);
+        const endPoint = endpoint(end);
+        const midpoint = new THREE.Vector3(
+          (startPoint.x + endPoint.x) * 0.5,
+          // A quadratic curve only gives its control point half weight at
+          // t=0.5. Lower it by twice the requested value so the rendered wire
+          // reaches the declared physical midpoint sag.
+          conductor.height - conductor.sag * 2,
+          (startPoint.z + endPoint.z) * 0.5,
         );
+        const wire = new THREE.Mesh(
+          new THREE.TubeGeometry(
+            new THREE.QuadraticBezierCurve3(
+              startPoint,
+              midpoint,
+              endPoint,
+            ),
+            32,
+            0.0035,
+            5,
+            false,
+          ),
+          wireMaterial,
+        );
+        wire.name =
+          `PLN conductor ${conductorIndex + 1}, span ${supportIndex + 1}`;
+        context.add(wire);
       });
-      const wire = new THREE.Mesh(
-        new THREE.TubeGeometry(
-          new THREE.CatmullRomCurve3(points, false, "centripetal"),
-          96,
-          0.0035,
-          5,
-          false,
-        ),
-        wireMaterial,
-      );
-      context.add(wire);
     });
 
     const trafficSign = new THREE.Group();

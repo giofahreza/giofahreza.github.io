@@ -30,6 +30,7 @@ import {
   ALUN_ALUN_SOUTH_LOCAL_ROAD_PATH,
   ALUN_ALUN_WEST_PARK_SIDE_CARRIAGEWAY_PATH,
   ALUN_ALUN_WEST_FRONTAGE_DEFINITION,
+  ALUN_ALUN_WEST_UTILITY_CORRIDOR_DEFINITION,
   ALUN_ALUN_WEST_SHARED_ROAD_CORE_WIDTH,
   ALUN_ALUN_WEST_SHARED_ROAD_PATH,
   ALUN_ALUN_WEST_SPLIT_CARRIAGEWAY_CORE_WIDTH,
@@ -3705,6 +3706,198 @@ function validateWestFrontageSurfaceDefinition() {
   };
 }
 
+function validateWestUtilityCorridorDefinition() {
+  const utility = ALUN_ALUN_WEST_UTILITY_CORRIDOR_DEFINITION;
+  const frontage = ALUN_ALUN_WEST_FRONTAGE_DEFINITION;
+  const expectedStations = [-10.5, -4.8, 3.06, 7.67];
+  const expectedConductorOffsets = [
+    -0.21,
+    -0.15,
+    -0.1,
+    -0.05,
+    0,
+    0.05,
+    0.09,
+    0.13,
+  ];
+  if (
+    !utility ||
+    !Array.isArray(utility.stationEasts) ||
+    !Array.isArray(utility.supports) ||
+    utility.stationEasts.length !== expectedStations.length ||
+    utility.supports.length !== expectedStations.length ||
+    utility.stationEasts.some(
+      (station, index) => station !== expectedStations[index],
+    ) ||
+    Math.abs(utility.propertySetback - 0.06) > 1e-12 ||
+    Math.abs(utility.poleTopRadius - 0.025) > 1e-12 ||
+    Math.abs(utility.poleBaseRadius - 0.035) > 1e-12 ||
+    Math.abs(utility.poleHeight - 2.15) > 1e-12 ||
+    Math.abs(utility.crossArmLength - 0.62) > 1e-12 ||
+    utility.transformerSupportIndex !== 2
+  ) {
+    throw new Error(
+      "the west PLN corridor must retain four surveyed supports behind the frontage sidewalk",
+    );
+  }
+  if (
+    new Set(utility.stationEasts).size !== utility.stationEasts.length ||
+    !Array.isArray(utility.insulatorOffsets) ||
+    utility.insulatorOffsets.length !== 3 ||
+    utility.insulatorOffsets.some(
+      (offset) =>
+        !isFiniteNumber(offset) ||
+        Math.abs(offset) + utility.poleTopRadius >
+          utility.crossArmLength * 0.5,
+    ) ||
+    !Array.isArray(utility.conductors) ||
+    utility.conductors.length !== expectedConductorOffsets.length ||
+    utility.conductors.some(
+      (conductor, index) =>
+        ![conductor.lateralOffset, conductor.height, conductor.sag].every(
+          isFiniteNumber,
+        ) ||
+        conductor.height <= conductor.sag * 2 ||
+        conductor.sag <= 0 ||
+        Math.abs(
+          conductor.lateralOffset - expectedConductorOffsets[index],
+        ) > 1e-12 ||
+        Math.abs(conductor.lateralOffset) + 0.0035 >
+          utility.crossArmLength * 0.5,
+    )
+  ) {
+    throw new Error(
+      "PLN insulators and conductors must remain finite and inside their local crossarms",
+    );
+  }
+
+  const pointOnPolygonBoundary = (point, polygon, epsilon = 1e-8) =>
+    polygon.some((start, index) =>
+      pointOnSegment2D(
+        point,
+        start,
+        polygon[(index + 1) % polygon.length],
+        epsilon,
+      ),
+    );
+  const pointInsideOrOnPolygon = (point, polygon) =>
+    pointInsidePolygon(point, polygon) ||
+    pointOnPolygonBoundary(point, polygon);
+  const pointToPolygonBoundary = (point, polygon) =>
+    polygon.reduce(
+      (minimum, start, index) =>
+        Math.min(
+          minimum,
+          pointSegmentDistance(
+            point,
+            start,
+            polygon[(index + 1) % polygon.length],
+          ),
+        ),
+      Infinity,
+    );
+  const protectedSurfaces = [
+    ["western asphalt", ALUN_ALUN_WESTERN_ASPHALT_UNION_OUTLINE],
+    ["Ahmad Yani sidewalk", frontage.ahmadYaniSidewalkOutline],
+    ["Pegadaian branch sidewalk", frontage.branchSidewalkOutline],
+  ];
+  let minimumSurfaceClearance = Infinity;
+
+  utility.supports.forEach((support, supportIndex) => {
+    const stationEast = expectedStations[supportIndex];
+    const boundary = frontage.ahmadYaniSidewalkOuterBoundary;
+    const segmentIndex = boundary.findIndex((start, index) => {
+      const end = boundary[index + 1];
+      return (
+        end &&
+        stationEast >= Math.min(start[1], end[1]) - 1e-10 &&
+        stationEast <= Math.max(start[1], end[1]) + 1e-10
+      );
+    });
+    if (segmentIndex < 0) {
+      throw new Error(
+        `PLN support ${supportIndex} is outside the Ahmad Yani boundary`,
+      );
+    }
+    const start = boundary[segmentIndex];
+    const end = boundary[segmentIndex + 1];
+    const delta = [end[0] - start[0], end[1] - start[1]];
+    const length = Math.hypot(...delta);
+    const amount = (stationEast - start[1]) / delta[1];
+    const expectedBoundaryPoint = [
+      start[0] + delta[0] * amount,
+      stationEast,
+    ];
+    const expectedTangent = [delta[0] / length, delta[1] / length];
+    const expectedPropertyNormal = [
+      expectedTangent[1],
+      -expectedTangent[0],
+    ];
+    const expectedCenter = [
+      expectedBoundaryPoint[0] +
+        expectedPropertyNormal[0] * utility.propertySetback,
+      expectedBoundaryPoint[1] +
+        expectedPropertyNormal[1] * utility.propertySetback,
+    ];
+    const expectedYaw = Math.atan2(
+      -expectedPropertyNormal[1],
+      expectedPropertyNormal[0],
+    );
+    if (
+      support.index !== supportIndex ||
+      support.stationEast !== stationEast ||
+      !samePoint(support.boundaryPoint, expectedBoundaryPoint, 1e-10) ||
+      !samePoint(support.tangent, expectedTangent, 1e-10) ||
+      !samePoint(
+        support.propertyNormal,
+        expectedPropertyNormal,
+        1e-10,
+      ) ||
+      !samePoint(support.center, expectedCenter, 1e-10) ||
+      Math.abs(support.crossArmYaw - expectedYaw) > 1e-10 ||
+      Math.abs(pointDistance(support.center, support.boundaryPoint) - 0.06) >
+        1e-10 ||
+      !pointOnPolygonBoundary(support.boundaryPoint, boundary)
+    ) {
+      throw new Error(
+        `PLN support ${supportIndex} no longer follows the property-side sidewalk normal`,
+      );
+    }
+    if (
+      frontage.loweredCurbEastSpans.some(
+        ([minimumEast, maximumEast]) =>
+          support.center[1] + utility.poleBaseRadius >= minimumEast &&
+          support.center[1] - utility.poleBaseRadius <= maximumEast,
+      )
+    ) {
+      throw new Error(
+        `PLN support ${supportIndex} obstructs a lowered driveway curb`,
+      );
+    }
+    protectedSurfaces.forEach(([label, polygon]) => {
+      const edgeDistance = pointToPolygonBoundary(support.center, polygon);
+      const completeBaseClearance = edgeDistance - utility.poleBaseRadius;
+      if (
+        pointInsideOrOnPolygon(support.center, polygon) ||
+        completeBaseClearance <= 1e-8
+      ) {
+        throw new Error(
+          `PLN support ${supportIndex} base enters the ${label}`,
+        );
+      }
+      minimumSurfaceClearance = Math.min(
+        minimumSurfaceClearance,
+        completeBaseClearance,
+      );
+    });
+  });
+
+  return {
+    minimumSurfaceClearance,
+    supportCount: utility.supports.length,
+  };
+}
+
 function validateFrontageNavigationSurfaces() {
   const frontage = ALUN_ALUN_WEST_FRONTAGE_DEFINITION;
   const pegadaian = ALUN_ALUN_PEGADAIAN_ROAD_DEFINITION;
@@ -4219,6 +4412,7 @@ let pedestrianRoutes;
 let productionFleetConfigs;
 let frontageNavigationResult;
 let frontageSurfaceResult;
+let utilityCorridorResult;
 let parkNavigationResult;
 let parkSurfaceOwnershipResult;
 try {
@@ -4227,6 +4421,7 @@ try {
   parkSurfaceOwnershipResult = validateParkSurfaceOwnership();
   parkNavigationResult = validateParkNavigationSurfaces();
   frontageSurfaceResult = validateWestFrontageSurfaceDefinition();
+  utilityCorridorResult = validateWestUtilityCorridorDefinition();
   frontageNavigationResult = validateFrontageNavigationSurfaces();
   validateSouthApproachSurfaceDefinition();
   validateCollections(
@@ -4653,6 +4848,12 @@ if (
       `${formatDistance(frontageVehicleResult.minimumGap)} ` +
       `(${frontageVehicleResult.minimumDetail.route.name} vs ` +
       `${frontageVehicleResult.minimumDetail.protectedSurface.label}).`,
+  );
+  console.log(
+    `West PLN corridor: ${utilityCorridorResult.supportCount} property-side ` +
+      `supports; complete pole bases clear asphalt, sidewalk, and lowered ` +
+      `driveways; minimum surface clearance ` +
+      `${formatDistance(utilityCorridorResult.minimumSurfaceClearance)}.`,
   );
   console.log(
     `Routes: ${routes.length}; collision boxes: ${obstacles.length}; ` +
