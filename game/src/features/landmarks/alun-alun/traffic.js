@@ -963,6 +963,66 @@ export const ALUN_ALUN_SOUTH_LOCAL_ROAD_PATH = freezePath([
   [-12.84, 20.78],
 ]);
 
+// The southern checker promenade is broad in Google Street View. Its mature
+// shade trees sit in the inner half of that promenade, close to the lawn
+// boundary rather than against Jalan Kartini's blue-white curb. Leave the
+// ceremonial Gazebo opening clear between the two halves of the row.
+export const ALUN_ALUN_SOUTH_PARK_TREE_CENTERS = freezePath([
+  [-13.87061, -8.878938],
+  [-14.527896, -7.898951],
+  [-14.636965, -6.74826],
+  [-14.598647, -5.573418],
+  [-14.362804, -4.417227],
+  [-14.126961, -3.261035],
+  [-13.891119, -2.104844],
+  [-13.655276, -0.948653],
+  [-11.768535, 8.300877],
+  [-11.532692, 9.457069],
+  [-11.29685, 10.61326],
+  [-11.061007, 11.769451],
+  [-10.792858, 12.914703],
+  [-10.277754, 13.976338],
+]);
+
+export const ALUN_ALUN_SOUTH_PARK_BENCH_DEFINITIONS = Object.freeze([
+  Object.freeze({
+    center: Object.freeze([-15.6195266034, -4]),
+    yaw: 1.7710468509,
+  }),
+  Object.freeze({
+    center: Object.freeze([-13.1432820234, 8.2]),
+    yaw: 1.7710468509,
+  }),
+  Object.freeze({
+    center: Object.freeze([-12.1690218608, 13]),
+    yaw: 1.7710468509,
+  }),
+]);
+
+const southLocalRoadPropertyBoundary = freezePath(
+  offsetAlunAlunRoadPath(
+    ALUN_ALUN_SOUTH_LOCAL_ROAD_PATH,
+    ALUN_ALUN_PERIMETER_LOCAL_ROAD_OUTER_WIDTH * 0.5,
+  ),
+);
+export const ALUN_ALUN_SOUTH_LOCAL_ROAD_SURFACE_OUTLINE = freezePath([
+  ALUN_ALUN_WEST_PROPERTY_ASPHALT_INFILL_OUTLINE[2],
+  ...southLocalRoadPropertyBoundary,
+  ALUN_ALUN_SOUTH_LOCAL_ROAD_PATH.at(-1),
+  [-13.1941924531, 19.4772921639],
+  [-12.6228292458, 18.9763926554],
+  [-13.8422809711, 13.6413027668],
+  [-14.7595930975, 9.7934436431],
+  [-17.2794968436, -2.6660988467],
+  [-18.4530002738, -7.7897568517],
+  [-18.4484343197, -10.470076271],
+  [-18.2250957274, -11.2862657493],
+  [-17.3530584491, -12.1240448056],
+  [-17.5119215747, -12.0845356938],
+  ALUN_ALUN_SOUTH_LOCAL_ROAD_PATH[0],
+  [-17.8080784253, -13.2754643062],
+]);
+
 // Exact park-side union boundary of the two separate local-road shoulders.
 // The middle corner is their clipped envelope intersection, so the infill
 // neither overlaps the road nor leaves a camera-dependent ground sliver.
@@ -1096,7 +1156,9 @@ const SOUTH_APPROACH_SHARED_OUTER_WIDTH =
 const SOUTH_APPROACH_SPLIT_OUTER_WIDTH =
   SOUTH_APPROACH_SPLIT_CORE_WIDTH +
   Math.min(0.28, SOUTH_APPROACH_SPLIT_CORE_WIDTH * 0.18);
-const SOUTH_APPROACH_SIDEWALK_WIDTH = 0.38;
+const SOUTH_APPROACH_SIDEWALK_WIDTH = 0.3;
+const SOUTH_APPROACH_ROADSIDE_BAND_WIDTH =
+  ALUN_ALUN_FRONTAGE_CURB_DEPTH + SOUTH_APPROACH_SIDEWALK_WIDTH;
 const SOUTH_APPROACH_FRONTAGE_WIDTH = 0.5;
 const southApproachSharedTransitionPath = freezePath([
   [-12.84, 20.78],
@@ -1157,19 +1219,31 @@ const southApproachRoadsideSeam = freezePath([
 const southApproachSidewalkCenterline = freezePath(
   offsetAlunAlunRoadPath(
     southApproachRoadsideSeam,
-    SOUTH_APPROACH_SIDEWALK_WIDTH * 0.5,
+    ALUN_ALUN_FRONTAGE_CURB_DEPTH + SOUTH_APPROACH_SIDEWALK_WIDTH * 0.5,
+  ),
+);
+const southApproachCurbCenterline = freezePath(
+  offsetAlunAlunRoadPath(
+    southApproachRoadsideSeam,
+    ALUN_ALUN_FRONTAGE_CURB_DEPTH * 0.5,
+  ),
+);
+const southApproachClearTreadInner = freezePath(
+  offsetAlunAlunRoadPath(
+    southApproachRoadsideSeam,
+    ALUN_ALUN_FRONTAGE_CURB_DEPTH,
   ),
 );
 const southApproachSidewalkOuterBoundary = freezePath(
   offsetAlunAlunRoadPath(
     southApproachRoadsideSeam,
-    SOUTH_APPROACH_SIDEWALK_WIDTH,
+    SOUTH_APPROACH_ROADSIDE_BAND_WIDTH,
   ),
 );
 const southApproachFrontageOuterBoundary = freezePath(
   offsetAlunAlunRoadPath(
     southApproachRoadsideSeam,
-    SOUTH_APPROACH_SIDEWALK_WIDTH + SOUTH_APPROACH_FRONTAGE_WIDTH,
+    SOUTH_APPROACH_ROADSIDE_BAND_WIDTH + SOUTH_APPROACH_FRONTAGE_WIDTH,
   ),
 );
 
@@ -1185,12 +1259,191 @@ export const ALUN_ALUN_SOUTH_APPROACH_DEFINITION = Object.freeze({
   parkCurbSeam: ALUN_ALUN_PARK_EAST_CURB_PATH,
   roadsideSeam: southApproachRoadsideSeam,
   sidewalkCenterline: southApproachSidewalkCenterline,
+  curbCenterline: southApproachCurbCenterline,
+  clearTreadInner: southApproachClearTreadInner,
   sidewalkOuterBoundary: southApproachSidewalkOuterBoundary,
   sidewalkWidth: SOUTH_APPROACH_SIDEWALK_WIDTH,
+  roadsideBandWidth: SOUTH_APPROACH_ROADSIDE_BAND_WIDTH,
+  sidewalkOutline: freezePath([
+    ...southApproachRoadsideSeam,
+    ...[...southApproachSidewalkOuterBoundary].reverse(),
+  ]),
   frontageOuterBoundary: southApproachFrontageOuterBoundary,
   frontageWidth: SOUTH_APPROACH_FRONTAGE_WIDTH,
+  frontageApronOutline: freezePath([
+    ...southApproachSidewalkOuterBoundary,
+    ...[...southApproachFrontageOuterBoundary].reverse(),
+  ]),
   junctionWestJoin: southApproachWestBoundary.at(-1),
   junctionEastJoin: southApproachEastBoundary.at(-1),
+});
+
+// Jalan Kartini already has the broad asphalt envelope visible in satellite
+// imagery; the missing piece was its property-side public realm. Wrap a
+// continuous 15-cm curb and full 1.50-metre clear tread around the south-west
+// corner, then taper it into the rebuilt south approach. Extra paving is split
+// by property so the Pendopo entrance can remain a deep ceremonial apron
+// without turning every neighbouring frontage into one invented slab.
+export const ALUN_ALUN_SOUTH_PROPERTY_SIDEWALK_WIDTH = 0.3;
+export const ALUN_ALUN_SOUTH_PROPERTY_ROADSIDE_BAND_WIDTH =
+  ALUN_ALUN_FRONTAGE_CURB_DEPTH +
+  ALUN_ALUN_SOUTH_PROPERTY_SIDEWALK_WIDTH;
+const southPropertyRoadsideSeam = freezePath([
+  ALUN_ALUN_WEST_PROPERTY_ROADSIDE_SEAM.at(-1),
+  ALUN_ALUN_WEST_PROPERTY_ASPHALT_INFILL_OUTLINE[2],
+  ...southLocalRoadPropertyBoundary.slice(0, 5),
+  [-18.2349946952, -1.2],
+  [-16.3197109663, 8.27],
+  ...southLocalRoadPropertyBoundary.slice(5),
+]);
+const offsetSouthPropertyPathWithWestJoin = (offset, westJoin) => {
+  const points = offsetAlunAlunRoadPath(southPropertyRoadsideSeam, offset);
+  points[0] = [...westJoin];
+  return freezePath(points);
+};
+const southPropertyCurbCenterline = offsetSouthPropertyPathWithWestJoin(
+  ALUN_ALUN_FRONTAGE_CURB_DEPTH * 0.5,
+  ALUN_ALUN_WEST_PROPERTY_CURB_CENTERLINE.at(-1),
+);
+const southPropertyClearTreadInner = offsetSouthPropertyPathWithWestJoin(
+  ALUN_ALUN_FRONTAGE_CURB_DEPTH,
+  ALUN_ALUN_WEST_PROPERTY_CLEAR_TREAD_INNER.at(-1),
+);
+const southPropertySidewalkOuterBoundary =
+  offsetSouthPropertyPathWithWestJoin(
+    ALUN_ALUN_SOUTH_PROPERTY_ROADSIDE_BAND_WIDTH,
+    ALUN_ALUN_WEST_PROPERTY_SIDEWALK_OUTER.at(-1),
+  );
+const SOUTH_PROPERTY_STANDARD_APRON_DEPTH = 0.52;
+const southPropertyStandardApronOuter = freezePath(
+  offsetAlunAlunRoadPath(
+    southPropertyRoadsideSeam,
+    ALUN_ALUN_SOUTH_PROPERTY_ROADSIDE_BAND_WIDTH +
+      SOUTH_PROPERTY_STANDARD_APRON_DEPTH,
+  ),
+);
+const defineSouthPropertyApron = (
+  id,
+  label,
+  material,
+  startIndex,
+  endIndex,
+  outerBoundary,
+) => Object.freeze({
+  id,
+  label,
+  material,
+  height: ALUN_ALUN_FRONTAGE_APRON_Y,
+  outline: freezePath([
+    ...southPropertySidewalkOuterBoundary.slice(startIndex, endIndex + 1),
+    ...outerBoundary.slice(startIndex, endIndex + 1).reverse(),
+  ]),
+});
+const southPropertyAprons = Object.freeze([
+  defineSouthPropertyApron(
+    "library-row",
+    "Jalan Kartini library-row pale apron",
+    "paleConcrete",
+    0,
+    7,
+    southPropertyStandardApronOuter,
+  ),
+  defineSouthPropertyApron(
+    "pendopo-entry",
+    "Pendopo ceremonial concrete entrance apron",
+    "concrete",
+    7,
+    8,
+    southPropertyStandardApronOuter,
+  ),
+  Object.freeze({
+    id: "pendopo-entry-extension",
+    label: "Pendopo wall-aligned ceremonial entrance apron",
+    material: "concrete",
+    height: ALUN_ALUN_FRONTAGE_APRON_Y,
+    outline: freezePath([
+      [-18.8281359, 0.1551159009],
+      [-17.2923400731, 7.7487618248],
+      [-18.3323502767, 7.6456802285],
+      [-19.2916508464, 0.0520343047],
+    ]),
+  }),
+  defineSouthPropertyApron(
+    "east-civic-row",
+    "Jalan Kartini east civic pale apron",
+    "paleConcrete",
+    8,
+    southPropertyRoadsideSeam.length - 1,
+    southPropertyStandardApronOuter,
+  ),
+]);
+const southPropertyTransitionRoadsideSeam = freezePath([
+  southPropertyRoadsideSeam.at(-1),
+  ALUN_ALUN_SOUTH_LOCAL_ROAD_PATH.at(-1),
+  southApproachRoadsideSeam[0],
+]);
+const southPropertyTransitionCurbCenterline = freezePath([
+  [-13.4527960588, 20.9200676634],
+  [-12.8516172665, 20.7894888945],
+  [-12.4818712304, 22.0971821379],
+]);
+const southPropertyTransitionClearTreadInner = freezePath([
+  [-13.4674189379, 20.9234100287],
+  [-12.863234533, 20.7989777891],
+  [-12.4779349139, 22.1116564397],
+]);
+const southPropertyTransitionSidewalkOuter = freezePath([
+  [-13.759876521, 20.9902573332],
+  [-13.0955798625, 20.9887556799],
+  [-12.3992085842, 22.4011424756],
+]);
+const southPropertyTransitionFrontageOuterPoints = offsetAlunAlunRoadPath(
+  southPropertyTransitionRoadsideSeam,
+  [
+    ALUN_ALUN_SOUTH_PROPERTY_ROADSIDE_BAND_WIDTH +
+      SOUTH_PROPERTY_STANDARD_APRON_DEPTH,
+    0.84,
+    SOUTH_APPROACH_ROADSIDE_BAND_WIDTH + SOUTH_APPROACH_FRONTAGE_WIDTH,
+  ],
+);
+southPropertyTransitionFrontageOuterPoints[0] = [
+  ...southPropertyStandardApronOuter.at(-1),
+];
+southPropertyTransitionFrontageOuterPoints.at(-1)[0] =
+  southApproachFrontageOuterBoundary[0][0];
+southPropertyTransitionFrontageOuterPoints.at(-1)[1] =
+  southApproachFrontageOuterBoundary[0][1];
+const southPropertyTransitionFrontageOuter = freezePath(
+  southPropertyTransitionFrontageOuterPoints,
+);
+
+export const ALUN_ALUN_SOUTH_CORRIDOR_DEFINITION = Object.freeze({
+  curbDepth: ALUN_ALUN_FRONTAGE_CURB_DEPTH,
+  curbHeight: ALUN_ALUN_FRONTAGE_CURB_HEIGHT,
+  sidewalkWidth: ALUN_ALUN_SOUTH_PROPERTY_SIDEWALK_WIDTH,
+  roadsideBandWidth: ALUN_ALUN_SOUTH_PROPERTY_ROADSIDE_BAND_WIDTH,
+  roadsideSeam: southPropertyRoadsideSeam,
+  curbCenterline: southPropertyCurbCenterline,
+  clearTreadInner: southPropertyClearTreadInner,
+  sidewalkOuterBoundary: southPropertySidewalkOuterBoundary,
+  sidewalkOutline: freezePath([
+    ...southPropertyRoadsideSeam,
+    ...[...southPropertySidewalkOuterBoundary].reverse(),
+  ]),
+  transitionRoadsideSeam: southPropertyTransitionRoadsideSeam,
+  transitionCurbCenterline: southPropertyTransitionCurbCenterline,
+  transitionClearTreadInner: southPropertyTransitionClearTreadInner,
+  transitionSidewalkOuterBoundary: southPropertyTransitionSidewalkOuter,
+  transitionSidewalkOutline: freezePath([
+    ...southPropertyTransitionRoadsideSeam,
+    ...[...southPropertyTransitionSidewalkOuter].reverse(),
+  ]),
+  propertyAprons: southPropertyAprons,
+  transitionApronOutline: freezePath([
+    ...southPropertyTransitionSidewalkOuter,
+    ...[...southPropertyTransitionFrontageOuter].reverse(),
+  ]),
+  transitionApronHeight: ALUN_ALUN_FRONTAGE_APRON_Y,
 });
 
 // The blue-white outline is the ownership boundary: checker ceramic remains
@@ -1926,12 +2179,6 @@ export function createAlunAlunTrafficFactory({
         points: ALUN_ALUN_WEST_LOCAL_ROAD_PATH,
       },
       {
-        width: ALUN_ALUN_PERIMETER_LOCAL_ROAD_CORE_WIDTH,
-        centerLine: false,
-        edgeLines: false,
-        points: ALUN_ALUN_SOUTH_LOCAL_ROAD_PATH,
-      },
-      {
         width: NORTH_CROSS_STREET_WIDTH,
         centerLine: false,
         edgeLines: false,
@@ -1980,6 +2227,11 @@ export function createAlunAlunTrafficFactory({
     );
     westernAsphaltUnion.name =
       "Full-width Jalan Jenderal Achmad Yani western asphalt union";
+    const southLocalRoadSurface = addRoadSurface(
+      ALUN_ALUN_SOUTH_LOCAL_ROAD_SURFACE_OUTLINE,
+    );
+    southLocalRoadSurface.name =
+      "Clipped full-width Jalan Kartini local-road asphalt";
     const southApproachSurface = addRoadSurface(
       ALUN_ALUN_SOUTH_APPROACH_DEFINITION.surfaceOutline,
     );
@@ -2028,18 +2280,24 @@ export function createAlunAlunTrafficFactory({
     addRoadsideBand(
       ALUN_ALUN_SOUTH_APPROACH_DEFINITION.sidewalkOuterBoundary,
       ALUN_ALUN_SOUTH_APPROACH_DEFINITION.frontageOuterBoundary,
-      0.058,
+      ALUN_ALUN_FRONTAGE_APRON_Y,
       pedestrianConcrete,
     ).name = "South-east property frontage apron";
     addRoadsideBand(
-      ALUN_ALUN_SOUTH_APPROACH_DEFINITION.roadsideSeam,
+      ALUN_ALUN_SOUTH_APPROACH_DEFINITION.clearTreadInner,
       ALUN_ALUN_SOUTH_APPROACH_DEFINITION.sidewalkOuterBoundary,
-      0.061,
+      ALUN_ALUN_FRONTAGE_SIDEWALK_Y,
       pedestrianStone,
-    ).name = "South-east pedestrian approach";
+    ).name = "South-east red-cream 1.5-metre clear sidewalk";
     addSegmentedCurbAlongPath(
-      ALUN_ALUN_SOUTH_APPROACH_DEFINITION.roadsideSeam,
+      ALUN_ALUN_SOUTH_APPROACH_DEFINITION.curbCenterline,
       [sidewalkCurbBlue, sidewalkCurbWhite],
+      {
+        depth: ALUN_ALUN_FRONTAGE_CURB_DEPTH,
+        normalHeight: ALUN_ALUN_FRONTAGE_CURB_HEIGHT,
+        normalCenterY:
+          ROAD_SURFACE_Y + ALUN_ALUN_FRONTAGE_CURB_HEIGHT * 0.5,
+      },
     );
     // The north arm is pinched by the beige row on its west side and ARUM on
     // its east side. Parallel offsets cut through both real building bodies,
@@ -2085,6 +2343,21 @@ export function createAlunAlunTrafficFactory({
       redTile: planetBanRedTile,
       tanPaver: pos90TanPaver,
     };
+    ALUN_ALUN_SOUTH_CORRIDOR_DEFINITION.propertyAprons.forEach(
+      (definition) => {
+        const apron = addPavedApron(
+          definition.outline,
+          definition.height,
+          frontageApronMaterials[definition.material],
+        );
+        apron.name = definition.label;
+      },
+    );
+    addPavedApron(
+      ALUN_ALUN_SOUTH_CORRIDOR_DEFINITION.transitionApronOutline,
+      ALUN_ALUN_SOUTH_CORRIDOR_DEFINITION.transitionApronHeight,
+      pedestrianPaleConcrete,
+    ).name = "Jalan Kartini to south-approach frontage taper";
     ALUN_ALUN_WEST_FRONTAGE_DEFINITION.propertyAprons.forEach((definition) => {
       const apron = addPavedApron(
         definition.outline,
@@ -2125,6 +2398,22 @@ export function createAlunAlunTrafficFactory({
     );
     westPropertySidewalk.name =
       "KH Wahid Hasyim red-cream 1.5-metre clear sidewalk";
+    const southPropertySidewalk = addRoadsideBand(
+      ALUN_ALUN_SOUTH_CORRIDOR_DEFINITION.clearTreadInner,
+      ALUN_ALUN_SOUTH_CORRIDOR_DEFINITION.sidewalkOuterBoundary,
+      ALUN_ALUN_FRONTAGE_SIDEWALK_Y,
+      pedestrianStone,
+    );
+    southPropertySidewalk.name =
+      "Jalan Kartini red-cream 1.5-metre clear sidewalk";
+    const southPropertyTransitionSidewalk = addRoadsideBand(
+      ALUN_ALUN_SOUTH_CORRIDOR_DEFINITION.transitionClearTreadInner,
+      ALUN_ALUN_SOUTH_CORRIDOR_DEFINITION.transitionSidewalkOuterBoundary,
+      ALUN_ALUN_FRONTAGE_SIDEWALK_Y,
+      pedestrianStone,
+    );
+    southPropertyTransitionSidewalk.name =
+      "Jalan Kartini sidewalk east transition";
     const curbIsLowered = (_north, east) =>
       ALUN_ALUN_WEST_FRONTAGE_DEFINITION.loweredCurbEastSpans.some(
         ([start, end]) => east >= start && east <= end,
@@ -2169,6 +2458,21 @@ export function createAlunAlunTrafficFactory({
         normalCenterY:
           ROAD_SURFACE_Y + ALUN_ALUN_FRONTAGE_CURB_HEIGHT * 0.5,
       },
+    );
+    [
+      ALUN_ALUN_SOUTH_CORRIDOR_DEFINITION.curbCenterline,
+      ALUN_ALUN_SOUTH_CORRIDOR_DEFINITION.transitionCurbCenterline,
+    ].forEach((curbPath) =>
+      addSegmentedCurbAlongPath(
+        curbPath,
+        [sidewalkCurbBlue, sidewalkCurbWhite],
+        {
+          depth: ALUN_ALUN_FRONTAGE_CURB_DEPTH,
+          normalHeight: ALUN_ALUN_FRONTAGE_CURB_HEIGHT,
+          normalCenterY:
+            ROAD_SURFACE_Y + ALUN_ALUN_FRONTAGE_CURB_HEIGHT * 0.5,
+        },
+      ),
     );
 
     // Street View's western corridor is visually enclosed by a property-side
@@ -2299,21 +2603,21 @@ export function createAlunAlunTrafficFactory({
       context.add(lampHead);
     });
 
-    const westBenchMaterial = toonMaterial({ color: 0x8b7358 });
-    const addWestParkBench = (north, east) => {
+    const parkBenchMaterial = toonMaterial({ color: 0x8b7358 });
+    const addParkBench = (north, east, yaw, name) => {
       const bench = new THREE.Group();
+      bench.name = name;
       bench.position.set(north, 0.075, east);
-      bench.rotation.y =
-        -Math.atan2(westParkEdgeDelta[1], westParkEdgeDelta[0]) + Math.PI;
+      bench.rotation.y = yaw;
       const seat = new THREE.Mesh(
         roundedBox(0.72, 0.07, 0.24, 0.018),
-        westBenchMaterial,
+        parkBenchMaterial,
       );
       seat.position.y = 0.24;
       bench.add(seat);
       const back = new THREE.Mesh(
         roundedBox(0.72, 0.28, 0.055, 0.018),
-        westBenchMaterial,
+        parkBenchMaterial,
       );
       back.position.set(0, 0.4, 0.1);
       bench.add(back);
@@ -2328,11 +2632,29 @@ export function createAlunAlunTrafficFactory({
       mergeDirectMeshesByMaterial(bench);
       context.add(bench);
     };
+    const westBenchYaw =
+      -Math.atan2(westParkEdgeDelta[1], westParkEdgeDelta[0]) + Math.PI;
     [
       [6.35, -15.46],
       [-4.15, -13.28],
       [-10.45, -11.97],
-    ].forEach(([north, east]) => addWestParkBench(north, east));
+    ].forEach(([north, east], index) =>
+      addParkBench(
+        north,
+        east,
+        westBenchYaw,
+        `West park outward-facing bench ${index + 1}`,
+      ),
+    );
+    ALUN_ALUN_SOUTH_PARK_BENCH_DEFINITIONS.forEach(
+      ({ center: [north, east], yaw }, index) =>
+        addParkBench(
+          north,
+          east,
+          yaw,
+          `South park south-facing bench ${index + 1}`,
+        ),
+    );
     // Exact ribbons replace the former straight asphalt boxes. The park's
     // checker apron remains the highest layer and therefore wraps the corner
     // continuously, as it does in Street View.

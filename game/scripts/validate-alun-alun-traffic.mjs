@@ -18,11 +18,16 @@ import {
   ALUN_ALUN_INTERIOR_TACTILE_PAVER_DEFINITION,
   ALUN_ALUN_PARK_OUTLINE,
   ALUN_ALUN_PEGADAIAN_ROAD_DEFINITION,
+  ALUN_ALUN_PERIMETER_LOCAL_ROAD_CORE_WIDTH,
   ALUN_ALUN_PERIMETER_LOCAL_ROAD_OUTER_WIDTH,
   ALUN_ALUN_PEDESTRIAN_ROUTE_DEFINITIONS,
   ALUN_ALUN_ROAD_SURFACE_Y,
   ALUN_ALUN_SOUTH_APPROACH_DEFINITION,
+  ALUN_ALUN_SOUTH_CORRIDOR_DEFINITION,
   ALUN_ALUN_SOUTH_CROSSING_DEFINITION,
+  ALUN_ALUN_SOUTH_LOCAL_ROAD_SURFACE_OUTLINE,
+  ALUN_ALUN_SOUTH_PARK_BENCH_DEFINITIONS,
+  ALUN_ALUN_SOUTH_PARK_TREE_CENTERS,
   ALUN_ALUN_TRAFFIC_LANE_OFFSETS,
   ALUN_ALUN_TRAFFIC_MINIMUM_SPEED,
   ALUN_ALUN_TRAFFIC_ROUTE_DEFINITIONS,
@@ -62,8 +67,11 @@ import {
   ALUN_ALUN_PARK_LAWN_OUTLINE,
   ALUN_ALUN_PARK_NAVIGATION_SURFACES,
   ALUN_ALUN_PARK_SURFACE_HEIGHTS,
+  ALUN_ALUN_SOUTH_CORRIDOR_NAVIGATION_SURFACES,
+  ALUN_ALUN_SOUTH_PROMENADE_COLLISION_OBSTACLES,
   ALUN_ALUN_TRAFFIC_COLLISION_OBSTACLES,
 } from "../src/features/landmarks/alun-alun/index.js";
+import { createStops } from "../src/data/stops.js";
 
 const MAP_METERS_PER_WORLD_UNIT = 5;
 const SAMPLE_SPACING = 0.02;
@@ -165,6 +173,10 @@ const TRAFFIC_SOURCE_URL = new URL(
 );
 const MOSQUE_SOURCE_URL = new URL(
   "../src/features/landmarks/mosque.js",
+  import.meta.url,
+);
+const PENDOPO_SOURCE_URL = new URL(
+  "../src/features/landmarks/pendopo.js",
   import.meta.url,
 );
 const SITUBONDO_MAP_URL = new URL(
@@ -4223,7 +4235,10 @@ function validateWestLocalCorridorDefinition() {
     ) ||
     !/ALUN_ALUN_WEST_GREEN_EDGE_OUTLINES\.forEach\(/.test(trafficSource) ||
     !/ALUN_ALUN_WEST_UTILITY_SUPPORTS\.map\(/.test(trafficSource) ||
-    !/bench\.rotation\.y\s*=\s*-Math\.atan2\(\s*westParkEdgeDelta\[1\],\s*westParkEdgeDelta\[0\]\s*\)\s*\+\s*Math\.PI;/s.test(
+    !/const westBenchYaw\s*=\s*-Math\.atan2\(\s*westParkEdgeDelta\[1\],\s*westParkEdgeDelta\[0\]\s*\)\s*\+\s*Math\.PI;/s.test(
+      trafficSource,
+    ) ||
+    !/addParkBench\(\s*north,\s*east,\s*westBenchYaw,\s*`West park outward-facing bench \$\{index \+ 1\}`/s.test(
       trafficSource,
     )
   ) {
@@ -4264,6 +4279,684 @@ function validateWestLocalCorridorDefinition() {
     propertyTreeCount: ALUN_ALUN_WEST_PROPERTY_TREE_CENTERS.length,
     sidewalkWidth: ALUN_ALUN_WEST_PROPERTY_SIDEWALK_WIDTH,
     utilitySupportCount: ALUN_ALUN_WEST_UTILITY_SUPPORTS.length,
+  };
+}
+
+function validateSouthCorridorDefinition() {
+  const corridor = ALUN_ALUN_SOUTH_CORRIDOR_DEFINITION;
+  const approach = ALUN_ALUN_SOUTH_APPROACH_DEFINITION;
+  const roadSurface = ALUN_ALUN_SOUTH_LOCAL_ROAD_SURFACE_OUTLINE;
+  const pointOnPolygonBoundary = (point, polygon, epsilon = 1e-8) =>
+    polygon.some((start, index) =>
+      pointOnSegment2D(
+        point,
+        start,
+        polygon[(index + 1) % polygon.length],
+        epsilon,
+      ),
+    );
+  const pointInsideOrOnPolygon = (point, polygon, epsilon = 1e-8) =>
+    pointInsidePolygon(point, polygon) ||
+    pointOnPolygonBoundary(point, polygon, epsilon);
+  const pointToPolygonBoundary = (point, polygon) =>
+    polygon.reduce(
+      (minimum, start, index) =>
+        Math.min(
+          minimum,
+          pointSegmentDistance(
+            point,
+            start,
+            polygon[(index + 1) % polygon.length],
+          ),
+        ),
+      Infinity,
+    );
+  const validateFinitePath = (label, path, expectedLength = null) => {
+    if (
+      !Array.isArray(path) ||
+      path.length < 2 ||
+      (expectedLength !== null && path.length !== expectedLength) ||
+      path.some(
+        (point) =>
+          !Array.isArray(point) ||
+          point.length !== 2 ||
+          !point.every(isFiniteNumber),
+      ) ||
+      path.some((point, index) =>
+        index > 0 ? samePoint(point, path[index - 1], 1e-10) : false,
+      )
+    ) {
+      throw new Error(`${label} must be one finite, non-degenerate path`);
+    }
+  };
+
+  if (
+    Math.abs(ALUN_ALUN_PERIMETER_LOCAL_ROAD_CORE_WIDTH - 1.04) > 1e-12 ||
+    Math.abs(ALUN_ALUN_PERIMETER_LOCAL_ROAD_OUTER_WIDTH - 1.2272) > 1e-12
+  ) {
+    throw new Error(
+      "Jalan Kartini must retain its exact 5.20 m traffic core and 6.136 m rendered road surface",
+    );
+  }
+  validateFinitePath(
+    "Jalan Kartini centreline",
+    ALUN_ALUN_SOUTH_LOCAL_ROAD_PATH,
+    8,
+  );
+
+  const polygonDefinitions = [
+    ["Jalan Kartini full-width road surface", roadSurface, 35],
+    ["Jalan Kartini curb-and-sidewalk band", corridor.sidewalkOutline, 10],
+    [
+      "Jalan Kartini east sidewalk transition",
+      corridor.transitionSidewalkOutline,
+      0.1,
+    ],
+    ["south-approach curb-and-sidewalk band", approach.sidewalkOutline, 2],
+    ["Jalan Kartini east apron transition", corridor.transitionApronOutline, 0.1],
+    ["south-approach frontage apron", approach.frontageApronOutline, 3],
+    ...corridor.propertyAprons.map((apron) => [
+      apron.label,
+      apron.outline,
+      0.2,
+    ]),
+  ];
+  polygonDefinitions.forEach(([label, polygon, minimumArea]) =>
+    validateFiniteSimplePolygon(label, polygon, minimumArea),
+  );
+
+  const validateRibbonWidth = (label, width) => {
+    const geometry = createAlunAlunRoadRibbonGeometry(
+      ALUN_ALUN_SOUTH_LOCAL_ROAD_PATH,
+      width,
+    );
+    try {
+      const positions = geometry.getAttribute("position");
+      if (positions.count !== ALUN_ALUN_SOUTH_LOCAL_ROAD_PATH.length * 2) {
+        throw new Error(`${label} has an incomplete rendered ribbon`);
+      }
+      ALUN_ALUN_SOUTH_LOCAL_ROAD_PATH.forEach((point, index, path) => {
+        const previous = path[Math.max(0, index - 1)];
+        const next = path[Math.min(path.length - 1, index + 1)];
+        const tangent = [next[0] - previous[0], next[1] - previous[1]];
+        const tangentLength = Math.hypot(...tangent);
+        const normal = [-tangent[1] / tangentLength, tangent[0] / tangentLength];
+        const first = [
+          positions.getX(index * 2),
+          positions.getZ(index * 2),
+        ];
+        const second = [
+          positions.getX(index * 2 + 1),
+          positions.getZ(index * 2 + 1),
+        ];
+        const projectedWidth = Math.abs(
+          dot([first[0] - second[0], first[1] - second[1]], normal),
+        );
+        const projectedCentreOffset = Math.abs(
+          dot(
+            [
+              (first[0] + second[0]) * 0.5 - point[0],
+              (first[1] + second[1]) * 0.5 - point[1],
+            ],
+            normal,
+          ),
+        );
+        if (
+          Math.abs(projectedWidth - width) > 2e-6 ||
+          projectedCentreOffset > 2e-6
+        ) {
+          throw new Error(
+            `${label} diverges from its surveyed width at station ${index}`,
+          );
+        }
+      });
+    } finally {
+      geometry.dispose();
+    }
+  };
+  validateRibbonWidth(
+    "Jalan Kartini 5.20-metre traffic core",
+    ALUN_ALUN_PERIMETER_LOCAL_ROAD_CORE_WIDTH,
+  );
+  validateRibbonWidth(
+    "Jalan Kartini 6.136-metre road surface",
+    ALUN_ALUN_PERIMETER_LOCAL_ROAD_OUTER_WIDTH,
+  );
+
+  const boundarySets = [
+    {
+      label: "Jalan Kartini",
+      seam: corridor.roadsideSeam,
+      curb: corridor.curbCenterline,
+      clearInner: corridor.clearTreadInner,
+      outer: corridor.sidewalkOuterBoundary,
+    },
+    {
+      label: "Jalan Kartini east transition",
+      directOffsets: true,
+      seam: corridor.transitionRoadsideSeam,
+      curb: corridor.transitionCurbCenterline,
+      clearInner: corridor.transitionClearTreadInner,
+      outer: corridor.transitionSidewalkOuterBoundary,
+    },
+    {
+      label: "south approach",
+      seam: approach.roadsideSeam,
+      curb: approach.curbCenterline,
+      clearInner: approach.clearTreadInner,
+      outer: approach.sidewalkOuterBoundary,
+    },
+  ];
+  if (
+    Math.abs(corridor.curbDepth - 0.03) > 1e-12 ||
+    Math.abs(corridor.curbHeight - 0.03) > 1e-12 ||
+    Math.abs(corridor.sidewalkWidth - 0.3) > 1e-12 ||
+    Math.abs(corridor.roadsideBandWidth - 0.33) > 1e-12 ||
+    Math.abs(approach.sidewalkWidth - 0.3) > 1e-12 ||
+    Math.abs(approach.roadsideBandWidth - 0.33) > 1e-12
+  ) {
+    throw new Error(
+      "the south corridor must retain a 15 cm curb outside an exact 1.50 m clear tread",
+    );
+  }
+  let clearTreadSamples = 0;
+  boundarySets.forEach(
+    ({ label, directOffsets = false, seam, curb, clearInner, outer }) => {
+    [seam, curb, clearInner, outer].forEach((path) =>
+      validateFinitePath(label, path, seam.length),
+    );
+    seam.forEach((seamPoint, index) => {
+      const previous = seam[Math.max(0, index - 1)];
+      const next = seam[Math.min(seam.length - 1, index + 1)];
+      const tangent = [next[0] - previous[0], next[1] - previous[1]];
+      const tangentLength = Math.hypot(...tangent);
+      const candidateNormals = [
+        [-tangent[1] / tangentLength, tangent[0] / tangentLength],
+        [tangent[1] / tangentLength, -tangent[0] / tangentLength],
+      ];
+      const normal = candidateNormals.find(
+        (candidate) =>
+          dot(
+            [
+              clearInner[index][0] - seamPoint[0],
+              clearInner[index][1] - seamPoint[1],
+            ],
+            candidate,
+          ) > 0,
+      );
+      const projectedOffset = (point) =>
+        directOffsets
+          ? pointDistance(point, seamPoint)
+          : dot(
+              [point[0] - seamPoint[0], point[1] - seamPoint[1]],
+              normal,
+            );
+      const curbOffset = projectedOffset(curb[index]);
+      const clearInnerOffset = projectedOffset(clearInner[index]);
+      const outerOffset = projectedOffset(outer[index]);
+      if (
+        Math.abs(curbOffset - corridor.curbDepth * 0.5) > 1e-8 ||
+        Math.abs(clearInnerOffset - corridor.curbDepth) > 1e-8 ||
+        Math.abs(outerOffset - corridor.roadsideBandWidth) > 1e-8 ||
+        Math.abs(outerOffset - clearInnerOffset - corridor.sidewalkWidth) >
+          1e-8
+      ) {
+        throw new Error(
+          `${label} does not preserve its 15 cm curb and exact 1.50 m clear tread at station ${index}`,
+        );
+      }
+      clearTreadSamples += 1;
+    });
+    },
+  );
+
+  const assertJoinedPaths = (label, first, transition, second) => {
+    if (
+      !samePoint(first.at(-1), transition[0]) ||
+      !samePoint(transition.at(-1), second[0])
+    ) {
+      throw new Error(`${label} has a gap at the south-corridor transition`);
+    }
+  };
+  assertJoinedPaths(
+    "roadside seam",
+    corridor.roadsideSeam,
+    corridor.transitionRoadsideSeam,
+    approach.roadsideSeam,
+  );
+  assertJoinedPaths(
+    "curb centreline",
+    corridor.curbCenterline,
+    corridor.transitionCurbCenterline,
+    approach.curbCenterline,
+  );
+  assertJoinedPaths(
+    "clear-tread inner boundary",
+    corridor.clearTreadInner,
+    corridor.transitionClearTreadInner,
+    approach.clearTreadInner,
+  );
+  assertJoinedPaths(
+    "sidewalk outer boundary",
+    corridor.sidewalkOuterBoundary,
+    corridor.transitionSidewalkOuterBoundary,
+    approach.sidewalkOuterBoundary,
+  );
+  for (const [label, westPath, southPath] of [
+    [
+      "roadside seam",
+      ALUN_ALUN_WEST_PROPERTY_ROADSIDE_SEAM,
+      corridor.roadsideSeam,
+    ],
+    [
+      "curb centreline",
+      ALUN_ALUN_WEST_PROPERTY_CURB_CENTERLINE,
+      corridor.curbCenterline,
+    ],
+    [
+      "clear-tread inner boundary",
+      ALUN_ALUN_WEST_PROPERTY_CLEAR_TREAD_INNER,
+      corridor.clearTreadInner,
+    ],
+    [
+      "sidewalk outer boundary",
+      ALUN_ALUN_WEST_PROPERTY_SIDEWALK_OUTER,
+      corridor.sidewalkOuterBoundary,
+    ],
+  ]) {
+    if (!samePoint(westPath.at(-1), southPath[0])) {
+      throw new Error(
+        `KH Wahid Hasyim and Jalan Kartini ${label} must share one exact corner`,
+      );
+    }
+  }
+
+  const expectedAprons = [
+    {
+      id: "library-row",
+      material: "paleConcrete",
+      startIndex: 0,
+      endIndex: 7,
+    },
+    {
+      id: "pendopo-entry",
+      material: "concrete",
+      startIndex: 7,
+      endIndex: 8,
+    },
+    {
+      id: "pendopo-entry-extension",
+      material: "concrete",
+      parentId: "pendopo-entry",
+    },
+    {
+      id: "east-civic-row",
+      material: "paleConcrete",
+      startIndex: 8,
+      endIndex: corridor.sidewalkOuterBoundary.length - 1,
+    },
+  ];
+  if (corridor.propertyAprons.length !== expectedAprons.length) {
+    throw new Error(
+      "Jalan Kartini must retain separate Library, Pendopo, and east-civic frontage aprons",
+    );
+  }
+  expectedAprons.forEach((expected, apronIndex) => {
+    const apron = corridor.propertyAprons[apronIndex];
+    const ownedBoundary = Number.isInteger(expected.startIndex)
+      ? corridor.sidewalkOuterBoundary.slice(
+          expected.startIndex,
+          expected.endIndex + 1,
+        )
+      : null;
+    if (
+      apron.id !== expected.id ||
+      apron.material !== expected.material ||
+      apron.height !== ALUN_ALUN_FRONTAGE_APRON_Y ||
+      !apron.label ||
+      (ownedBoundary &&
+        (apron.outline.length < ownedBoundary.length + 2 ||
+          ownedBoundary.some(
+            (point, index) => !samePoint(point, apron.outline[index]),
+          )))
+    ) {
+      throw new Error(
+        `south frontage apron ${expected.id} no longer owns its exact property boundary`,
+      );
+    }
+  });
+  const standardAprons = [
+    corridor.propertyAprons.find((apron) => apron.id === "library-row"),
+    corridor.propertyAprons.find((apron) => apron.id === "pendopo-entry"),
+    corridor.propertyAprons.find((apron) => apron.id === "east-civic-row"),
+  ];
+  if (
+    !samePoint(standardAprons[0].outline[7], standardAprons[1].outline[0]) ||
+    !samePoint(standardAprons[1].outline[1], standardAprons[2].outline[0])
+  ) {
+    throw new Error(
+      "the Library, Pendopo, and east-civic aprons must meet continuously behind the sidewalk",
+    );
+  }
+  const pendopoEntry = standardAprons[1];
+  const pendopoExtension = corridor.propertyAprons.find(
+    (apron) => apron.id === "pendopo-entry-extension",
+  );
+  if (
+    !pendopoExtension ||
+    !pendopoExtension.outline
+      .slice(0, 2)
+      .every((point) => pointOnPolygonBoundary(point, pendopoEntry.outline))
+  ) {
+    throw new Error(
+      "the wall-aligned Pendopo apron must begin on the property edge of its public entrance apron",
+    );
+  }
+
+  const validateUniqueCenters = (label, centers, expectedCount) => {
+    if (
+      !Array.isArray(centers) ||
+      centers.length !== expectedCount ||
+      new Set(centers.map((point) => point.join(","))).size !== centers.length ||
+      centers.some(
+        (point) =>
+          !Array.isArray(point) ||
+          point.length !== 2 ||
+          !point.every(isFiniteNumber),
+      )
+    ) {
+      throw new Error(`${label} must retain ${expectedCount} unique finite centres`);
+    }
+  };
+  validateUniqueCenters(
+    "south park inner-half tree row",
+    ALUN_ALUN_SOUTH_PARK_TREE_CENTERS,
+    14,
+  );
+
+  const gazeboStop = createStops().find((stop) => stop.kind === "gazebo");
+  if (
+    !gazeboStop ||
+    Math.abs(gazeboStop.theta - 3.08) > 1e-12 ||
+    Math.abs(gazeboStop.phi - 14.1) > 1e-12 ||
+    Math.abs(gazeboStop.yaw + Math.PI * 0.46) > 1e-12 ||
+    Math.abs((gazeboStop.scale ?? 1) - 1) > 1e-12
+  ) {
+    throw new Error(
+      "the south tree opening must remain aligned with the surveyed Gazebo Situbondo stop",
+    );
+  }
+  const gazeboCenter = [-gazeboStop.phi, gazeboStop.theta];
+  const transformGazeboPoint = ([localX, localZ]) => {
+    const cosine = Math.cos(gazeboStop.yaw);
+    const sine = Math.sin(gazeboStop.yaw);
+    return [
+      gazeboCenter[0] + cosine * localX + sine * localZ,
+      gazeboCenter[1] - sine * localX + cosine * localZ,
+    ];
+  };
+  const gazeboRectangle = (x, z, width, depth) =>
+    [
+      [x - width * 0.5, z - depth * 0.5],
+      [x + width * 0.5, z - depth * 0.5],
+      [x + width * 0.5, z + depth * 0.5],
+      [x - width * 0.5, z + depth * 0.5],
+    ].map(transformGazeboPoint);
+  const gazeboProtectedFootprints = [
+    ["Gazebo navigation plinth", gazeboRectangle(0, 0, 6.7, 2.36)],
+    ...Array.from({ length: 6 }, (_, index) => [
+      `Gazebo stair ${index + 1}`,
+      gazeboRectangle(
+        0,
+        1.53 - index * 0.14,
+        2.44 - index * 0.045,
+        0.2,
+      ),
+    ]),
+    ["Gazebo roof", gazeboRectangle(0, 0, 6.82, 2.05)],
+  ];
+  gazeboProtectedFootprints.forEach(([label, polygon]) =>
+    validateFiniteSimplePolygon(label, polygon, 0.1),
+  );
+
+  const treeWellRadius = 0.29;
+  let minimumTreeCurbClearance = Infinity;
+  let maximumTreeCurbClearance = -Infinity;
+  let minimumTreeLawnClearance = Infinity;
+  let minimumGazeboClearance = Infinity;
+  ALUN_ALUN_SOUTH_PARK_TREE_CENTERS.forEach((center, index) => {
+    const curbDistance = pointToPolygonBoundary(center, ALUN_ALUN_PARK_OUTLINE);
+    const lawnDistance = pointToPolygonBoundary(
+      center,
+      ALUN_ALUN_PARK_LAWN_OUTLINE,
+    );
+    if (
+      !pointInsidePolygon(center, ALUN_ALUN_PARK_OUTLINE) ||
+      pointInsideOrOnPolygon(center, ALUN_ALUN_PARK_LAWN_OUTLINE) ||
+      curbDistance <= treeWellRadius + 1e-8 ||
+      lawnDistance <= treeWellRadius + 1e-8 ||
+      curbDistance <= lawnDistance + 1e-8
+    ) {
+      throw new Error(
+        `south park tree ${index + 1} must remain completely in the pedestrian ring's inner half`,
+      );
+    }
+    gazeboProtectedFootprints.forEach(([label, polygon]) => {
+      const clearance = pointToPolygonBoundary(center, polygon) - treeWellRadius;
+      if (pointInsideOrOnPolygon(center, polygon) || clearance <= 1e-8) {
+        throw new Error(`south park tree ${index + 1} enters the ${label}`);
+      }
+      minimumGazeboClearance = Math.min(minimumGazeboClearance, clearance);
+    });
+    minimumTreeCurbClearance = Math.min(minimumTreeCurbClearance, curbDistance);
+    maximumTreeCurbClearance = Math.max(maximumTreeCurbClearance, curbDistance);
+    minimumTreeLawnClearance = Math.min(
+      minimumTreeLawnClearance,
+      lawnDistance - treeWellRadius,
+    );
+  });
+  const westTreeHalf = ALUN_ALUN_SOUTH_PARK_TREE_CENTERS.slice(0, 8);
+  const eastTreeHalf = ALUN_ALUN_SOUTH_PARK_TREE_CENTERS.slice(8);
+  if (
+    Math.min(...eastTreeHalf.map((point) => point[1])) -
+      Math.max(...westTreeHalf.map((point) => point[1])) <
+    8
+  ) {
+    throw new Error(
+      "the south park tree row must preserve the broad ceremonial Gazebo opening",
+    );
+  }
+
+  if (
+    !Array.isArray(ALUN_ALUN_SOUTH_PARK_BENCH_DEFINITIONS) ||
+    ALUN_ALUN_SOUTH_PARK_BENCH_DEFINITIONS.length !== 3
+  ) {
+    throw new Error("the south park edge must retain three south-facing benches");
+  }
+  const expectedBenchYaw = 1.7710468509;
+  let minimumBenchTreeClearance = Infinity;
+  ALUN_ALUN_SOUTH_PARK_BENCH_DEFINITIONS.forEach((definition, index) => {
+    const { center, yaw } = definition;
+    if (
+      !Array.isArray(center) ||
+      center.length !== 2 ||
+      !center.every(isFiniteNumber) ||
+      !isFiniteNumber(yaw) ||
+      Math.abs(yaw - expectedBenchYaw) > 1e-10 ||
+      -Math.sin(yaw) >= -0.95
+    ) {
+      throw new Error(`south park bench ${index + 1} must face south`);
+    }
+    const cosine = Math.cos(yaw);
+    const sine = Math.sin(yaw);
+    const footprint = [
+      [-0.36, -0.12],
+      [0.36, -0.12],
+      [0.36, 0.12],
+      [-0.36, 0.12],
+    ].map(([localX, localZ]) => [
+      center[0] + cosine * localX + sine * localZ,
+      center[1] - sine * localX + cosine * localZ,
+    ]);
+    footprint.forEach((corner, cornerIndex) => {
+      if (
+        !pointInsideOrOnPolygon(corner, ALUN_ALUN_PARK_OUTLINE) ||
+        pointInsideOrOnPolygon(corner, ALUN_ALUN_PARK_LAWN_OUTLINE)
+      ) {
+        throw new Error(
+          `south park bench ${index + 1} corner ${cornerIndex + 1} leaves the pedestrian ring`,
+        );
+      }
+    });
+    const benchHalfDiagonal = Math.hypot(0.36, 0.12);
+    ALUN_ALUN_SOUTH_PARK_TREE_CENTERS.forEach((treeCenter) => {
+      const clearance =
+        pointDistance(center, treeCenter) - benchHalfDiagonal - treeWellRadius;
+      if (clearance <= 1e-8) {
+        throw new Error(`south park bench ${index + 1} collides with a tree well`);
+      }
+      minimumBenchTreeClearance = Math.min(
+        minimumBenchTreeClearance,
+        clearance,
+      );
+    });
+  });
+
+  const expectedPromenadeObstacleCount =
+    ALUN_ALUN_SOUTH_PARK_TREE_CENTERS.length +
+    ALUN_ALUN_SOUTH_PARK_BENCH_DEFINITIONS.length;
+  if (
+    !Array.isArray(ALUN_ALUN_SOUTH_PROMENADE_COLLISION_OBSTACLES) ||
+    ALUN_ALUN_SOUTH_PROMENADE_COLLISION_OBSTACLES.length !==
+      expectedPromenadeObstacleCount
+  ) {
+    throw new Error(
+      "every south promenade tree and bench must have one shared navigation obstacle",
+    );
+  }
+  ALUN_ALUN_SOUTH_PARK_TREE_CENTERS.forEach((center, index) => {
+    const obstacle = ALUN_ALUN_SOUTH_PROMENADE_COLLISION_OBSTACLES[index];
+    if (
+      obstacle.label !== `south promenade tree ${index + 1}` ||
+      !samePoint([obstacle.north, obstacle.east], center) ||
+      obstacle.width !== 0.16 ||
+      obstacle.depth !== 0.16 ||
+      obstacle.yaw !== undefined
+    ) {
+      throw new Error(
+        `south promenade tree ${index + 1} collision does not match its rendered trunk`,
+      );
+    }
+  });
+  ALUN_ALUN_SOUTH_PARK_BENCH_DEFINITIONS.forEach((definition, index) => {
+    const obstacle =
+      ALUN_ALUN_SOUTH_PROMENADE_COLLISION_OBSTACLES[
+        ALUN_ALUN_SOUTH_PARK_TREE_CENTERS.length + index
+      ];
+    if (
+      obstacle.label !== `south-facing promenade bench ${index + 1}` ||
+      !samePoint([obstacle.north, obstacle.east], definition.center) ||
+      obstacle.width !== 0.76 ||
+      obstacle.depth !== 0.3 ||
+      obstacle.yaw !== definition.yaw
+    ) {
+      throw new Error(
+        `south-facing promenade bench ${index + 1} collision does not match its rendered group`,
+      );
+    }
+    const cosine = Math.cos(obstacle.yaw);
+    const sine = Math.sin(obstacle.yaw);
+    [
+      [-obstacle.width * 0.5, -obstacle.depth * 0.5],
+      [obstacle.width * 0.5, -obstacle.depth * 0.5],
+      [obstacle.width * 0.5, obstacle.depth * 0.5],
+      [-obstacle.width * 0.5, obstacle.depth * 0.5],
+    ]
+      .map(([localX, localZ]) => [
+        obstacle.north + cosine * localX + sine * localZ,
+        obstacle.east - sine * localX + cosine * localZ,
+      ])
+      .forEach((corner) => {
+        if (
+          !pointInsideOrOnPolygon(corner, ALUN_ALUN_PARK_OUTLINE) ||
+          pointInsideOrOnPolygon(corner, ALUN_ALUN_PARK_LAWN_OUTLINE)
+        ) {
+          throw new Error(
+            `south-facing promenade bench ${index + 1} collision leaves the pedestrian ring`,
+          );
+        }
+      });
+  });
+
+  const trafficSource = readFileSync(TRAFFIC_SOURCE_URL, "utf8");
+  const landmarkSource = readFileSync(PRODUCTION_FLEET_SOURCE_URL, "utf8");
+  if (
+    !/ALUN_ALUN_SOUTH_PARK_BENCH_DEFINITIONS\.forEach\(/.test(trafficSource) ||
+    !/`South park south-facing bench \$\{index \+ 1\}`/.test(trafficSource) ||
+    !/ALUN_ALUN_SOUTH_PARK_TREE_CENTERS\.forEach\(/.test(landmarkSource) ||
+    !/group\.userData\.localObstacles\s*=\s*\[[\s\S]*\.\.\.ALUN_ALUN_SOUTH_PROMENADE_COLLISION_OBSTACLES,/.test(
+      landmarkSource,
+    )
+  ) {
+    throw new Error(
+      "the audited south trees and south-facing benches must remain connected to their renderers",
+    );
+  }
+
+  const pendopoSource = readFileSync(PENDOPO_SOURCE_URL, "utf8");
+  if (
+    /\bconst\s+(?:road|paintedRoadLine|forecourt)\s*=\s*new THREE\.Mesh/.test(
+      pendopoSource,
+    ) ||
+    /label:\s*["'](?:front road|forecourt)["']/.test(pendopoSource)
+  ) {
+    throw new Error(
+      "Pendopo must not duplicate Jalan Kartini, its public curb, or its shared frontage apron",
+    );
+  }
+  const numberPattern = "(-?\\d+(?:\\.\\d+)?)";
+  const renderedTreePattern = new RegExp(
+    `addAlunAlunTree\\(\\s*group,\\s*${numberPattern},\\s*${numberPattern},`,
+    "g",
+  );
+  const obstacleTreePattern = new RegExp(
+    `\\{\\s*shape:\\s*["']circle["'],\\s*x:\\s*${numberPattern},\\s*z:\\s*${numberPattern},\\s*radius:\\s*${numberPattern},\\s*label:\\s*["']tree trunk["']\\s*\\}`,
+    "g",
+  );
+  const renderedPendopoTrees = [...pendopoSource.matchAll(renderedTreePattern)]
+    .map((match) => [Number(match[1]), Number(match[2])])
+    .sort((first, second) => first[0] - second[0]);
+  const pendopoTreeObstacles = [...pendopoSource.matchAll(obstacleTreePattern)]
+    .map((match) => ({
+      center: [Number(match[1]), Number(match[2])],
+      radius: Number(match[3]),
+    }))
+    .sort((first, second) => first.center[0] - second.center[0]);
+  if (
+    renderedPendopoTrees.length !== 2 ||
+    pendopoTreeObstacles.length !== renderedPendopoTrees.length ||
+    renderedPendopoTrees.some(
+      (center, index) =>
+        !samePoint(center, pendopoTreeObstacles[index].center) ||
+        Math.abs(pendopoTreeObstacles[index].radius - 0.22) > 1e-12,
+    )
+  ) {
+    throw new Error(
+      "Pendopo tree navigation obstacles must match both rendered tree trunks exactly",
+    );
+  }
+
+  return {
+    apronCount: corridor.propertyAprons.length,
+    benchCount: ALUN_ALUN_SOUTH_PARK_BENCH_DEFINITIONS.length,
+    clearTreadSamples,
+    maximumTreeCurbClearance,
+    minimumBenchTreeClearance,
+    minimumGazeboClearance,
+    minimumTreeCurbClearance,
+    minimumTreeLawnClearance,
+    obstacleCount: ALUN_ALUN_SOUTH_PROMENADE_COLLISION_OBSTACLES.length,
+    treeCount: ALUN_ALUN_SOUTH_PARK_TREE_CENTERS.length,
   };
 }
 
@@ -4729,6 +5422,220 @@ function validateFrontageNavigationSurfaces() {
   };
 }
 
+function validateSouthCorridorNavigationSurfaces() {
+  const corridor = ALUN_ALUN_SOUTH_CORRIDOR_DEFINITION;
+  const approach = ALUN_ALUN_SOUTH_APPROACH_DEFINITION;
+  const expected = [
+    {
+      points: ALUN_ALUN_SOUTH_LOCAL_ROAD_SURFACE_OUTLINE,
+      height: ALUN_ALUN_ROAD_SURFACE_Y,
+    },
+    {
+      points: ALUN_ALUN_WEST_SOUTH_PARK_ASPHALT_FILL_OUTLINE,
+      height: ALUN_ALUN_ROAD_SURFACE_Y,
+    },
+    {
+      points: approach.surfaceOutline,
+      height: ALUN_ALUN_ROAD_SURFACE_Y,
+    },
+    {
+      points: corridor.sidewalkOutline,
+      height: ALUN_ALUN_FRONTAGE_SIDEWALK_Y,
+    },
+    {
+      points: corridor.transitionSidewalkOutline,
+      height: ALUN_ALUN_FRONTAGE_SIDEWALK_Y,
+    },
+    {
+      points: approach.sidewalkOutline,
+      height: ALUN_ALUN_FRONTAGE_SIDEWALK_Y,
+    },
+    ...corridor.propertyAprons.map((apron) => ({
+      points: apron.outline,
+      height: apron.height,
+    })),
+    {
+      points: corridor.transitionApronOutline,
+      height: corridor.transitionApronHeight,
+    },
+    {
+      points: approach.frontageApronOutline,
+      height: ALUN_ALUN_FRONTAGE_APRON_Y,
+    },
+  ];
+  if (
+    ALUN_ALUN_SOUTH_CORRIDOR_NAVIGATION_SURFACES.length !== expected.length ||
+    ALUN_ALUN_SOUTH_CORRIDOR_NAVIGATION_SURFACES.some(
+      (surface, index) =>
+        surface.shape !== "polygon" ||
+        surface.points !== expected[index].points ||
+        Math.abs(surface.height - expected[index].height) > 1e-12 ||
+        surface.liftOffset !== undefined ||
+        !surface.label,
+    )
+  ) {
+    throw new Error(
+      "south-corridor navigation must use every exact rendered road, sidewalk, and property-apron polygon at an absolute height",
+    );
+  }
+
+  const testBaseLift = -0.013;
+  const combinedSurfaces = [
+    ...ALUN_ALUN_FRONTAGE_NAVIGATION_SURFACES,
+    ...ALUN_ALUN_SOUTH_CORRIDOR_NAVIGATION_SURFACES,
+  ];
+  const navigation = createNavigationSystem({
+    constants: {
+      GROUND_EPSILON,
+      MAP_METERS_PER_WORLD_UNIT,
+      MAX_WALKABLE_STEP_HEIGHT,
+      PLANET_RADIUS,
+      RIDER_COLLISION_RADIUS,
+    },
+    getGeospatialWorld: () => ({
+      userData: {
+        navigation: {
+          surfaceLiftAt: () => GROUND_EPSILON,
+        },
+      },
+    }),
+  });
+  const registered = navigation.registerStopNavigation({
+    theta: 0,
+    phi: 0,
+    yaw: 0,
+    baseScale: 1,
+    name: "Alun-Alun south-corridor navigation regression",
+    group: {
+      position: new THREE.Vector3(PLANET_RADIUS + testBaseLift, 0, 0),
+      userData: { navigation: { surfaces: combinedSurfaces } },
+    },
+  });
+  if (
+    !registered ||
+    navigation.walkableSurfaces.length !== combinedSurfaces.length
+  ) {
+    throw new Error("south-corridor polygon navigation surfaces were not registered");
+  }
+  const liftAtLocalPoint = ([north, east]) =>
+    navigation.navigationSurfaceLiftAt(east, -north);
+
+  expected.forEach((definition, index) => {
+    const triangles = polygonTriangles(
+      `south-corridor navigation surface ${index + 1}`,
+      definition.points,
+    );
+    let sample = null;
+    for (const triangle of triangles) {
+      const candidates = [
+        [1 / 3, 1 / 3, 1 / 3],
+        [0.6, 0.2, 0.2],
+        [0.2, 0.6, 0.2],
+        [0.2, 0.2, 0.6],
+      ];
+      sample = candidates
+        .map((weights) => [
+          triangle.reduce(
+            (total, point, corner) => total + point[0] * weights[corner],
+            0,
+          ),
+          triangle.reduce(
+            (total, point, corner) => total + point[1] * weights[corner],
+            0,
+          ),
+        ])
+        .find((point) =>
+          combinedSurfaces.every(
+            (other) =>
+              other.points === definition.points ||
+              other.height === definition.height ||
+              !pointInsidePolygon(point, other.points),
+          ),
+        );
+      if (sample) break;
+    }
+    if (
+      !sample ||
+      Math.abs(
+        liftAtLocalPoint(sample) - (testBaseLift + definition.height),
+      ) > 1e-7
+    ) {
+      throw new Error(
+        `south-corridor navigation surface ${index + 1} does not preserve its absolute rendered height`,
+      );
+    }
+  });
+
+  let roadSamples = 0;
+  ALUN_ALUN_SOUTH_LOCAL_ROAD_PATH.slice(0, -1).forEach((start, index) => {
+    const end = ALUN_ALUN_SOUTH_LOCAL_ROAD_PATH[index + 1];
+    for (const amount of [0.25, 0.5, 0.75]) {
+      const sample = [
+        start[0] + (end[0] - start[0]) * amount,
+        start[1] + (end[1] - start[1]) * amount,
+      ];
+      if (
+        Math.abs(
+          liftAtLocalPoint(sample) -
+            (testBaseLift + ALUN_ALUN_ROAD_SURFACE_Y),
+        ) > 1e-7
+      ) {
+        throw new Error(
+          `Jalan Kartini navigation leaves its full-width asphalt at segment ${index}`,
+        );
+      }
+      roadSamples += 1;
+    }
+  });
+
+  const clearInnerPath = [
+    ...corridor.clearTreadInner,
+    ...corridor.transitionClearTreadInner.slice(1, -1),
+    ...approach.clearTreadInner,
+  ];
+  const sidewalkOuterPath = [
+    ...corridor.sidewalkOuterBoundary,
+    ...corridor.transitionSidewalkOuterBoundary.slice(1, -1),
+    ...approach.sidewalkOuterBoundary,
+  ];
+  if (clearInnerPath.length !== sidewalkOuterPath.length) {
+    throw new Error("south-corridor clear-tread navigation paths are incomplete");
+  }
+  let previousTreadSample = null;
+  clearInnerPath.forEach((inner, index) => {
+    const outer = sidewalkOuterPath[index];
+    const sample = [
+      (inner[0] + outer[0]) * 0.5,
+      (inner[1] + outer[1]) * 0.5,
+    ];
+    if (
+      Math.abs(pointDistance(inner, outer) - corridor.sidewalkWidth) > 0.015 ||
+      Math.abs(
+        liftAtLocalPoint(sample) -
+          (testBaseLift + ALUN_ALUN_FRONTAGE_SIDEWALK_Y),
+      ) > 1e-7 ||
+      (previousTreadSample &&
+        navigation.surfaceTransitionIsBlocked(
+          previousTreadSample[1],
+          -previousTreadSample[0],
+          sample[1],
+          -sample[0],
+        ))
+    ) {
+      throw new Error(
+        `south-corridor navigation does not follow the visible 1.50-metre clear tread at station ${index}`,
+      );
+    }
+    previousTreadSample = sample;
+  });
+
+  return {
+    roadSamples,
+    surfaceCount: ALUN_ALUN_SOUTH_CORRIDOR_NAVIGATION_SURFACES.length,
+    treadSamples: clearInnerPath.length,
+  };
+}
+
 function validateFrontageVehicleSeparation(routes) {
   const frontage = ALUN_ALUN_WEST_FRONTAGE_DEFINITION;
   const protectedPolygons = [
@@ -4804,11 +5711,14 @@ function validateFrontageVehicleSeparation(routes) {
 function validateSouthApproachSurfaceDefinition() {
   const definition = ALUN_ALUN_SOUTH_APPROACH_DEFINITION;
   const {
+    clearTreadInner,
+    curbCenterline,
     frontageOuterBoundary,
     junctionEastJoin,
     junctionWestJoin,
     parkCurbSeam,
     roadsideSeam,
+    roadsideBandWidth,
     sidewalkCenterline,
     sidewalkOuterBoundary,
     sidewalkWidth,
@@ -4816,6 +5726,8 @@ function validateSouthApproachSurfaceDefinition() {
   } = definition;
   const boundaryCollections = [
     ["roadside seam", roadsideSeam],
+    ["curb centreline", curbCenterline],
+    ["clear-tread inner boundary", clearTreadInner],
     ["sidewalk centreline", sidewalkCenterline],
     ["sidewalk outer boundary", sidewalkOuterBoundary],
     ["frontage outer boundary", frontageOuterBoundary],
@@ -4927,16 +5839,30 @@ function validateSouthApproachSurfaceDefinition() {
   }
 
   roadsideSeam.forEach((seamPoint, index) => {
+    const curbPoint = curbCenterline[index];
+    const clearInnerPoint = clearTreadInner[index];
     const centerPoint = sidewalkCenterline[index];
     const sidewalkOuterPoint = sidewalkOuterBoundary[index];
     const frontageOuterPoint = frontageOuterBoundary[index];
     const expectedCenter = [
-      (seamPoint[0] + sidewalkOuterPoint[0]) * 0.5,
-      (seamPoint[1] + sidewalkOuterPoint[1]) * 0.5,
+      (clearInnerPoint[0] + sidewalkOuterPoint[0]) * 0.5,
+      (clearInnerPoint[1] + sidewalkOuterPoint[1]) * 0.5,
     ];
     if (
-      Math.abs(pointDistance(seamPoint, sidewalkOuterPoint) - sidewalkWidth) >
-        1e-8 ||
+      Math.abs(
+        pointDistance(seamPoint, curbPoint) -
+          ALUN_ALUN_FRONTAGE_CURB_DEPTH * 0.5,
+      ) > 1e-8 ||
+      Math.abs(
+        pointDistance(seamPoint, clearInnerPoint) -
+          ALUN_ALUN_FRONTAGE_CURB_DEPTH,
+      ) > 1e-8 ||
+      Math.abs(
+        pointDistance(seamPoint, sidewalkOuterPoint) - roadsideBandWidth,
+      ) > 1e-8 ||
+      Math.abs(
+        pointDistance(clearInnerPoint, sidewalkOuterPoint) - sidewalkWidth,
+      ) > 1e-8 ||
       !samePoint(centerPoint, expectedCenter) ||
       Math.abs(
         pointDistance(sidewalkOuterPoint, frontageOuterPoint) -
@@ -4990,6 +5916,8 @@ let pedestrianRoutes;
 let productionFleetConfigs;
 let frontageNavigationResult;
 let frontageSurfaceResult;
+let southCorridorResult;
+let southNavigationResult;
 let westLocalCorridorResult;
 let utilityCorridorResult;
 let parkNavigationResult;
@@ -5001,8 +5929,10 @@ try {
   parkNavigationResult = validateParkNavigationSurfaces();
   frontageSurfaceResult = validateWestFrontageSurfaceDefinition();
   westLocalCorridorResult = validateWestLocalCorridorDefinition();
+  southCorridorResult = validateSouthCorridorDefinition();
   utilityCorridorResult = validateWestUtilityCorridorDefinition();
   frontageNavigationResult = validateFrontageNavigationSurfaces();
+  southNavigationResult = validateSouthCorridorNavigationSurfaces();
   validateSouthApproachSurfaceDefinition();
   validateCollections(
     ALUN_ALUN_TRAFFIC_ROUTE_DEFINITIONS,
@@ -5434,6 +6364,20 @@ if (
       `minimum inner-boundary clearance; ` +
       `${westLocalCorridorResult.greenEdgeSamples.toLocaleString("en-US")} ` +
       `green-edge asphalt ownership samples.`,
+  );
+  console.log(
+    `Dense Jalan Kartini south edge: 5.20 m core / 6.136 m surface, ` +
+      `15 cm curb and 1.50 m clear tread across ` +
+      `${southCorridorResult.clearTreadSamples} audited stations; ` +
+      `${southCorridorResult.apronCount} property-owned aprons; ` +
+      `${southCorridorResult.treeCount} inner-half park trees clear the Gazebo ` +
+      `by at least ${formatDistance(southCorridorResult.minimumGazeboClearance)}; ` +
+      `${southCorridorResult.benchCount} south-facing benches clear tree wells ` +
+      `by at least ${formatDistance(southCorridorResult.minimumBenchTreeClearance)}; ` +
+      `${southCorridorResult.obstacleCount} exact shared promenade obstacles; ` +
+      `${southNavigationResult.surfaceCount} absolute-height navigation polygons, ` +
+      `${southNavigationResult.roadSamples} road and ` +
+      `${southNavigationResult.treadSamples} tread samples.`,
   );
   console.log(
     `Frontage navigation: ${frontageNavigationResult.surfaceCount} absolute-height ` +

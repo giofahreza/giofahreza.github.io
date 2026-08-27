@@ -46,10 +46,6 @@ export function createPendopoModelFactory({
     const roofTileLine = hideMaterialOutline(toonMaterial({ color: 0x9a574b }));
     const stoneMid = toonMaterial({ color: 0x666963 });
     const stoneLight = toonMaterial({ color: 0x89877f });
-    const pavingRose = toonMaterial({ color: 0xb88a79 });
-    const curbBlue = toonMaterial({ color: 0x4f8795 });
-    const asphalt = toonMaterial({ color: 0x596765, roughness: 0.96 });
-    const roadStripe = toonMaterial({ color: 0x5b9f82, roughness: 0.9 });
     const flagPole = toonMaterial({ color: 0xa8b1ad, roughness: 0.46 });
     const windowMaterial = toonMaterial({
       color: 0x31494a,
@@ -62,35 +58,10 @@ export function createPendopoModelFactory({
       emissiveIntensity: 0.56,
     });
 
-    const road = new THREE.Mesh(roundedBox(10.8, 0.055, 2.32, 0.035), asphalt);
-    road.position.set(0, 0.028, 5.22);
-    architecture.add(road);
-    const paintedRoadLine = new THREE.Mesh(
-      roundedBox(10.45, 0.018, 0.04, 0.008),
-      roadStripe,
-    );
-    paintedRoadLine.position.set(0, 0.064, 6.15);
-    architecture.add(paintedRoadLine);
-
-    const forecourt = new THREE.Mesh(roundedBox(9.6, 0.08, 1.62, 0.04), pale);
-    forecourt.position.set(0, 0.04, 3.08);
-    architecture.add(forecourt);
-    for (let index = 0; index < 16; index += 1) {
-      const stripe = new THREE.Mesh(
-        roundedBox(0.54, 0.018, 1.18, 0.008),
-        index % 3 === 0 ? pavingRose : index % 2 === 0 ? stone : pale,
-      );
-      stripe.position.set(-4.05 + index * 0.54, 0.09, 3.06);
-      architecture.add(stripe);
-    }
-    for (let index = 0; index < 18; index += 1) {
-      const curb = new THREE.Mesh(
-        roundedBox(0.52, 0.14, 0.34, 0.025),
-        index % 2 === 0 ? curbBlue : pale,
-      );
-      curb.position.set(-4.42 + index * 0.52, 0.13, 3.92);
-      architecture.add(curb);
-    }
+    // Jalan Kartini, its 15-cm curb, public sidewalk and Pendopo gate apron
+    // are owned by the surveyed Alun-Alun corridor. The former stop-local road
+    // and oversized curb overlapped that shared surface and created a raised,
+    // green-striped slab in only the middle of the street.
 
     const frontageWall = new THREE.Mesh(roundedBox(8.9, 0.34, 0.42, 0.045), stone);
     frontageWall.position.set(0, 0.21, 2.12);
@@ -516,8 +487,8 @@ export function createPendopoModelFactory({
       { shape: "box", x: -4.48, z: 2.03, width: 0.34, depth: 0.34, label: "frontage post" },
       { shape: "box", x: 4.48, z: 2.03, width: 0.34, depth: 0.34, label: "frontage post" },
       { shape: "box", x: 0, z: -2.89, width: 6.55, depth: 0.2, label: "rear hall wall" },
-      { shape: "circle", x: -4.55, z: 2.8, radius: 0.22, label: "tree trunk" },
-      { shape: "circle", x: 4.25, z: 3.95, radius: 0.22, label: "tree trunk" },
+      { shape: "circle", x: -4.55, z: 0.3, radius: 0.22, label: "tree trunk" },
+      { shape: "circle", x: 4.25, z: 0.32, radius: 0.22, label: "tree trunk" },
     ];
     [-2.8, -2.1, -1.4, -0.7, 0, 0.7, 1.4, 2.1, 2.8].forEach((x) => {
       [-2.27, 1].forEach((z) => {
@@ -576,8 +547,6 @@ export function createPendopoModelFactory({
     });
     group.userData.navigation = {
       surfaces: [
-        { x: 0, z: 5.22, width: 10.8, depth: 2.32, height: 0.0555, label: "front road" },
-        { x: 0, z: 3.08, width: 9.6, depth: 1.62, height: 0.08, label: "forecourt" },
         { x: 0, z: -0.67, width: 7.1, depth: 4.95, height: 0.26, label: "main hall floor" },
         { x: -4.65, z: -0.58, width: 4.15, depth: 1.72, height: 0.25, label: "west wing floor" },
         { x: 4.65, z: -0.58, width: 4.15, depth: 1.72, height: 0.25, label: "east wing floor" },

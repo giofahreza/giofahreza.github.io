@@ -5,8 +5,14 @@ import { createAlunAlunLesehanFactory } from "./lesehan.js";
 import {
   ALUN_ALUN_INTERIOR_CHECKER_PATH_OUTLINES,
   ALUN_ALUN_INTERIOR_TACTILE_PAVER_DEFINITION,
+  ALUN_ALUN_FRONTAGE_APRON_Y,
   ALUN_ALUN_FRONTAGE_SIDEWALK_Y,
   ALUN_ALUN_PEGADAIAN_ROAD_DEFINITION,
+  ALUN_ALUN_SOUTH_APPROACH_DEFINITION,
+  ALUN_ALUN_SOUTH_CORRIDOR_DEFINITION,
+  ALUN_ALUN_SOUTH_LOCAL_ROAD_SURFACE_OUTLINE,
+  ALUN_ALUN_SOUTH_PARK_BENCH_DEFINITIONS,
+  ALUN_ALUN_SOUTH_PARK_TREE_CENTERS,
   ALUN_ALUN_WEST_MEDIAN_PATH,
   ALUN_ALUN_WEST_MEDIAN_WIDTHS,
   ALUN_ALUN_WEST_FRONTAGE_DEFINITION,
@@ -15,6 +21,7 @@ import {
   ALUN_ALUN_WEST_PROPERTY_ASPHALT_INFILL_OUTLINE,
   ALUN_ALUN_WEST_PROPERTY_SIDEWALK_OUTLINE,
   ALUN_ALUN_WEST_PROPERTY_TREE_CENTERS,
+  ALUN_ALUN_WEST_SOUTH_PARK_ASPHALT_FILL_OUTLINE,
   ALUN_ALUN_SOUTH_MEDIAN_PATH,
   ALUN_ALUN_SOUTH_MEDIAN_WIDTHS,
   ALUN_ALUN_SOUTH_CROSSING_DEFINITION,
@@ -128,6 +135,88 @@ export const ALUN_ALUN_FRONTAGE_NAVIGATION_SURFACES = Object.freeze([
       height: apron.height,
       label: apron.label,
     }),
+  ),
+]);
+
+export const ALUN_ALUN_SOUTH_CORRIDOR_NAVIGATION_SURFACES = Object.freeze([
+  Object.freeze({
+    shape: "polygon",
+    points: ALUN_ALUN_SOUTH_LOCAL_ROAD_SURFACE_OUTLINE,
+    height: ALUN_ALUN_ROAD_SURFACE_Y,
+    label: "full-width Jalan Kartini local-road asphalt",
+  }),
+  Object.freeze({
+    shape: "polygon",
+    points: ALUN_ALUN_WEST_SOUTH_PARK_ASPHALT_FILL_OUTLINE,
+    height: ALUN_ALUN_ROAD_SURFACE_Y,
+    label: "west-south park curb asphalt infill",
+  }),
+  Object.freeze({
+    shape: "polygon",
+    points: ALUN_ALUN_SOUTH_APPROACH_DEFINITION.surfaceOutline,
+    height: ALUN_ALUN_ROAD_SURFACE_Y,
+    label: "full-width south-approach asphalt union",
+  }),
+  Object.freeze({
+    shape: "polygon",
+    points: ALUN_ALUN_SOUTH_CORRIDOR_DEFINITION.sidewalkOutline,
+    height: ALUN_ALUN_FRONTAGE_SIDEWALK_Y,
+    label: "Jalan Kartini 1.5-metre clear sidewalk",
+  }),
+  Object.freeze({
+    shape: "polygon",
+    points: ALUN_ALUN_SOUTH_CORRIDOR_DEFINITION.transitionSidewalkOutline,
+    height: ALUN_ALUN_FRONTAGE_SIDEWALK_Y,
+    label: "Jalan Kartini east sidewalk transition",
+  }),
+  Object.freeze({
+    shape: "polygon",
+    points: ALUN_ALUN_SOUTH_APPROACH_DEFINITION.sidewalkOutline,
+    height: ALUN_ALUN_FRONTAGE_SIDEWALK_Y,
+    label: "south approach 1.5-metre clear sidewalk",
+  }),
+  ...ALUN_ALUN_SOUTH_CORRIDOR_DEFINITION.propertyAprons.map((apron) =>
+    Object.freeze({
+      shape: "polygon",
+      points: apron.outline,
+      height: apron.height,
+      label: apron.label,
+    }),
+  ),
+  Object.freeze({
+    shape: "polygon",
+    points: ALUN_ALUN_SOUTH_CORRIDOR_DEFINITION.transitionApronOutline,
+    height: ALUN_ALUN_SOUTH_CORRIDOR_DEFINITION.transitionApronHeight,
+    label: "Jalan Kartini east frontage transition",
+  }),
+  Object.freeze({
+    shape: "polygon",
+    points: ALUN_ALUN_SOUTH_APPROACH_DEFINITION.frontageApronOutline,
+    height: ALUN_ALUN_FRONTAGE_APRON_Y,
+    label: "south approach property frontage apron",
+  }),
+]);
+
+export const ALUN_ALUN_SOUTH_PROMENADE_COLLISION_OBSTACLES = Object.freeze([
+  ...ALUN_ALUN_SOUTH_PARK_TREE_CENTERS.map(([north, east], index) =>
+    freezeTrafficObstacle({
+      label: `south promenade tree ${index + 1}`,
+      north,
+      east,
+      width: 0.16,
+      depth: 0.16,
+    }),
+  ),
+  ...ALUN_ALUN_SOUTH_PARK_BENCH_DEFINITIONS.map(
+    ({ center: [north, east], yaw }, index) =>
+      freezeTrafficObstacle({
+        label: `south-facing promenade bench ${index + 1}`,
+        north,
+        east,
+        width: 0.76,
+        depth: 0.3,
+        yaw,
+      }),
   ),
 ]);
 
@@ -1363,6 +1452,25 @@ export function createAlunAlunModelFactory({
         0.42,
       );
     });
+    ALUN_ALUN_SOUTH_PARK_TREE_CENTERS.forEach(([north, east], index) => {
+      const well = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.27, 0.29, 0.012, 14),
+        westTreeWellMaterial,
+      );
+      well.position.set(north, 0.063, east);
+      group.add(well);
+      addAlunAlunTree(
+        group,
+        north,
+        east,
+        3.5 + (index % 4) * 0.2,
+        1.3 + (index % 3) * 0.14,
+        78 + index * 0.77,
+        false,
+        0.018,
+        0.42,
+      );
+    });
     ALUN_ALUN_WEST_PROPERTY_TREE_CENTERS.forEach(
       ([north, east], index) =>
         addAlunAlunTree(
@@ -1600,6 +1708,7 @@ export function createAlunAlunModelFactory({
       ...ALUN_ALUN_TRAFFIC_COLLISION_OBSTACLES.filter(
         (obstacle) => obstacle.playerCollision !== false,
       ),
+      ...ALUN_ALUN_SOUTH_PROMENADE_COLLISION_OBSTACLES,
       { north: 30.82, east: 23.74, width: 6.65, depth: 4.8, yaw: 0.145 },
       { north: -23.52, east: -7.97, width: 2.85, depth: 3.29 },
       { north: -26.0, east: -8.06, width: 3.06, depth: 3.59 },
@@ -1641,6 +1750,7 @@ export function createAlunAlunModelFactory({
       surfaces: [
         ...ALUN_ALUN_PARK_NAVIGATION_SURFACES,
         ...ALUN_ALUN_FRONTAGE_NAVIGATION_SURFACES,
+        ...ALUN_ALUN_SOUTH_CORRIDOR_NAVIGATION_SURFACES,
       ],
     };
 
