@@ -901,28 +901,30 @@ export const ALUN_ALUN_WEST_GREEN_EDGE_WHITE_LINES = Object.freeze([
 ]);
 
 // Mature trees form the continuous shaded wall visible along both sides of
-// the real corridor. Park-side trunks sit 1.70 m behind the blue-white curb
-// and leave the central checker entrance open; property-side trunks remain
-// behind the school/mosque frontage and therefore never consume the tread.
+// the real corridor. Street View places the park-side row slightly beyond the
+// middle of the broad pedestrian ring, nearer its inner lawn boundary than the
+// blue-white road curb. Keep the natural station jitter and central checker
+// entrance open; property-side trunks remain behind the school/mosque
+// frontage and therefore never consume the tread.
 export const ALUN_ALUN_WEST_PARK_TREE_CENTERS = freezePath([
-  [9.5301641229, -17.0605672659],
-  [8.1734942416, -16.7079388027],
-  [7.1054629678, -16.588736461],
-  [5.7629973244, -16.1675642918],
-  [4.8067359422, -16.0510989794],
-  [3.528755651, -15.6637149641],
-  [2.2429181983, -15.5606516569],
-  [-2.2410907107, -14.5293107317],
-  [-3.6359610258, -14.3117405036],
-  [-4.524292174, -14.0153155197],
-  [-5.9256039458, -13.8781101325],
-  [-7.1333652803, -13.5461273639],
-  [-8.145287455, -13.254728132],
-  [-9.5425408732, -13.0979388286],
-  [-10.4447223331, -12.819068584],
-  [-11.7592278073, -12.6079398125],
-  [-12.9980402665, -12.2286725046],
-  [-14.0215240302, -12.19018893],
+  [9.9765830271, -14.9063365071],
+  [8.6199131458, -14.5537080439],
+  [7.551881872, -14.4345057022],
+  [6.2094162286, -14.013333533],
+  [5.2531548464, -13.8968682206],
+  [3.9751745552, -13.5094842053],
+  [2.6893371025, -13.4064208981],
+  [-1.7946718065, -12.3750799729],
+  [-3.1895421216, -12.1575097448],
+  [-4.0778732698, -11.8610847609],
+  [-5.4791850416, -11.7238793737],
+  [-6.6869463761, -11.3918966051],
+  [-7.6988685508, -11.1004973732],
+  [-9.096121969, -10.9437080698],
+  [-9.9983034289, -10.6648378252],
+  [-11.3128089031, -10.4537090537],
+  [-12.5516213623, -10.0744417458],
+  [-13.575105126, -10.0359581712],
 ]);
 export const ALUN_ALUN_WEST_PROPERTY_TREE_CENTERS = freezePath([
   [10.2, -21.6],
@@ -2302,7 +2304,7 @@ export function createAlunAlunTrafficFactory({
       const bench = new THREE.Group();
       bench.position.set(north, 0.075, east);
       bench.rotation.y =
-        -Math.atan2(westParkEdgeDelta[1], westParkEdgeDelta[0]);
+        -Math.atan2(westParkEdgeDelta[1], westParkEdgeDelta[0]) + Math.PI;
       const seat = new THREE.Mesh(
         roundedBox(0.72, 0.07, 0.24, 0.018),
         westBenchMaterial,

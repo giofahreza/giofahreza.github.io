@@ -4089,6 +4089,9 @@ function validateWestLocalCorridorDefinition() {
   validateCenters("west utility row", ALUN_ALUN_WEST_UTILITY_SUPPORTS, 6);
 
   let minimumPlacementClearance = Infinity;
+  let minimumParkTreeInnerClearance = Infinity;
+  let minimumParkTreeRoadCurbClearance = Infinity;
+  let maximumParkTreeRoadCurbClearance = -Infinity;
   const validateClearDisk = (label, center, radius) => {
     if (
       diskIntersectsCompleteWestAsphalt(center, radius) ||
@@ -4121,15 +4124,51 @@ function validateWestLocalCorridorDefinition() {
     const trunkBaseRadius = (1.3 + (index % 3) * 0.14) * 0.12 * 0.42;
     const treeWellRadius = 0.29;
     const footprintRadius = Math.max(trunkBaseRadius, treeWellRadius);
+    const roadCurbClearance = pointToPolygonBoundary(
+      center,
+      ALUN_ALUN_PARK_OUTLINE,
+    );
+    const innerBoundaryClearance = pointToPolygonBoundary(
+      center,
+      ALUN_ALUN_PARK_LAWN_OUTLINE,
+    );
     if (
       !pointInsidePolygon(center, ALUN_ALUN_PARK_OUTLINE) ||
-      pointToPolygonBoundary(center, ALUN_ALUN_PARK_OUTLINE) <=
-        footprintRadius + 1e-8
+      roadCurbClearance <= footprintRadius + 1e-8
     ) {
       throw new Error(
         `west park tree ${index + 1} footprint crosses the blue curb`,
       );
     }
+    if (
+      pointInsideOrOnPolygon(center, ALUN_ALUN_PARK_LAWN_OUTLINE) ||
+      innerBoundaryClearance <= footprintRadius + 1e-8
+    ) {
+      throw new Error(
+        `west park tree ${index + 1} footprint crosses the pedestrian ring's inner lawn boundary`,
+      );
+    }
+    if (
+      roadCurbClearance <= innerBoundaryClearance + 1e-8 ||
+      roadCurbClearance < 2.5 - 1e-8 ||
+      roadCurbClearance > 2.8 + 1e-8
+    ) {
+      throw new Error(
+        `west park tree ${index + 1} must stay slightly beyond the pedestrian-ring midpoint toward its inner boundary`,
+      );
+    }
+    minimumParkTreeInnerClearance = Math.min(
+      minimumParkTreeInnerClearance,
+      innerBoundaryClearance - footprintRadius,
+    );
+    minimumParkTreeRoadCurbClearance = Math.min(
+      minimumParkTreeRoadCurbClearance,
+      roadCurbClearance,
+    );
+    maximumParkTreeRoadCurbClearance = Math.max(
+      maximumParkTreeRoadCurbClearance,
+      roadCurbClearance,
+    );
     validateClearDisk(`west park tree ${index + 1}`, center, footprintRadius);
   });
   ALUN_ALUN_WEST_PROPERTY_TREE_CENTERS.forEach((center, index) => {
@@ -4183,10 +4222,13 @@ function validateWestLocalCorridorDefinition() {
       trafficSource,
     ) ||
     !/ALUN_ALUN_WEST_GREEN_EDGE_OUTLINES\.forEach\(/.test(trafficSource) ||
-    !/ALUN_ALUN_WEST_UTILITY_SUPPORTS\.map\(/.test(trafficSource)
+    !/ALUN_ALUN_WEST_UTILITY_SUPPORTS\.map\(/.test(trafficSource) ||
+    !/bench\.rotation\.y\s*=\s*-Math\.atan2\(\s*westParkEdgeDelta\[1\],\s*westParkEdgeDelta\[0\]\s*\)\s*\+\s*Math\.PI;/s.test(
+      trafficSource,
+    )
   ) {
     throw new Error(
-      "KH Wahid Hasyim asphalt, markings, sidewalk, curb, and utilities must render from their shared audited definitions at road/sidewalk height",
+      "KH Wahid Hasyim asphalt, markings, sidewalk, curb, utilities, and west-facing park benches must retain their audited rendering",
     );
   }
   const landmarkSource = readFileSync(PRODUCTION_FLEET_SOURCE_URL, "utf8");
@@ -4215,6 +4257,9 @@ function validateWestLocalCorridorDefinition() {
     asphaltExteriorSamples,
     greenEdgeSamples,
     minimumPlacementClearance,
+    minimumParkTreeInnerClearance,
+    minimumParkTreeRoadCurbClearance,
+    maximumParkTreeRoadCurbClearance,
     parkTreeCount: ALUN_ALUN_WEST_PARK_TREE_CENTERS.length,
     propertyTreeCount: ALUN_ALUN_WEST_PROPERTY_TREE_CENTERS.length,
     sidewalkWidth: ALUN_ALUN_WEST_PROPERTY_SIDEWALK_WIDTH,
@@ -5383,6 +5428,10 @@ if (
       `${westLocalCorridorResult.utilitySupportCount} utility supports clear ` +
       `the road/tread; minimum complete-footprint clearance ` +
       `${formatDistance(westLocalCorridorResult.minimumPlacementClearance)}; ` +
+      `park row ${formatDistance(westLocalCorridorResult.minimumParkTreeRoadCurbClearance)}` +
+      `–${formatDistance(westLocalCorridorResult.maximumParkTreeRoadCurbClearance)} ` +
+      `inside the road curb with ${formatDistance(westLocalCorridorResult.minimumParkTreeInnerClearance)} ` +
+      `minimum inner-boundary clearance; ` +
       `${westLocalCorridorResult.greenEdgeSamples.toLocaleString("en-US")} ` +
       `green-edge asphalt ownership samples.`,
   );
