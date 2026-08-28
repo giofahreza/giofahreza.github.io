@@ -30,6 +30,7 @@ import {
   ALUN_ALUN_SOUTH_PARK_BENCH_DEFINITIONS,
   ALUN_ALUN_SOUTH_PARK_TREE_CENTERS,
   ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION,
+  ALUN_ALUN_SOUTHEAST_ROAD_RIBBON_DEFINITIONS,
   ALUN_ALUN_TRAFFIC_LANE_OFFSETS,
   ALUN_ALUN_TRAFFIC_MINIMUM_SPEED,
   ALUN_ALUN_TRAFFIC_ROUTE_DEFINITIONS,
@@ -75,6 +76,7 @@ import {
   ALUN_ALUN_TRAFFIC_COLLISION_OBSTACLES,
 } from "../src/features/landmarks/alun-alun/index.js";
 import { createStops } from "../src/data/stops.js";
+import { ALUN_ALUN_GENERATED_ROAD_REPLACEMENTS } from "../src/features/landmarks/alun-alun/generated-road-mask.js";
 
 const MAP_METERS_PER_WORLD_UNIT = 5;
 const SAMPLE_SPACING = 0.02;
@@ -1051,6 +1053,26 @@ function polygonArea(polygon) {
     twiceArea += point[0] * next[1] - next[0] * point[1];
   });
   return Math.abs(twiceArea) * 0.5;
+}
+
+function polygonCentroid(polygon) {
+  let signedTwiceArea = 0;
+  let weightedNorth = 0;
+  let weightedEast = 0;
+  polygon.forEach((point, index) => {
+    const next = polygon[(index + 1) % polygon.length];
+    const cross = point[0] * next[1] - next[0] * point[1];
+    signedTwiceArea += cross;
+    weightedNorth += (point[0] + next[0]) * cross;
+    weightedEast += (point[1] + next[1]) * cross;
+  });
+  if (Math.abs(signedTwiceArea) < 1e-12) {
+    throw new Error("cannot derive centroid of a degenerate polygon");
+  }
+  return [
+    weightedNorth / (3 * signedTwiceArea),
+    weightedEast / (3 * signedTwiceArea),
+  ];
 }
 
 function pointDistance(first, second) {
@@ -2112,7 +2134,7 @@ function validateSoutheastJunctionDefinition() {
     },
     {
       key: "F",
-      label: "Ahmad Jafar showroom-side asphalt hardstand",
+      label: "Ahmad Jafar rounded-corner asphalt hardstand",
       polygon: definition.openFrontageAsphaltOutline,
     },
     {
@@ -2135,66 +2157,167 @@ function validateSoutheastJunctionDefinition() {
     validateFiniteSimplePolygon(label, polygon),
   );
   validateFiniteSimplePolygon(
-    "rendered diagonal showroom approach",
-    definition.showroomApproachSurfaceOutline,
+    "rendered diagonal Hasanudin approach",
+    definition.hasanudinApproachSurfaceOutline,
   );
-  const southeastReturn = definition.cornerReturns?.southeast;
+  const cornerReturns = definition.cornerReturns;
+  const validateCubicReturn = (
+    key,
+    label,
+    { maximumHeadingStep = 0.5 } = {},
+  ) => {
+    const cornerReturn = cornerReturns?.[key];
+    if (
+      !cornerReturn ||
+      !Array.isArray(cornerReturn.controls) ||
+      cornerReturn.controls.length !== 4 ||
+      !Array.isArray(cornerReturn.path) ||
+      cornerReturn.path.length !== 7 ||
+      [...cornerReturn.controls, ...cornerReturn.path].some(
+        (point) =>
+          !Array.isArray(point) ||
+          point.length !== 2 ||
+          !point.every(isFiniteNumber),
+      )
+    ) {
+      throw new Error(
+        `${label} curb return must expose four finite controls and seven finite samples`,
+      );
+    }
+
+    const expectedPath = cornerReturn.path.map((point, index) => {
+      const amount = index / (cornerReturn.path.length - 1);
+      const inverse = 1 - amount;
+      return [0, 1].map(
+        (axis) =>
+          inverse ** 3 * cornerReturn.controls[0][axis] +
+          3 * inverse ** 2 * amount * cornerReturn.controls[1][axis] +
+          3 * inverse * amount ** 2 * cornerReturn.controls[2][axis] +
+          amount ** 3 * cornerReturn.controls[3][axis],
+      );
+    });
+    if (
+      !samePoint(cornerReturn.path[0], cornerReturn.controls[0], 1e-12) ||
+      !samePoint(
+        cornerReturn.path.at(-1),
+        cornerReturn.controls.at(-1),
+        1e-12,
+      ) ||
+      cornerReturn.path.some(
+        (point, index) => !samePoint(point, expectedPath[index], 1e-9),
+      )
+    ) {
+      throw new Error(
+        `${label} curb return must retain the exact six-segment cubic sampling`,
+      );
+    }
+
+    const segmentHeadings = [];
+    let sampledLength = 0;
+    for (let index = 1; index < cornerReturn.path.length; index += 1) {
+      const previous = cornerReturn.path[index - 1];
+      const point = cornerReturn.path[index];
+      const segmentLength = pointDistance(previous, point);
+      if (segmentLength <= 1e-6) {
+        throw new Error(`${label} curb return contains a degenerate segment`);
+      }
+      sampledLength += segmentLength;
+      segmentHeadings.push(
+        Math.atan2(point[1] - previous[1], point[0] - previous[0]),
+      );
+    }
+
+    const headingSteps = segmentHeadings.slice(1).map((heading, index) =>
+      Math.atan2(
+        Math.sin(heading - segmentHeadings[index]),
+        Math.cos(heading - segmentHeadings[index]),
+      ),
+    );
+    const accumulatedTurn = headingSteps.reduce(
+      (total, step) => total + Math.abs(step),
+      0,
+    );
+    const derivativeIsDegenerate = Array.from(
+      { length: 25 },
+      (_, index) => index / 24,
+    ).some((amount) => {
+      const inverse = 1 - amount;
+      const derivative = [0, 1].map(
+        (axis) =>
+          3 *
+          (inverse ** 2 *
+            (cornerReturn.controls[1][axis] -
+              cornerReturn.controls[0][axis]) +
+            2 *
+              inverse *
+              amount *
+              (cornerReturn.controls[2][axis] -
+                cornerReturn.controls[1][axis]) +
+            amount ** 2 *
+              (cornerReturn.controls[3][axis] -
+                cornerReturn.controls[2][axis])),
+      );
+      return Math.hypot(...derivative) <= 1e-6;
+    });
+    if (
+      pointDistance(cornerReturn.path[0], cornerReturn.path.at(-1)) <= 0.1 ||
+      sampledLength <= 0.1 ||
+      derivativeIsDegenerate ||
+      accumulatedTurn <= 0.05 ||
+      headingSteps.some((step) => Math.abs(step) > maximumHeadingStep)
+    ) {
+      throw new Error(
+        `${label} curb return must remain a smooth, non-degenerate radius without a sharp chord`,
+      );
+    }
+    return cornerReturn;
+  };
+
+  const southwestReturn = validateCubicReturn("southwest", "south-west");
+  const southeastReturn = validateCubicReturn("southeast", "south-east", {
+    maximumHeadingStep: 0.15,
+  });
+  const northeastReturn = validateCubicReturn("northeast", "north-east");
+  const northwestReturn = validateCubicReturn("northwest", "north-west");
   if (
-    !southeastReturn ||
-    !Array.isArray(southeastReturn.controls) ||
-    southeastReturn.controls.length !== 4 ||
-    !Array.isArray(southeastReturn.path) ||
-    southeastReturn.path.length !== 7 ||
     !Array.isArray(southeastReturn.asphaltOutline) ||
     southeastReturn.asphaltOutline.length !== 8 ||
-    southeastReturn.controls.flat().some((value) => !isFiniteNumber(value)) ||
-    !samePoint(southeastReturn.path[0], southeastReturn.controls[0], 1e-12) ||
-    !samePoint(southeastReturn.path.at(-1), southeastReturn.controls.at(-1), 1e-12) ||
-    southeastReturn.path.some((point, index) => {
-      const amount = index / (southeastReturn.path.length - 1);
-      const inverse = 1 - amount;
-      const expected = [0, 1].map(
-        (axis) =>
-          inverse ** 3 * southeastReturn.controls[0][axis] +
-          3 * inverse ** 2 * amount * southeastReturn.controls[1][axis] +
-          3 * inverse * amount ** 2 * southeastReturn.controls[2][axis] +
-          amount ** 3 * southeastReturn.controls[3][axis],
-      );
-      return !samePoint(point, expected, 1e-9);
-    }) ||
-    southeastReturn.path.some(
-      (point) =>
-        !Array.isArray(point) ||
-        point.length !== 2 ||
-        !point.every(isFiniteNumber),
-    ) ||
     southeastReturn.path.slice(1).some(
       (point, index) =>
         point[0] <= southeastReturn.path[index][0] ||
         point[1] <= southeastReturn.path[index][1],
-    ) ||
-    southeastReturn.path.slice(1, -1).some((point, index) => {
-      const previous = southeastReturn.path[index];
-      const next = southeastReturn.path[index + 2];
-      const firstHeading = Math.atan2(
-        point[1] - previous[1],
-        point[0] - previous[0],
-      );
-      const secondHeading = Math.atan2(
-        next[1] - point[1],
-        next[0] - point[0],
-      );
-      const headingStep = Math.abs(
-        Math.atan2(
-          Math.sin(secondHeading - firstHeading),
-          Math.cos(secondHeading - firstHeading),
-        ),
-      );
-      return headingStep > 0.15;
-    })
+    )
   ) {
     throw new Error(
-      "Ahmad Jafar south-east curb return must retain a smooth sampled cubic radius without a sharp chord",
+      "Ahmad Jafar south-east curb return must retain its eight-point asphalt fill and monotonic radius",
+    );
+  }
+
+  const findContiguousPath = (outline, path) =>
+    outline.findIndex(
+      (_point, startIndex) =>
+        startIndex + path.length <= outline.length &&
+        path.every((pathPoint, offset) =>
+          samePoint(outline[startIndex + offset], pathPoint, 1e-9),
+        ),
+    );
+  if (findContiguousPath(ALUN_ALUN_PARK_OUTLINE, southwestReturn.path) < 0) {
+    throw new Error(
+      "south-west curb return must remain an exact shared boundary of the park outline",
+    );
+  }
+  const reversedNorthReturns = [
+    ...[...northeastReturn.path].reverse(),
+    ...[...northwestReturn.path].reverse(),
+  ];
+  if (
+    findContiguousPath(
+      ALUN_ALUN_WESTERN_ASPHALT_UNION_OUTLINE,
+      reversedNorthReturns,
+    ) < 0
+  ) {
+    throw new Error(
+      "north-east and north-west curb returns must remain consecutive reversed boundaries of the western asphalt union",
     );
   }
   for (let first = 0; first < asphaltOwners.length; first += 1) {
@@ -2298,6 +2421,20 @@ function validateSoutheastJunctionDefinition() {
     );
   }
 
+  const compactLoopReplacement = ALUN_ALUN_GENERATED_ROAD_REPLACEMENTS.find(
+    ({ label }) => label === "compact junction loop",
+  );
+  const compactLoopCoordinates = compactLoopReplacement?.coordinates ?? [];
+  const compactLoopWorldPolygon = [];
+  for (let index = 0; index < compactLoopCoordinates.length; index += 2) {
+    compactLoopWorldPolygon.push([
+      compactLoopCoordinates[index + 1] /
+        (10 * MAP_METERS_PER_WORLD_UNIT),
+      compactLoopCoordinates[index] /
+        (10 * MAP_METERS_PER_WORLD_UNIT),
+    ]);
+  }
+  const expectedMonumentCenter = polygonCentroid(compactLoopWorldPolygon);
   const island = definition.monumentIsland;
   if (
     !island ||
@@ -2316,7 +2453,7 @@ function validateSoutheastJunctionDefinition() {
       island.visualHeight,
       island.modelScale,
     ].every(isFiniteNumber) ||
-    !samePoint(island.center, [21.9, 13.24], 1e-12) ||
+    !samePoint(island.center, expectedMonumentCenter, 1e-12) ||
     Math.abs(island.width - 0.86) > 1e-12 ||
     Math.abs(island.depth - 0.54) > 1e-12 ||
     Math.abs(island.curbHeight - 0.04) > 1e-12 ||
@@ -2444,16 +2581,16 @@ function validateSoutheastJunctionDefinition() {
   const barrierFrontage = definition.showroom;
   const barrierCosine = Math.cos(barrierFrontage.yaw);
   const barrierSine = Math.sin(barrierFrontage.yaw);
-  const barrierLocalZ = barrierFrontage.depth * 0.5 + 0.12;
+  const barrierLocalX = -barrierFrontage.width * 0.5 - 0.12;
   const expectedBarrierSupports = [-0.78, -0.26, 0.26, 0.78].map(
-    (localX) => ({
+    (localZ) => ({
       center: [
         barrierFrontage.center[0] +
-          localX * barrierCosine + barrierLocalZ * barrierSine,
+          barrierLocalX * barrierCosine + localZ * barrierSine,
         barrierFrontage.center[1] -
-          localX * barrierSine + barrierLocalZ * barrierCosine,
+          barrierLocalX * barrierSine + localZ * barrierCosine,
       ],
-      yaw: barrierFrontage.yaw + Math.PI * 0.5,
+      yaw: barrierFrontage.yaw,
     }),
   );
   if (
@@ -2515,9 +2652,7 @@ function validateSoutheastJunctionDefinition() {
     Math.abs(parcel.sidewalkHeight - ALUN_ALUN_FRONTAGE_SIDEWALK_Y) > 1e-12 ||
     Math.abs(parcel.apronHeight - ALUN_ALUN_FRONTAGE_APRON_Y) > 1e-12 ||
     Math.abs(parcel.noseHardstandHeight - ALUN_ALUN_ROAD_SURFACE_Y) > 1e-12 ||
-    Math.abs(
-      parcel.forecourtHeight - (ALUN_ALUN_ROAD_SURFACE_Y + 0.001),
-    ) > 1e-12
+    Math.abs(parcel.forecourtHeight - ALUN_ALUN_ROAD_SURFACE_Y) > 1e-12
   ) {
     throw new Error(
       "Ahmad Jafar frontage must retain its flush nose and distant tapered tread height stack",
@@ -2532,16 +2667,29 @@ function validateSoutheastJunctionDefinition() {
     validateFiniteSimplePolygon(label, polygon);
   }
   const originalParcelArea = 19.537550290236766;
-  const splitParcelArea =
-    polygonArea(parcel.noseHardstandOutline) + polygonArea(parcel.landOutline);
+  const parcelPartition = [
+    parcel.noseHardstandOutline,
+    parcel.landOutline,
+    parcel.sidewalkOutline,
+    parcel.apronOutline,
+  ];
+  const splitParcelArea = parcelPartition.reduce(
+    (total, polygon) => total + polygonArea(polygon),
+    0,
+  );
+  const partitionHasInteriorOverlap = parcelPartition.some(
+    (first, firstIndex) =>
+      parcelPartition.some(
+        (second, secondIndex) =>
+          secondIndex > firstIndex &&
+          polygonsHaveInteriorOverlap2D(first, second),
+      ),
+  );
   if (
     parcel.noseHardstandOutline.length !== 6 ||
-    parcel.landOutline.length !== 6 ||
+    parcel.landOutline.length !== 8 ||
     Math.abs(splitParcelArea - originalParcelArea) > 1e-9 ||
-    polygonsHaveInteriorOverlap2D(
-      parcel.noseHardstandOutline,
-      parcel.landOutline,
-    ) ||
+    partitionHasInteriorOverlap ||
     !polygonsOverlapOrTouch(parcel.noseHardstandOutline, parcel.landOutline) ||
     !samePoint(
       parcel.noseHardstandOutline.at(-2),
@@ -2555,7 +2703,7 @@ function validateSoutheastJunctionDefinition() {
     )
   ) {
     throw new Error(
-      "Ahmad Jafar parcel nose and retained frontage must form one area-preserving, meet-only split",
+      "Ahmad Jafar parcel asphalt and narrow pedestrian bands must form one area-preserving, meet-only partition",
     );
   }
   const parcelPaths = [parcel.roadsideSeam, parcel.curbCenterline, parcel.clearTreadInner];
@@ -2667,9 +2815,66 @@ function validateSoutheastJunctionDefinition() {
     throw new Error("Ahmad Jafar asphalt hardstand leaves a raw-ground sample");
   }
 
+  const renderedRoadRibbonTriangles =
+    ALUN_ALUN_SOUTHEAST_ROAD_RIBBON_DEFINITIONS.flatMap(
+      ({ label, points, width }) => {
+        const geometry = createAlunAlunRoadRibbonGeometry(points, width);
+        try {
+          const positions = geometry.getAttribute("position");
+          const indices = geometry.getIndex();
+          if (
+            !positions ||
+            !indices ||
+            indices.count === 0 ||
+            indices.count % 3 !== 0
+          ) {
+            throw new Error(
+              `${label} must render as one indexed road-ribbon triangle set`,
+            );
+          }
+          return Array.from(
+            { length: indices.count / 3 },
+            (_, triangleIndex) => {
+              const triangle = [0, 1, 2].map((cornerIndex) => {
+                const vertexIndex = indices.getX(
+                  triangleIndex * 3 + cornerIndex,
+                );
+                return [
+                  positions.getX(vertexIndex),
+                  positions.getZ(vertexIndex),
+                ];
+              });
+              validateFiniteSimplePolygon(
+                `${label} rendered triangle ${triangleIndex + 1}`,
+                triangle,
+              );
+              return triangle;
+            },
+          );
+        } finally {
+          geometry.dispose();
+        }
+      },
+    );
+  const expectedRoadRibbonTriangleCount =
+    ALUN_ALUN_SOUTHEAST_ROAD_RIBBON_DEFINITIONS.reduce(
+      (total, { points }) => total + (points.length - 1) * 2,
+      0,
+    );
+  if (
+    renderedRoadRibbonTriangles.length !== expectedRoadRibbonTriangleCount
+  ) {
+    throw new Error(
+      "southeast road-ribbon triangle extraction drifted from the rendered geometry",
+    );
+  }
+
   const renderedVehicleSurfaces = [
     ...asphaltOwners.map(({ polygon }) => polygon),
-    definition.showroomApproachSurfaceOutline,
+    ...renderedRoadRibbonTriangles,
+    definition.hasanudinApproachSurfaceOutline,
+    definition.hasanudinHardstand.outline,
+    parcel.landOutline,
   ];
   const dwiConnector = definition.dwiPutriFrontageConnector;
   const dwiCurveSampleCount = 7;
@@ -2696,7 +2901,8 @@ function validateSoutheastJunctionDefinition() {
       );
       return !samePoint(point, expected, 1e-9);
     }) ||
-    Math.abs(polygonArea(dwiConnector.outline) - 0.424747273706089) > 1e-12 ||
+    Math.abs(polygonArea(dwiConnector.outline) - 0.45600667082953805) >
+      1e-12 ||
     !samePoint(dwiConnector.outline[6], northWestApron[0], 1e-10) ||
     !samePoint(dwiConnector.outline[7], northWestApron.at(-1), 1e-10) ||
     polygonsHaveInteriorOverlap2D(dwiConnector.outline, northWestApron) ||
@@ -2714,7 +2920,10 @@ function validateSoutheastJunctionDefinition() {
     dwiConnector.outline,
   );
 
-  let retainedParcelSamples = 0;
+  let retainedParcelSamples = polygonTriangles(
+    "Ahmad Jafar parcel asphalt backing",
+    parcel.landOutline,
+  ).length;
   const raisedOpeningSurfaces = [
     [
       "south-approach sidewalk",
@@ -2726,7 +2935,10 @@ function validateSoutheastJunctionDefinition() {
     ],
     ["east parcel sidewalk", parcel.sidewalkOutline],
     ["east parcel frontage apron", parcel.apronOutline],
+    ["SEWA Billboard roadside sidewalk", definition.showroom.sidewalkOutline],
+    ["SEWA Billboard facade apron", definition.showroom.forecourtOutline],
     ["DWI PUTRI storefront connector", dwiConnector.outline],
+    ["park protected ceramic", ALUN_ALUN_PARK_OUTLINE],
     ...["northWest", "northEast"].flatMap((routeName) => {
       const route = ALUN_ALUN_PEDESTRIAN_ROUTE_DEFINITIONS[routeName];
       return [
@@ -2787,16 +2999,139 @@ function validateSoutheastJunctionDefinition() {
       );
     }
   }
+
+  // Straight production routes alone cannot catch a sidewalk that clips the
+  // turning fan. Sweep the widest live vehicle through both south/east turns,
+  // requiring its complete footprint to stay on rendered road and clear every
+  // raised corner band and shared collision obstacle.
+  const syntheticTurnDefinitions = [
+    {
+      label: "south-to-east",
+      points: [
+        [13.2, 14.4],
+        [16, 13.75],
+        [18.7, 13.45],
+        [20.2, 13.7],
+        [21.25, 14.35],
+        [22.2, 15.65],
+        [22.85, 17.4],
+        [23.7, 20.6],
+        [24.8, 25.2],
+      ],
+    },
+    {
+      label: "east-to-south",
+      points: [
+        // Join the exact production mainWestbound and crossSouthbound
+        // centrelines. The previous synthetic diagonal ran between the two
+        // east ribbons, so a broad infill polygon concealed that it did not
+        // represent a lane a live vehicle can actually follow.
+        [24.98, 27.88],
+        [22.6, 19.22],
+        [21.34, 15.35],
+        [21.12, 14.68],
+        [20.52, 14.22],
+        [17.44, 14.86],
+        [10.06, 15.2],
+      ],
+    },
+  ];
+  const maximumTurnHalfLength = Math.max(
+    ...Object.values(ROUTE_SWEPT_HALF_LENGTHS),
+  );
+  const maximumTurnHalfWidth = Math.max(
+    ...Object.values(ROUTE_SWEPT_HALF_WIDTHS),
+  );
+  const collisionObstaclePolygons = ALUN_ALUN_TRAFFIC_COLLISION_OBSTACLES
+    .filter(({ playerCollision }) => playerCollision !== false)
+    .map((obstacle) => {
+      const envelope = obstacleEnvelope(obstacle);
+      return {
+        label: obstacle.label,
+        polygon: [
+          [-1, -1],
+          [-1, 1],
+          [1, 1],
+          [1, -1],
+        ].map(([widthSide, depthSide]) => [
+          envelope.center[0] +
+            envelope.widthAxis[0] * envelope.halfWidth * widthSide +
+            envelope.depthAxis[0] * envelope.halfDepth * depthSide,
+          envelope.center[1] +
+            envelope.widthAxis[1] * envelope.halfWidth * widthSide +
+            envelope.depthAxis[1] * envelope.halfDepth * depthSide,
+        ]),
+      };
+    });
+  let turningRoadSamples = 0;
+  let turningClearanceComparisons = 0;
+  let minimumTurningClearance = Infinity;
+  for (const turnDefinition of syntheticTurnDefinitions) {
+    const turnRoute = buildRoute(turnDefinition.label, {
+      points: turnDefinition.points,
+      stopIndex: 0,
+    });
+    const sampleCount = Math.ceil(turnRoute.length / SAMPLE_SPACING);
+    for (let sampleIndex = 0; sampleIndex <= sampleCount; sampleIndex += 1) {
+      const distance = (sampleIndex / sampleCount) * turnRoute.length;
+      const sample = sampleLane(turnRoute, distance, 0);
+      const sweptVehicle = vehiclePolygon(
+        sample,
+        maximumTurnHalfLength,
+        maximumTurnHalfWidth,
+      );
+      const unsupportedCorner = sweptVehicle.find(
+        (corner) =>
+          !renderedVehicleSurfaces.some((polygon) =>
+            pointInsideOrOnPolygon(corner, polygon),
+          ),
+      );
+      if (unsupportedCorner) {
+        throw new Error(
+          `Ahmad Jafar ${turnDefinition.label} swept turn leaves rendered road ` +
+            `at center ${formatCoordinate(sample.north)}/${formatCoordinate(sample.east)} ` +
+            `(corner ${formatCoordinate(unsupportedCorner[0])}/${formatCoordinate(unsupportedCorner[1])})`,
+        );
+      }
+      for (const raisedSurface of raisedOpeningSurfaces) {
+        for (const triangle of raisedSurface.triangles) {
+          const gap = polygonPairGap(sweptVehicle, triangle);
+          turningClearanceComparisons += 1;
+          minimumTurningClearance = Math.min(minimumTurningClearance, gap);
+          if (gap < REQUIRED_CLEARANCE) {
+            throw new Error(
+              `Ahmad Jafar ${turnDefinition.label} swept turn is obstructed by ` +
+                `${raisedSurface.label} (${formatDistance(gap)})`,
+            );
+          }
+        }
+      }
+      for (const obstacle of collisionObstaclePolygons) {
+        const gap = polygonPairGap(sweptVehicle, obstacle.polygon);
+        turningClearanceComparisons += 1;
+        minimumTurningClearance = Math.min(minimumTurningClearance, gap);
+        if (gap < REQUIRED_CLEARANCE) {
+          throw new Error(
+            `Ahmad Jafar ${turnDefinition.label} swept turn is obstructed by ` +
+              `${obstacle.label} (${formatDistance(gap)})`,
+          );
+        }
+      }
+      turningRoadSamples += 1;
+    }
+  }
   if (
     openingRaisedSurfaceComparisons === 0 ||
-    !Number.isFinite(minimumOpeningRaisedSurfaceGap)
+    !Number.isFinite(minimumOpeningRaisedSurfaceGap) ||
+    turningRoadSamples < 500 ||
+    turningClearanceComparisons === 0 ||
+    !Number.isFinite(minimumTurningClearance)
   ) {
     throw new Error(
-      "Ahmad Jafar south/east road openings did not inspect their raised corner surfaces",
+      "Ahmad Jafar south/east road openings and swept turns did not inspect their complete corner clearances",
     );
   }
   for (const [label, polygon] of [
-    ["land", parcel.landOutline],
     ["sidewalk", parcel.sidewalkOutline],
     ["apron", parcel.apronOutline],
   ]) {
@@ -2851,78 +3186,66 @@ function validateSoutheastJunctionDefinition() {
       frontage.width,
       frontage.depth,
       frontage.yaw,
-      frontage.visualScaleX,
-      frontage.visualScaleZ,
+      frontage.sidewalkHeight,
       frontage.forecourtHeight,
     ].every(isFiniteNumber) ||
     frontage.width <= 0 ||
     frontage.depth <= 0 ||
-    frontage.replacementBuildingIndex !== 617 ||
-    frontage.suppressedOccluderBuildingIndex !== 567 ||
+    frontage.replacementBuildingIndex !== 2122 ||
     !REPLACEMENT_BUILDING_INDEXES.has(frontage.replacementBuildingIndex) ||
-    !REPLACEMENT_BUILDING_INDEXES.has(
-      frontage.suppressedOccluderBuildingIndex,
-    ) ||
-    !samePoint(
-      frontage.center,
-      [16.197676033197446, 18.23039941252672],
-      1e-12,
-    ) ||
-    Math.abs(frontage.width - 1.9) > 1e-12 ||
-    Math.abs(frontage.depth - 2.64) > 1e-12 ||
-    Math.abs(frontage.yaw - -2.7554) > 1e-12 ||
-    frontage.facadeSide !== "localPositiveZ" ||
-    Math.abs(frontage.width - frontage.visualScaleX) > 1e-12 ||
-    Math.abs(frontage.depth - frontage.visualScaleZ * 2.4) > 1e-12 ||
-    Math.abs(
-      frontage.forecourtHeight - ALUN_ALUN_ROAD_SURFACE_Y,
-    ) > 1e-12
+    REPLACEMENT_BUILDING_INDEXES.has(567) ||
+    REPLACEMENT_BUILDING_INDEXES.has(617) ||
+    !samePoint(frontage.center, [30.82, 23.74], 1e-12) ||
+    Math.abs(frontage.width - 6.22) > 1e-12 ||
+    Math.abs(frontage.depth - 4.32) > 1e-12 ||
+    Math.abs(frontage.yaw - 0.1465036732051035) > 1e-12 ||
+    frontage.facadeSide !== "localNegativeX" ||
+    Math.abs(frontage.sidewalkHeight - ALUN_ALUN_FRONTAGE_SIDEWALK_Y) >
+      1e-12 ||
+    Math.abs(frontage.forecourtHeight - ALUN_ALUN_FRONTAGE_APRON_Y) > 1e-12
   ) {
     throw new Error(
-      "SEWA Billboard showroom must replace road-edge OSM 617, suppress rear duplicate 567, and retain matching render/collision dimensions",
+      "SEWA Billboard must replace OSM 2122 while separate OSM 567/617 buildings remain mapped",
     );
   }
-  validateCollisionParity("SEWA Billboard corner showroom", frontage);
+  validateCollisionParity("Bakti Motor / SEWA Billboard workshop", frontage);
   validateFiniteSimplePolygon(
-    "SEWA Billboard flush weathered forecourt",
+    "SEWA Billboard roadside sidewalk",
+    frontage.sidewalkOutline,
+  );
+  validateFiniteSimplePolygon(
+    "SEWA Billboard facade apron",
     frontage.forecourtOutline,
   );
-  const approachRoadEdge = [
-    definition.showroomApproachSurfaceOutline[1],
-    definition.showroomApproachSurfaceOutline[2],
-  ];
-  const forecourtRoadSeamPoints = frontage.forecourtOutline.filter((point) =>
-    pointOnSegment2D(point, approachRoadEdge[0], approachRoadEdge[1], 1e-8),
-  );
   if (
-    polygonArea(frontage.forecourtOutline) < 6 ||
-    forecourtRoadSeamPoints.length < 2 ||
-    pointDistance(
-      forecourtRoadSeamPoints[0],
-      forecourtRoadSeamPoints.at(-1),
-    ) < 0.25
+    frontage.facadeSegment?.length !== 2 ||
+    frontage.roadEdge?.length !== 2 ||
+    frontage.curbCenterline?.length !== 2 ||
+    frontage.sidewalkOutline.length !== 4 ||
+    frontage.forecourtOutline.length !== 4 ||
+    !samePoint(frontage.sidewalkOutline[0], frontage.roadEdge[0], 1e-10) ||
+    !samePoint(frontage.sidewalkOutline[1], frontage.roadEdge[1], 1e-10) ||
+    !samePoint(frontage.sidewalkOutline[3], frontage.forecourtOutline[0], 1e-10) ||
+    !samePoint(frontage.sidewalkOutline[2], frontage.forecourtOutline[1], 1e-10) ||
+    !samePoint(frontage.forecourtOutline[3], frontage.facadeSegment[0], 1e-10) ||
+    !samePoint(frontage.forecourtOutline[2], frontage.facadeSegment[1], 1e-10) ||
+    polygonsHaveInteriorOverlap2D(
+      frontage.sidewalkOutline,
+      frontage.forecourtOutline,
+    ) ||
+    !polygonsOverlapOrTouch(
+      frontage.sidewalkOutline,
+      frontage.forecourtOutline,
+    ) ||
+    frontage.roadEdge.some(
+      (point, index) =>
+        Math.abs(
+          pointDistance(point, frontage.curbCenterline[index]) - 0.015,
+        ) > 1e-6,
+    )
   ) {
     throw new Error(
-      "SEWA Billboard forecourt must remain one usable property-side hardstand with a real shared diagonal-road seam",
-    );
-  }
-  const suppressedOccluderCenter = [17.00769238126079, 21.588810790132104];
-  const suppressedOccluderNearestObstacleGap = Math.min(
-    ...ALUN_ALUN_TRAFFIC_COLLISION_OBSTACLES.filter(
-      (obstacle) => obstacle.playerCollision !== false,
-    ).map((obstacle) =>
-      pointObstacleSignedGap(
-        suppressedOccluderCenter[0],
-        suppressedOccluderCenter[1],
-        obstacleEnvelope(obstacle),
-      ),
-    ),
-  );
-  if (
-    suppressedOccluderNearestObstacleGap < RIDER_COLLISION_RADIUS - 1e-8
-  ) {
-    throw new Error(
-      "suppressed rear OSM 567 center must remain free of invisible replacement collision",
+      "SEWA Billboard sidewalk and apron must form one exact road-to-facade frontage",
     );
   }
   const frontageEnvelope = obstacleEnvelope({
@@ -2956,11 +3279,11 @@ function validateSoutheastJunctionDefinition() {
   }
   const frontageRoadClearance = polygonClearance(
     frontageCorners,
-    definition.showroomApproachSurfaceOutline,
+    frontage.forecourtOutline,
   );
-  if (frontageRoadClearance < 0.12 || frontageRoadClearance > 0.3) {
+  if (frontageRoadClearance > 0.03) {
     throw new Error(
-      "SEWA Billboard road-facing wall must stay tight to its roadside hardstand without entering the east carriageway",
+      "SEWA Billboard road-facing wall must remain directly attached to its facade apron",
     );
   }
   if (
@@ -3151,7 +3474,7 @@ function validateSoutheastJunctionDefinition() {
 
   const renderedAsphaltPolygons = [
     ...asphaltOwners.map(({ polygon }) => polygon),
-    definition.showroomApproachSurfaceOutline,
+    definition.hasanudinApproachSurfaceOutline,
     ...ALUN_ALUN_SOUTH_APPROACH_DEFINITION.terminalHardstandOutlines,
   ];
   const validateBackedPath = (label, path, halfWidth, spacing) => {
@@ -3214,6 +3537,10 @@ function validateSoutheastJunctionDefinition() {
     "parcel.noseHardstandHeight",
     "parcel.landOutline",
     "parcel.forecourtHeight",
+    "junctionDefinition.hasanudinHardstand.outline",
+    "junctionDefinition.hasanudinHardstand.height",
+    "junctionDefinition.showroom.sidewalkOutline",
+    "junctionDefinition.showroom.sidewalkHeight",
     "junctionDefinition.showroom.forecourtOutline",
     "junctionDefinition.showroom.forecourtHeight",
     "junctionDefinition.contextTrees.forEach",
@@ -3243,6 +3570,9 @@ function validateSoutheastJunctionDefinition() {
     openingRoadSamples,
     parcelSurfaceSamples: retainedParcelSamples,
     southGuideBackingSamples,
+    turningClearanceComparisons,
+    turningRoadSamples,
+    minimumTurningClearance,
   };
 }
 
@@ -3262,7 +3592,7 @@ function validateSoutheastJunctionNavigationSurfaces() {
       points:
         ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.openFrontageAsphaltOutline,
       height: ALUN_ALUN_ROAD_SURFACE_Y,
-      label: "open Ahmad Jafar showroom-side asphalt hardstand",
+      label: "open Ahmad Jafar rounded-corner asphalt hardstand",
     },
     {
       points:
@@ -3274,7 +3604,7 @@ function validateSoutheastJunctionNavigationSurfaces() {
     {
       points:
         ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION
-          .showroomApproachSurfaceOutline,
+          .hasanudinApproachSurfaceOutline,
       height: ALUN_ALUN_ROAD_SURFACE_Y,
       label: "Ahmad Jafar diagonal east-road asphalt",
     },
@@ -3302,12 +3632,22 @@ function validateSoutheastJunctionNavigationSurfaces() {
   expected.push({
     points: parcel.landOutline,
     height: parcel.forecourtHeight,
-    label: "Ahmad Jafar flat frontage hardscape",
+    label: "Ahmad Jafar frontage asphalt backing",
+  });
+  expected.push({
+    points: ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.hasanudinHardstand.outline,
+    height: ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.hasanudinHardstand.height,
+    label: "Hasanudin road-edge frontage hardstand",
+  });
+  expected.push({
+    points: ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.showroom.sidewalkOutline,
+    height: ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.showroom.sidewalkHeight,
+    label: "SEWA Billboard roadside sidewalk",
   });
   expected.push({
     points: ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.showroom.forecourtOutline,
     height: ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.showroom.forecourtHeight,
-    label: "SEWA Billboard flush weathered forecourt",
+    label: "SEWA Billboard facade apron",
   });
   expected.push(
     {
@@ -3335,7 +3675,7 @@ function validateSoutheastJunctionNavigationSurfaces() {
     )
   ) {
     throw new Error(
-      "southeast-junction navigation must export the exact DWI connector, north-west, north-east, showroom, flush nose and parcel forecourt/sidewalk/apron polygons",
+      "southeast-junction navigation must export the exact DWI connector, rounded roads, Hasanudin hardstand, billboard frontage, and parcel bands",
     );
   }
   expected.forEach(({ label, points }) =>
@@ -3672,11 +4012,11 @@ function validateParkSurfaceOwnership() {
 
   validateSimplePolygon("western Ahmad Yani asphalt union", westernAsphaltUnion);
   if (
-    westernAsphaltUnion.length !== 37 ||
+    westernAsphaltUnion.length !== 50 ||
     polygonArea(westernAsphaltUnion) < 140
   ) {
     throw new Error(
-      "western Ahmad Yani asphalt must remain one complete 37-point union",
+      "western Ahmad Yani asphalt must remain one complete 50-point rounded union",
     );
   }
   validateSimplePolygon(
@@ -3712,7 +4052,7 @@ function validateParkSurfaceOwnership() {
       );
     }
   });
-  const expectedPerimeterCurbReturn = [7, 6, 5, 4, 3, 2, 1, 0, 14, 13]
+  const expectedPerimeterCurbReturn = [7, 6, 5, 4, 3, 2, 1, 0, 18, 17]
     .map((index) => parkOutline[index]);
   expectedPerimeterCurbReturn.forEach((point, index) => {
     if (!samePoint(point, perimeterAsphaltFill[index + 10])) {
@@ -4313,7 +4653,7 @@ function validateWestFrontageSurfaceDefinition() {
 
   validateFiniteSimplePolygon("western Ahmad Yani asphalt union", westernUnion);
   if (
-    westernUnion.length !== 37 ||
+    westernUnion.length !== 50 ||
     frontage.branchRoadsideSeam.length !==
       frontage.branchSidewalkOuterBoundary.length ||
     frontage.ahmadYaniRoadsideSeam.length !==
@@ -4325,7 +4665,7 @@ function validateWestFrontageSurfaceDefinition() {
     pegadaian.oppositeSidewalkInnerBoundary.length !== 4
   ) {
     throw new Error(
-      "frontage no longer describes one 37-point asphalt union and the three surveyed footway bands",
+      "frontage no longer describes one 50-point rounded asphalt union and the three surveyed footway bands",
     );
   }
 
@@ -4898,7 +5238,7 @@ function validateWestFrontageSurfaceDefinition() {
       north: 25.85,
       east: 9.35,
       width: 2.95,
-      depth: 4.4,
+      depth: 4.3,
     },
   ];
   const resolvedCollisionBoxes = expectedCollisionBoxes.map((expected) => {
@@ -7199,7 +7539,7 @@ function validateSouthApproachSurfaceDefinition() {
       [
         "diagonal carriageway",
         ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION
-          .showroomApproachSurfaceOutline,
+          .hasanudinApproachSurfaceOutline,
       ],
       [
         "open frontage asphalt",
@@ -7814,7 +8154,7 @@ if (
   );
   console.log(
     `Full-width west frontage: 11.0 m shared / 6.6 m split / 5.2 m branch; ` +
-      `37-point asphalt union with ` +
+      `50-point four-corner rounded asphalt union with ` +
       `${frontageSurfaceResult.coreCoverageSamples.toLocaleString("en-US")} ` +
       `core and ${frontageSurfaceResult.trafficEnvelopeSamples.toLocaleString("en-US")} ` +
       `swept-envelope coverage samples; ` +
@@ -7888,13 +8228,17 @@ if (
       `${southeastJunctionResult.openingRaisedSurfaceComparisons.toLocaleString("en-US")} ` +
       `raised-surface comparisons and minimum clearance ` +
       `${formatDistance(southeastJunctionResult.minimumOpeningRaisedSurfaceGap)}; ` +
+      `${southeastJunctionResult.turningRoadSamples.toLocaleString("en-US")} ` +
+      `synthetic S↔E turn samples with ` +
+      `${southeastJunctionResult.turningClearanceComparisons.toLocaleString("en-US")} ` +
+      `surface/obstacle comparisons and minimum clearance ` +
+      `${formatDistance(southeastJunctionResult.minimumTurningClearance)}; ` +
       `${southeastJunctionResult.circulationSamples} ` +
       `walkable monument-ring samples; ` +
       `${southeastJunctionResult.greenBackingSamples.toLocaleString("en-US")} ` +
       `green-edge asphalt samples; ` +
       `${southeastJunctionResult.parcelSurfaceSamples} paved parcel samples; ` +
-      `showroom wall ${formatDistance(southeastJunctionResult.frontageRoadClearance)} ` +
-      `from the east carriageway; ` +
+      `showroom wall/apron attachment gap ${formatDistance(southeastJunctionResult.frontageRoadClearance)}; ` +
       `${southeastNavigationResult.surfaceCount} exact navigation ` +
       `polygons at ${southeastNavigationResult.heightSamples} verified heights; ` +
       `${southeastJunctionResult.barrierCount} barriers.`,

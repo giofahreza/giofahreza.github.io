@@ -618,7 +618,7 @@ const renderedJunctionAsphaltPolygons = [
   ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.openFrontageAsphaltOutline,
   ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.cornerReturns.southeast
     .asphaltOutline,
-  ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.showroomApproachSurfaceOutline,
+  ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.hasanudinApproachSurfaceOutline,
   ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.parcel.noseHardstandOutline,
   ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.eastAsphaltInfillOutline,
   ALUN_ALUN_SOUTH_APPROACH_DEFINITION.surfaceOutline,

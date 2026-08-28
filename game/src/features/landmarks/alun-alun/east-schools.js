@@ -1813,133 +1813,39 @@ export function createAlunAlunEastSchoolsFactory({
     });
     shopRow.add(beigeBlock);
 
-    const modernShop = new THREE.Group();
-    modernShop.name = "Sewa Billboard corner showroom · May 2025 Street View";
-    // Replace road-edge OSM building 617 one-for-one. Its exact footprint is
-    // the low white showroom at the right side of the south-approach frame;
-    // OSM 567 remains masked as the rear duplicate volume.
-    modernShop.position.set(
-      showroom.center[0] - shopRow.position.x,
-      0,
-      showroom.center[1] - shopRow.position.z,
-    );
-    modernShop.rotation.y = showroom.yaw;
-    modernShop.scale.set(showroom.visualScaleX, 1, showroom.visualScaleZ);
-    const modernBody = new THREE.Mesh(
-      roundedBox(1.0, 1.42, 2.4, 0.035),
-      paleMaterial,
-    );
-    modernBody.position.y = 0.71;
-    modernShop.add(modernBody);
-    const modernCap = new THREE.Mesh(
-      roundedBox(1.06, 0.08, 2.46, 0.018),
-      roofDarkMaterial,
-    );
-    modernCap.position.y = 1.44;
-    modernShop.add(modernCap);
-    // Street View approaches this corner from the south and sees the local
-    // +Z storefront.  Keep the shutters, awning and billboard on that face;
-    // the long local -X wall instead follows the diagonal side road.
-    [-0.36, -0.12, 0.12, 0.36].forEach((northOffset, index) => {
-      const modernOpening = new THREE.Mesh(
-        roundedBox(0.21, 0.9, 0.045, 0.012),
-        index === 2 ? darkMaterial : shutterMaterial,
-      );
-      modernOpening.position.set(northOffset, 0.5, 1.205);
-      modernShop.add(modernOpening);
-      const redPier = new THREE.Mesh(
-        roundedBox(0.025, 1.02, 0.035, 0.006),
-        fadedRedMaterial,
-      );
-      redPier.position.set(northOffset - 0.125, 0.55, 1.232);
-      modernShop.add(redPier);
-    });
-    const modernAwning = new THREE.Mesh(
-      roundedBox(0.96, 0.07, 0.19, 0.014),
-      silverMaterial,
-    );
-    modernAwning.position.set(0, 1.02, 1.27);
-    modernShop.add(modernAwning);
-
-    [-0.44, -0.15, 0.15, 0.44].forEach((northOffset) => {
-      const billboardSupport = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.018, 0.025, 0.72, 7),
-        roofDarkMaterial,
-      );
-      billboardSupport.position.set(northOffset, 1.63, 1.03);
-      billboardSupport.rotation.z = -0.16;
-      modernShop.add(billboardSupport);
-    });
-    const billboardBoard = new THREE.Mesh(
-      roundedBox(1.22, 1.0, 0.075, 0.025),
-      darkMaterial,
-    );
-    billboardBoard.position.set(0, 1.94, 1.08);
-    modernShop.add(billboardBoard);
-    const billboardLabel = new THREE.Mesh(
-      new THREE.PlaneGeometry(1.12, 0.31),
-      getSitubondoSignMaterial("SEWA BILLBOARD", "#f4efe0", 900),
-    );
-    billboardLabel.position.set(0, 2.23, 1.122);
-    billboardLabel.renderOrder = 5;
-    modernShop.add(billboardLabel);
-    const billboardLabelBack = billboardLabel.clone();
-    billboardLabelBack.position.z = 1.038;
-    billboardLabelBack.rotation.y = Math.PI;
-    modernShop.add(billboardLabelBack);
-    const billboardBonus = new THREE.Mesh(
-      new THREE.PlaneGeometry(1.0, 0.14),
-      getSitubondoSignMaterial("BONUS IKLAN TV NASIONAL", "#cf5b4a", 820),
-    );
-    billboardBonus.position.set(0, 1.94, 1.123);
-    billboardBonus.renderOrder = 5;
-    modernShop.add(billboardBonus);
-    const billboardBonusBack = billboardBonus.clone();
-    billboardBonusBack.position.z = 1.037;
-    billboardBonusBack.rotation.y = Math.PI;
-    modernShop.add(billboardBonusBack);
-    const billboardPhone = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.9, 0.2),
-      getSitubondoSignMaterial("0811 340 3901", "#d9b850", 850),
-    );
-    billboardPhone.position.set(0, 1.67, 1.124);
-    billboardPhone.renderOrder = 5;
-    modernShop.add(billboardPhone);
-    const billboardPhoneBack = billboardPhone.clone();
-    billboardPhoneBack.position.z = 1.036;
-    billboardPhoneBack.rotation.y = Math.PI;
-    modernShop.add(billboardPhoneBack);
-    shopRow.add(modernShop);
-
     shopRow.traverse((child) => {
       if (child.isMesh) child.castShadow = true;
     });
     frontage.add(shopRow);
 
     const workshop = new THREE.Group();
-    workshop.name = "Bakti Motor · Google Street View workshop";
-    workshop.position.set(30.82, 0.05, 23.74);
-    workshop.rotation.y = 0.145;
+    workshop.name = "Bakti Motor · SEWA BILLBOARD · May 2025 Street View";
+    workshop.position.set(showroom.center[0], 0.05, showroom.center[1]);
+    workshop.rotation.y = showroom.yaw;
     const workshopBody = new THREE.Mesh(
-      roundedBox(6.25, 1.06, 4.38, 0.045),
+      roundedBox(showroom.width, 1.06, showroom.depth, 0.045),
       paleMaterial,
     );
     workshopBody.position.y = 0.53;
     workshop.add(workshopBody);
     const workshopRoof = new THREE.Mesh(
-      createGableRoofGeometry(6.62, 4.72, 0.42),
+      createGableRoofGeometry(
+        showroom.width + 0.37,
+        showroom.depth + 0.34,
+        0.42,
+      ),
       silverMaterial,
     );
     workshopRoof.position.y = 1.02;
     workshop.add(workshopRoof);
     const workshopRidge = new THREE.Mesh(
-      roundedBox(0.08, 0.08, 4.65, 0.014),
+      roundedBox(0.08, 0.08, showroom.depth + 0.27, 0.014),
       roofDarkMaterial,
     );
     workshopRidge.position.set(0, 1.47, 0);
     workshop.add(workshopRidge);
 
-    const workshopFrontX = -3.16;
+    const workshopFrontX = -showroom.width * 0.5 - 0.05;
     const openBay = new THREE.Mesh(
       roundedBox(0.065, 0.72, 1.52, 0.018),
       darkMaterial,
@@ -2015,34 +1921,50 @@ export function createAlunAlunEastSchoolsFactory({
     oxyLabel.rotation.y = -Math.PI * 0.5;
     workshop.add(oxyLabel);
 
-    [-1.2, 1.2].forEach((eastOffset) => {
+    [-1.55, 1.55].forEach((eastOffset) => {
       const billboardSupport = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.035, 0.05, 0.75, 7),
+        new THREE.CylinderGeometry(0.035, 0.05, 1.05, 7),
         roofDarkMaterial,
       );
-      billboardSupport.position.set(-0.55, 1.55, eastOffset + 0.35);
+      billboardSupport.position.set(workshopFrontX - 0.03, 1.55, eastOffset);
       workshop.add(billboardSupport);
     });
     const roofBillboard = new THREE.Mesh(
-      roundedBox(0.13, 0.58, 3.0, 0.028),
-      silverMaterial,
+      roundedBox(0.13, 1.22, 4.04, 0.028),
+      darkMaterial,
     );
-    roofBillboard.position.set(-0.55, 1.75, 0.35);
+    roofBillboard.position.set(workshopFrontX - 0.04, 1.72, 0);
     workshop.add(roofBillboard);
     const roofBillboardInset = new THREE.Mesh(
-      roundedBox(0.045, 0.44, 2.8, 0.018),
+      roundedBox(0.045, 1.08, 3.86, 0.018),
       blueMaterial,
     );
-    roofBillboardInset.position.set(-0.63, 1.75, 0.35);
+    roofBillboardInset.position.set(workshopFrontX - 0.115, 1.72, 0);
     workshop.add(roofBillboardInset);
     const roofBillboardLabel = new THREE.Mesh(
-      new THREE.PlaneGeometry(2.46, 0.26),
-      getSitubondoSignMaterial("BAKTI MOTOR · IRC", "#eee9dc", 880),
+      new THREE.PlaneGeometry(3.5, 0.34),
+      getSitubondoSignMaterial("SEWA BILLBOARD", "#f4efe0", 920),
     );
-    roofBillboardLabel.position.set(-0.656, 1.75, 0.35);
+    roofBillboardLabel.position.set(workshopFrontX - 0.142, 2.03, 0);
     roofBillboardLabel.rotation.y = -Math.PI * 0.5;
     roofBillboardLabel.renderOrder = 5;
     workshop.add(roofBillboardLabel);
+    const roofBillboardBonus = new THREE.Mesh(
+      new THREE.PlaneGeometry(3.28, 0.2),
+      getSitubondoSignMaterial("BONUS IKLAN TV NASIONAL", "#cf5b4a", 840),
+    );
+    roofBillboardBonus.position.set(workshopFrontX - 0.143, 1.72, 0);
+    roofBillboardBonus.rotation.y = -Math.PI * 0.5;
+    roofBillboardBonus.renderOrder = 5;
+    workshop.add(roofBillboardBonus);
+    const roofBillboardPhone = new THREE.Mesh(
+      new THREE.PlaneGeometry(3.08, 0.27),
+      getSitubondoSignMaterial("0811 340 3901", "#e0bd47", 900),
+    );
+    roofBillboardPhone.position.set(workshopFrontX - 0.144, 1.43, 0);
+    roofBillboardPhone.rotation.y = -Math.PI * 0.5;
+    roofBillboardPhone.renderOrder = 5;
+    workshop.add(roofBillboardPhone);
 
     workshop.traverse((child) => {
       if (child.isMesh) child.castShadow = true;

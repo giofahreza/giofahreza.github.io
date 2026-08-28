@@ -162,7 +162,7 @@ export const ALUN_ALUN_SOUTH_CORRIDOR_NAVIGATION_SURFACES = Object.freeze([
         shape: "polygon",
         points,
         height: ALUN_ALUN_SOUTH_APPROACH_DEFINITION.terminalHardstandHeight,
-        label: `flush south-approach showroom hardstand ${index + 1}`,
+        label: `flush south-approach road-edge hardstand ${index + 1}`,
       }),
   ),
   Object.freeze({
@@ -236,7 +236,7 @@ export const ALUN_ALUN_SOUTHEAST_JUNCTION_NAVIGATION_SURFACES = Object.freeze([
     points:
       ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.openFrontageAsphaltOutline,
     height: ALUN_ALUN_ROAD_SURFACE_Y,
-    label: "open Ahmad Jafar showroom-side asphalt hardstand",
+    label: "open Ahmad Jafar rounded-corner asphalt hardstand",
   }),
   Object.freeze({
     shape: "polygon",
@@ -249,7 +249,7 @@ export const ALUN_ALUN_SOUTHEAST_JUNCTION_NAVIGATION_SURFACES = Object.freeze([
   Object.freeze({
     shape: "polygon",
     points:
-      ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.showroomApproachSurfaceOutline,
+      ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.hasanudinApproachSurfaceOutline,
     height: ALUN_ALUN_ROAD_SURFACE_Y,
     label: "Ahmad Jafar diagonal east-road asphalt",
   }),
@@ -282,13 +282,25 @@ export const ALUN_ALUN_SOUTHEAST_JUNCTION_NAVIGATION_SURFACES = Object.freeze([
     shape: "polygon",
     points: ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.parcel.landOutline,
     height: ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.parcel.forecourtHeight,
-    label: "Ahmad Jafar flat frontage hardscape",
+    label: "Ahmad Jafar frontage asphalt backing",
+  }),
+  Object.freeze({
+    shape: "polygon",
+    points: ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.hasanudinHardstand.outline,
+    height: ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.hasanudinHardstand.height,
+    label: "Hasanudin road-edge frontage hardstand",
+  }),
+  Object.freeze({
+    shape: "polygon",
+    points: ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.showroom.sidewalkOutline,
+    height: ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.showroom.sidewalkHeight,
+    label: "SEWA Billboard roadside sidewalk",
   }),
   Object.freeze({
     shape: "polygon",
     points: ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.showroom.forecourtOutline,
     height: ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.showroom.forecourtHeight,
-    label: "SEWA Billboard flush weathered forecourt",
+    label: "SEWA Billboard facade apron",
   }),
   Object.freeze({
     shape: "polygon",
@@ -336,9 +348,9 @@ export const ALUN_ALUN_TRAFFIC_COLLISION_OBSTACLES = Object.freeze([
   // 1.64 x 0.96 in plan; keep collision aligned with the actual rendered body.
   freezeTrafficObstacle({ label: "Planet Ban", north: 26.04, east: 4.7, width: 4.8, depth: 3.21 }),
   freezeTrafficObstacle({ label: "frontage blue office", north: 25.7, east: 6.9, width: 2.8, depth: 1.09 }),
-  freezeTrafficObstacle({ label: "frontage beige row", north: 25.85, east: 9.35, width: 2.95, depth: 4.4 }),
+  freezeTrafficObstacle({ label: "frontage beige row", north: 25.85, east: 9.35, width: 2.95, depth: 4.3 }),
   freezeTrafficObstacle({
-    label: "SEWA Billboard corner showroom",
+    label: "Bakti Motor / SEWA Billboard workshop",
     north: ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.showroom.center[0],
     east: ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.showroom.center[1],
     width: ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.showroom.width,
@@ -1847,7 +1859,6 @@ export function createAlunAlunModelFactory({
         (obstacle) => obstacle.playerCollision !== false,
       ),
       ...ALUN_ALUN_SOUTH_PROMENADE_COLLISION_OBSTACLES,
-      { north: 30.82, east: 23.74, width: 6.65, depth: 4.8, yaw: 0.145 },
       { north: -23.52, east: -7.97, width: 2.85, depth: 3.29 },
       { north: -26.0, east: -8.06, width: 3.06, depth: 3.59 },
       { north: -24.2, east: -9.43, width: 1.93, depth: 1.58 },
