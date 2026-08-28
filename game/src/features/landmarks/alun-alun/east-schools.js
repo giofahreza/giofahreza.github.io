@@ -1815,9 +1815,9 @@ export function createAlunAlunEastSchoolsFactory({
 
     const modernShop = new THREE.Group();
     modernShop.name = "Sewa Billboard corner showroom · May 2025 Street View";
-    // Replace OSM building 567 one-for-one. Its exact footprint is the low
-    // white showroom at the right side of the south-approach Street View—not
-    // the triangular parcel farther down Hasanudin used by the earlier model.
+    // Replace road-edge OSM building 617 one-for-one. Its exact footprint is
+    // the low white showroom at the right side of the south-approach frame;
+    // OSM 567 remains masked as the rear duplicate volume.
     modernShop.position.set(
       showroom.center[0] - shopRow.position.x,
       0,
@@ -1837,10 +1837,9 @@ export function createAlunAlunEastSchoolsFactory({
     );
     modernCap.position.y = 1.44;
     modernShop.add(modernCap);
-    // OSM 567's long axis follows local X; its road-facing storefront is the
-    // local +Z face. The former model put every shutter and the billboard on
-    // the narrow end wall, leaving a featureless white slab in the reference
-    // view from Jl. Ahmad Jafar.
+    // Street View approaches this corner from the south and sees the local
+    // +Z storefront.  Keep the shutters, awning and billboard on that face;
+    // the long local -X wall instead follows the diagonal side road.
     [-0.36, -0.12, 0.12, 0.36].forEach((northOffset, index) => {
       const modernOpening = new THREE.Mesh(
         roundedBox(0.21, 0.9, 0.045, 0.012),

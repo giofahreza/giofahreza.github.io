@@ -224,9 +224,34 @@ export const ALUN_ALUN_SOUTHEAST_JUNCTION_NAVIGATION_SURFACES = Object.freeze([
   Object.freeze({
     shape: "polygon",
     points:
+      ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.dwiPutriFrontageConnector
+        .outline,
+    height:
+      ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.dwiPutriFrontageConnector
+        .height,
+    label: "DWI PUTRI rounded flush storefront connector",
+  }),
+  Object.freeze({
+    shape: "polygon",
+    points:
       ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.openFrontageAsphaltOutline,
     height: ALUN_ALUN_ROAD_SURFACE_Y,
     label: "open Ahmad Jafar showroom-side asphalt hardstand",
+  }),
+  Object.freeze({
+    shape: "polygon",
+    points:
+      ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.cornerReturns.southeast
+        .asphaltOutline,
+    height: ALUN_ALUN_ROAD_SURFACE_Y,
+    label: "rounded Ahmad Jafar south-east corner asphalt",
+  }),
+  Object.freeze({
+    shape: "polygon",
+    points:
+      ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.showroomApproachSurfaceOutline,
+    height: ALUN_ALUN_ROAD_SURFACE_Y,
+    label: "Ahmad Jafar diagonal east-road asphalt",
   }),
   ...["northWest", "northEast"].flatMap((routeName) => {
     const route = ALUN_ALUN_PEDESTRIAN_ROUTE_DEFINITIONS[routeName];
@@ -244,6 +269,14 @@ export const ALUN_ALUN_SOUTHEAST_JUNCTION_NAVIGATION_SURFACES = Object.freeze([
         label: `Ahmad Jafar ${routeName} frontage apron`,
       }),
     ];
+  }),
+  Object.freeze({
+    shape: "polygon",
+    points:
+      ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.parcel.noseHardstandOutline,
+    height:
+      ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.parcel.noseHardstandHeight,
+    label: "Ahmad Jafar flush rounded-corner throat hardstand",
   }),
   Object.freeze({
     shape: "polygon",

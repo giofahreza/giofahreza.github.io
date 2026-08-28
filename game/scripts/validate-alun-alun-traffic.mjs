@@ -90,6 +90,22 @@ const EXPECTED_PEDESTRIAN_ROUTE_NAMES = Object.freeze([
   "northWest",
   "northEast",
 ]);
+const SOUTHEAST_ROAD_OPENING_DEFINITIONS = Object.freeze([
+  Object.freeze({
+    label: "south",
+    routeNames: Object.freeze(["crossNorthbound", "crossSouthbound"]),
+    coordinate: "north",
+    minimum: 10,
+    maximum: 20.8,
+  }),
+  Object.freeze({
+    label: "east",
+    routeNames: Object.freeze(["mainEastbound", "mainWestbound"]),
+    coordinate: "east",
+    minimum: 15.4,
+    maximum: 28,
+  }),
+]);
 const OPPOSING_ROUTE_PAIRS = Object.freeze([
   Object.freeze(["mainEastbound", "mainWestbound"]),
   Object.freeze(["crossNorthbound", "crossSouthbound"]),
@@ -2100,6 +2116,16 @@ function validateSoutheastJunctionDefinition() {
       polygon: definition.openFrontageAsphaltOutline,
     },
     {
+      key: "R",
+      label: "Ahmad Jafar rounded south-east corner asphalt",
+      polygon: definition.cornerReturns?.southeast?.asphaltOutline,
+    },
+    {
+      key: "N",
+      label: "Ahmad Jafar flush rounded-corner throat hardstand",
+      polygon: definition.parcel?.noseHardstandOutline,
+    },
+    {
       key: "E",
       label: "undivided Ahmad Yani east asphalt infill",
       polygon: definition.eastAsphaltInfillOutline,
@@ -2112,6 +2138,65 @@ function validateSoutheastJunctionDefinition() {
     "rendered diagonal showroom approach",
     definition.showroomApproachSurfaceOutline,
   );
+  const southeastReturn = definition.cornerReturns?.southeast;
+  if (
+    !southeastReturn ||
+    !Array.isArray(southeastReturn.controls) ||
+    southeastReturn.controls.length !== 4 ||
+    !Array.isArray(southeastReturn.path) ||
+    southeastReturn.path.length !== 7 ||
+    !Array.isArray(southeastReturn.asphaltOutline) ||
+    southeastReturn.asphaltOutline.length !== 8 ||
+    southeastReturn.controls.flat().some((value) => !isFiniteNumber(value)) ||
+    !samePoint(southeastReturn.path[0], southeastReturn.controls[0], 1e-12) ||
+    !samePoint(southeastReturn.path.at(-1), southeastReturn.controls.at(-1), 1e-12) ||
+    southeastReturn.path.some((point, index) => {
+      const amount = index / (southeastReturn.path.length - 1);
+      const inverse = 1 - amount;
+      const expected = [0, 1].map(
+        (axis) =>
+          inverse ** 3 * southeastReturn.controls[0][axis] +
+          3 * inverse ** 2 * amount * southeastReturn.controls[1][axis] +
+          3 * inverse * amount ** 2 * southeastReturn.controls[2][axis] +
+          amount ** 3 * southeastReturn.controls[3][axis],
+      );
+      return !samePoint(point, expected, 1e-9);
+    }) ||
+    southeastReturn.path.some(
+      (point) =>
+        !Array.isArray(point) ||
+        point.length !== 2 ||
+        !point.every(isFiniteNumber),
+    ) ||
+    southeastReturn.path.slice(1).some(
+      (point, index) =>
+        point[0] <= southeastReturn.path[index][0] ||
+        point[1] <= southeastReturn.path[index][1],
+    ) ||
+    southeastReturn.path.slice(1, -1).some((point, index) => {
+      const previous = southeastReturn.path[index];
+      const next = southeastReturn.path[index + 2];
+      const firstHeading = Math.atan2(
+        point[1] - previous[1],
+        point[0] - previous[0],
+      );
+      const secondHeading = Math.atan2(
+        next[1] - point[1],
+        next[0] - point[0],
+      );
+      const headingStep = Math.abs(
+        Math.atan2(
+          Math.sin(secondHeading - firstHeading),
+          Math.cos(secondHeading - firstHeading),
+        ),
+      );
+      return headingStep > 0.15;
+    })
+  ) {
+    throw new Error(
+      "Ahmad Jafar south-east curb return must retain a smooth sampled cubic radius without a sharp chord",
+    );
+  }
   for (let first = 0; first < asphaltOwners.length; first += 1) {
     for (let second = first + 1; second < asphaltOwners.length; second += 1) {
       if (
@@ -2229,17 +2314,19 @@ function validateSoutheastJunctionDefinition() {
       island.curbBlocks?.width,
       island.curbBlocks?.depth,
       island.visualHeight,
+      island.modelScale,
     ].every(isFiniteNumber) ||
     !samePoint(island.center, [21.9, 13.24], 1e-12) ||
-    Math.abs(island.width - 1.08) > 1e-12 ||
-    Math.abs(island.depth - 0.68) > 1e-12 ||
+    Math.abs(island.width - 0.86) > 1e-12 ||
+    Math.abs(island.depth - 0.54) > 1e-12 ||
     Math.abs(island.curbHeight - 0.04) > 1e-12 ||
-    Math.abs(island.collisionWidth - 1.2) > 1e-12 ||
-    Math.abs(island.collisionDepth - 0.8) > 1e-12 ||
-    Math.abs(island.visualHeight - 1.05) > 1e-12 ||
+    Math.abs(island.collisionWidth - 0.98) > 1e-12 ||
+    Math.abs(island.collisionDepth - 0.66) > 1e-12 ||
+    Math.abs(island.visualHeight - 0.86) > 1e-12 ||
+    Math.abs(island.modelScale - 0.82) > 1e-12 ||
     island.yaw !== 0 ||
     !Number.isInteger(island.curbBlocks?.count) ||
-    island.curbBlocks.count !== 18 ||
+    island.curbBlocks.count !== 16 ||
     island.curbBlocks.width <= 0 ||
     island.curbBlocks.depth <= 0
   ) {
@@ -2354,12 +2441,21 @@ function validateSoutheastJunctionDefinition() {
 
   const supports = definition.barrierSupports;
   const barrierCollision = definition.barrierCollision;
-  const expectedBarrierSupports = [
-    { center: [17.22805469782557, 19.7419647084463], yaw: -1.3439974787410107 },
-    { center: [16.81881039563383, 19.83640570125978], yaw: -1.3439974787410107 },
-    { center: [16.40956609344209, 19.93084669407326], yaw: -1.3439974787410107 },
-    { center: [16.00032179125035, 20.025287686886738], yaw: -1.3439974787410107 },
-  ];
+  const barrierFrontage = definition.showroom;
+  const barrierCosine = Math.cos(barrierFrontage.yaw);
+  const barrierSine = Math.sin(barrierFrontage.yaw);
+  const barrierLocalZ = barrierFrontage.depth * 0.5 + 0.12;
+  const expectedBarrierSupports = [-0.78, -0.26, 0.26, 0.78].map(
+    (localX) => ({
+      center: [
+        barrierFrontage.center[0] +
+          localX * barrierCosine + barrierLocalZ * barrierSine,
+        barrierFrontage.center[1] -
+          localX * barrierSine + barrierLocalZ * barrierCosine,
+      ],
+      yaw: barrierFrontage.yaw + Math.PI * 0.5,
+    }),
+  );
   if (
     !Array.isArray(supports) ||
     supports.length !== expectedBarrierSupports.length ||
@@ -2368,8 +2464,8 @@ function validateSoutheastJunctionDefinition() {
       supports.length ||
     !barrierCollision ||
     ![barrierCollision.width, barrierCollision.depth].every(isFiniteNumber) ||
-    barrierCollision.width <= 0 ||
-    barrierCollision.depth <= 0
+    Math.abs(barrierCollision.width - 0.2) > 1e-12 ||
+    Math.abs(barrierCollision.depth - 0.52) > 1e-12
   ) {
     throw new Error("Ahmad Jafar junction must retain four unique barriers");
   }
@@ -2418,6 +2514,7 @@ function validateSoutheastJunctionDefinition() {
     Math.abs(ALUN_ALUN_FRONTAGE_CURB_DEPTH - 0.03) > 1e-12 ||
     Math.abs(parcel.sidewalkHeight - ALUN_ALUN_FRONTAGE_SIDEWALK_Y) > 1e-12 ||
     Math.abs(parcel.apronHeight - ALUN_ALUN_FRONTAGE_APRON_Y) > 1e-12 ||
+    Math.abs(parcel.noseHardstandHeight - ALUN_ALUN_ROAD_SURFACE_Y) > 1e-12 ||
     Math.abs(
       parcel.forecourtHeight - (ALUN_ALUN_ROAD_SURFACE_Y + 0.001),
     ) > 1e-12
@@ -2427,11 +2524,39 @@ function validateSoutheastJunctionDefinition() {
     );
   }
   for (const [label, polygon] of [
+    ["Ahmad Jafar flush parcel nose hardstand", parcel.noseHardstandOutline],
     ["Ahmad Jafar retained parcel land", parcel.landOutline],
     ["Ahmad Jafar parcel sidewalk", parcel.sidewalkOutline],
     ["Ahmad Jafar parcel frontage apron", parcel.apronOutline],
   ]) {
     validateFiniteSimplePolygon(label, polygon);
+  }
+  const originalParcelArea = 19.537550290236766;
+  const splitParcelArea =
+    polygonArea(parcel.noseHardstandOutline) + polygonArea(parcel.landOutline);
+  if (
+    parcel.noseHardstandOutline.length !== 6 ||
+    parcel.landOutline.length !== 6 ||
+    Math.abs(splitParcelArea - originalParcelArea) > 1e-9 ||
+    polygonsHaveInteriorOverlap2D(
+      parcel.noseHardstandOutline,
+      parcel.landOutline,
+    ) ||
+    !polygonsOverlapOrTouch(parcel.noseHardstandOutline, parcel.landOutline) ||
+    !samePoint(
+      parcel.noseHardstandOutline.at(-2),
+      parcel.landOutline[1],
+      1e-10,
+    ) ||
+    !samePoint(
+      parcel.noseHardstandOutline.at(-1),
+      parcel.landOutline[0],
+      1e-10,
+    )
+  ) {
+    throw new Error(
+      "Ahmad Jafar parcel nose and retained frontage must form one area-preserving, meet-only split",
+    );
   }
   const parcelPaths = [parcel.roadsideSeam, parcel.curbCenterline, parcel.clearTreadInner];
   if (
@@ -2451,21 +2576,27 @@ function validateSoutheastJunctionDefinition() {
   ) {
     throw new Error("Ahmad Jafar tapered frontage paths are incomplete");
   }
-  const expectedRoadsideSeam = [
-    [19.5104102813, 19.3478531114],
-    [20.2468480832, 21.9678531114],
-    [21.0900974747, 24.9678531114],
-    [21.9333468662, 27.9678531114],
-  ];
+  const eastRaisedStartClearance = pointDistance(
+    parcel.roadsideSeam[0],
+    parcel.roadsideSeam[1],
+  );
   if (
-    !parcel.roadsideSeam.every((point, index) =>
-      samePoint(point, expectedRoadsideSeam[index], 1e-10),
+    !samePoint(
+      parcel.roadsideSeam[0],
+      southeastReturn.path.at(-1),
+      1e-10,
+    ) ||
+    eastRaisedStartClearance < 2.4 ||
+    parcel.roadsideSeam.slice(1).some(
+      (point, index) =>
+        point[0] <= parcel.roadsideSeam[index][0] ||
+        point[1] <= parcel.roadsideSeam[index][1],
     ) ||
     !samePoint(parcel.sidewalkOutline[0], parcel.roadsideSeam[1], 1e-10) ||
     !samePoint(parcel.apronOutline[0], parcel.roadsideSeam[1], 1e-10)
   ) {
     throw new Error(
-      "Ahmad Jafar frontage must stay flat through station 1 and taper from station 2",
+      "Ahmad Jafar east frontage must leave a flush road throat before its distant raised tread",
     );
   }
   [2, 3].forEach((stationIndex, localIndex) => {
@@ -2488,16 +2619,30 @@ function validateSoutheastJunctionDefinition() {
     }
   });
 
+  const reversedCornerReturn = [...southeastReturn.path].reverse();
+  const openFrontageReturnStart =
+    definition.openFrontageAsphaltOutline.findIndex((point) =>
+      samePoint(point, reversedCornerReturn[0], 1e-10),
+    );
   if (
-    Math.abs(polygonArea(definition.openFrontageAsphaltOutline) -
-      5.860433843954752) > 1e-9 ||
-    polygonTriangles(
-      "Ahmad Jafar showroom-side asphalt hardstand",
-      definition.openFrontageAsphaltOutline,
-    ).length !== 6
+    polygonArea(definition.openFrontageAsphaltOutline) < 4.5 ||
+    openFrontageReturnStart < 1 ||
+    definition.openFrontageAsphaltOutline.length - openFrontageReturnStart !==
+      reversedCornerReturn.length - 1 ||
+    definition.openFrontageAsphaltOutline
+      .slice(openFrontageReturnStart)
+      .some(
+        (point, index) =>
+          !samePoint(point, reversedCornerReturn[index], 1e-10),
+      ) ||
+    !samePoint(
+      definition.openFrontageAsphaltOutline[0],
+      southeastReturn.path[0],
+      1e-10,
+    )
   ) {
     throw new Error(
-      "Ahmad Jafar open frontage hardstand must retain its exact eight-point seam",
+      "Ahmad Jafar open frontage hardstand must close on the complete rounded curb return",
     );
   }
   const requiredOpenFrontageSamples = [
@@ -2522,11 +2667,134 @@ function validateSoutheastJunctionDefinition() {
     throw new Error("Ahmad Jafar asphalt hardstand leaves a raw-ground sample");
   }
 
-  let retainedParcelSamples = 0;
   const renderedVehicleSurfaces = [
     ...asphaltOwners.map(({ polygon }) => polygon),
     definition.showroomApproachSurfaceOutline,
   ];
+  const dwiConnector = definition.dwiPutriFrontageConnector;
+  const dwiCurveSampleCount = 7;
+  const northWestApron =
+    ALUN_ALUN_PEDESTRIAN_ROUTE_DEFINITIONS.northWest.frontageApronOutline;
+  if (
+    !dwiConnector ||
+    !Array.isArray(dwiConnector.controls) ||
+    dwiConnector.controls.length !== 4 ||
+    !Array.isArray(dwiConnector.outline) ||
+    dwiConnector.outline.length !== 9 ||
+    Math.abs(dwiConnector.height - ALUN_ALUN_FRONTAGE_APRON_Y) > 1e-12 ||
+    dwiConnector.controls.flat().some((value) => !isFiniteNumber(value)) ||
+    dwiConnector.outline.flat().some((value) => !isFiniteNumber(value)) ||
+    dwiConnector.outline.slice(0, dwiCurveSampleCount).some((point, index) => {
+      const amount = index / (dwiCurveSampleCount - 1);
+      const inverse = 1 - amount;
+      const expected = [0, 1].map(
+        (axis) =>
+          inverse ** 3 * dwiConnector.controls[0][axis] +
+          3 * inverse ** 2 * amount * dwiConnector.controls[1][axis] +
+          3 * inverse * amount ** 2 * dwiConnector.controls[2][axis] +
+          amount ** 3 * dwiConnector.controls[3][axis],
+      );
+      return !samePoint(point, expected, 1e-9);
+    }) ||
+    Math.abs(polygonArea(dwiConnector.outline) - 0.424747273706089) > 1e-12 ||
+    !samePoint(dwiConnector.outline[6], northWestApron[0], 1e-10) ||
+    !samePoint(dwiConnector.outline[7], northWestApron.at(-1), 1e-10) ||
+    polygonsHaveInteriorOverlap2D(dwiConnector.outline, northWestApron) ||
+    !polygonsOverlapOrTouch(dwiConnector.outline, northWestApron) ||
+    renderedVehicleSurfaces.some((polygon) =>
+      polygonsHaveInteriorOverlap2D(dwiConnector.outline, polygon),
+    )
+  ) {
+    throw new Error(
+      "DWI PUTRI connector must retain its exact rounded, road-clear shared edge with the north-west apron",
+    );
+  }
+  validateFiniteSimplePolygon(
+    "DWI PUTRI rounded flush storefront connector",
+    dwiConnector.outline,
+  );
+
+  let retainedParcelSamples = 0;
+  const raisedOpeningSurfaces = [
+    [
+      "south-approach sidewalk",
+      ALUN_ALUN_SOUTH_APPROACH_DEFINITION.sidewalkOutline,
+    ],
+    [
+      "south-approach frontage apron",
+      ALUN_ALUN_SOUTH_APPROACH_DEFINITION.frontageApronOutline,
+    ],
+    ["east parcel sidewalk", parcel.sidewalkOutline],
+    ["east parcel frontage apron", parcel.apronOutline],
+    ["DWI PUTRI storefront connector", dwiConnector.outline],
+    ...["northWest", "northEast"].flatMap((routeName) => {
+      const route = ALUN_ALUN_PEDESTRIAN_ROUTE_DEFINITIONS[routeName];
+      return [
+        [`${routeName} sidewalk`, route.sidewalkOutline],
+        [`${routeName} frontage apron`, route.frontageApronOutline],
+      ];
+    }),
+  ].map(([label, polygon]) => ({
+    label,
+    polygon,
+    triangles: polygonTriangles(`Ahmad Jafar ${label}`, polygon),
+  }));
+  let openingRoadSamples = 0;
+  let openingRaisedSurfaceComparisons = 0;
+  let minimumOpeningRaisedSurfaceGap = Infinity;
+  for (const opening of SOUTHEAST_ROAD_OPENING_DEFINITIONS) {
+    let openingSamples = 0;
+    for (const routeName of opening.routeNames) {
+      const route = buildRoute(
+        routeName,
+        ALUN_ALUN_TRAFFIC_ROUTE_DEFINITIONS[routeName],
+      );
+      const halfLength = ROUTE_SWEPT_HALF_LENGTHS[routeName];
+      const halfWidth = ROUTE_SWEPT_HALF_WIDTHS[routeName];
+      for (const sample of sampleRoute(route)) {
+        if (
+          sample[opening.coordinate] < opening.minimum ||
+          sample[opening.coordinate] > opening.maximum
+        ) {
+          continue;
+        }
+        const sweptVehicle = vehiclePolygon(sample, halfLength, halfWidth);
+        for (const raisedSurface of raisedOpeningSurfaces) {
+          for (const triangle of raisedSurface.triangles) {
+            const rawGap = polygonPairGap(sweptVehicle, triangle);
+            openingRaisedSurfaceComparisons += 1;
+            minimumOpeningRaisedSurfaceGap = Math.min(
+              minimumOpeningRaisedSurfaceGap,
+              rawGap,
+            );
+            if (rawGap < REQUIRED_CLEARANCE) {
+              throw new Error(
+                `Ahmad Jafar ${opening.label} road is obstructed by the ` +
+                  `${raisedSurface.label} at north/east ` +
+                  `${formatCoordinate(sample.north)}/${formatCoordinate(sample.east)} ` +
+                  `(swept clearance ${formatDistance(rawGap)})`,
+              );
+            }
+          }
+        }
+        openingSamples += 1;
+        openingRoadSamples += 1;
+      }
+    }
+    if (openingSamples < 100) {
+      throw new Error(
+        `Ahmad Jafar ${opening.label} road opening has too few regression samples`,
+      );
+    }
+  }
+  if (
+    openingRaisedSurfaceComparisons === 0 ||
+    !Number.isFinite(minimumOpeningRaisedSurfaceGap)
+  ) {
+    throw new Error(
+      "Ahmad Jafar south/east road openings did not inspect their raised corner surfaces",
+    );
+  }
   for (const [label, polygon] of [
     ["land", parcel.landOutline],
     ["sidewalk", parcel.sidewalkOutline],
@@ -2589,20 +2857,21 @@ function validateSoutheastJunctionDefinition() {
     ].every(isFiniteNumber) ||
     frontage.width <= 0 ||
     frontage.depth <= 0 ||
-    frontage.replacementBuildingIndex !== 567 ||
-    frontage.suppressedOccluderBuildingIndex !== 617 ||
+    frontage.replacementBuildingIndex !== 617 ||
+    frontage.suppressedOccluderBuildingIndex !== 567 ||
     !REPLACEMENT_BUILDING_INDEXES.has(frontage.replacementBuildingIndex) ||
     !REPLACEMENT_BUILDING_INDEXES.has(
       frontage.suppressedOccluderBuildingIndex,
     ) ||
     !samePoint(
       frontage.center,
-      [17.00769238126079, 21.588810790132104],
+      [16.197676033197446, 18.23039941252672],
       1e-12,
     ) ||
-    Math.abs(frontage.width - 2.18) > 1e-12 ||
-    Math.abs(frontage.depth - 2.94) > 1e-12 ||
-    Math.abs(frontage.yaw - -2.9147938055359073) > 1e-12 ||
+    Math.abs(frontage.width - 1.9) > 1e-12 ||
+    Math.abs(frontage.depth - 2.64) > 1e-12 ||
+    Math.abs(frontage.yaw - -2.7554) > 1e-12 ||
+    frontage.facadeSide !== "localPositiveZ" ||
     Math.abs(frontage.width - frontage.visualScaleX) > 1e-12 ||
     Math.abs(frontage.depth - frontage.visualScaleZ * 2.4) > 1e-12 ||
     Math.abs(
@@ -2610,7 +2879,7 @@ function validateSoutheastJunctionDefinition() {
     ) > 1e-12
   ) {
     throw new Error(
-      "SEWA Billboard showroom must replace OSM 567, suppress duplicate 617, and retain matching render/collision dimensions",
+      "SEWA Billboard showroom must replace road-edge OSM 617, suppress rear duplicate 567, and retain matching render/collision dimensions",
     );
   }
   validateCollisionParity("SEWA Billboard corner showroom", frontage);
@@ -2618,58 +2887,26 @@ function validateSoutheastJunctionDefinition() {
     "SEWA Billboard flush weathered forecourt",
     frontage.forecourtOutline,
   );
-  const expectedForecourtOutline = [
-    [15.04, 16.641627207996546],
-    [15.628697686969359, 16.551807334369993],
-    [16.9331353672737, 16.542578488706805],
-    [17.0914825508127, 16.498070473756368],
-    [18.0280657861389, 19.830174087653653],
-    [17.7392353097, 19.9113588702],
-    [15.6150625031, 20.4015525948],
-    [15.04, 17.28],
-  ];
-  const suppressedOccluderFootprint = [
-    [16.8, 16.58],
-    [17.8, 19.02],
-    [16.04, 19.72],
-    [15.04, 17.28],
-  ];
   const approachRoadEdge = [
     definition.showroomApproachSurfaceOutline[1],
     definition.showroomApproachSurfaceOutline[2],
   ];
+  const forecourtRoadSeamPoints = frontage.forecourtOutline.filter((point) =>
+    pointOnSegment2D(point, approachRoadEdge[0], approachRoadEdge[1], 1e-8),
+  );
   if (
-    frontage.forecourtOutline.length !== expectedForecourtOutline.length ||
-    frontage.forecourtOutline.some(
-      (point, index) => !samePoint(point, expectedForecourtOutline[index], 1e-12),
-    ) ||
-    Math.abs(polygonArea(frontage.forecourtOutline) - 8.406311800475294) >
-      1e-10 ||
-    polygonTriangles(
-      "SEWA Billboard flush weathered forecourt",
-      frontage.forecourtOutline,
-    ).length !== 6 ||
-    suppressedOccluderFootprint.some(
-      (point) => !pointInsideOrOnPolygon(point, frontage.forecourtOutline),
-    ) ||
-    !pointOnSegment2D(
-      frontage.forecourtOutline[3],
-      approachRoadEdge[0],
-      approachRoadEdge[1],
-      1e-10,
-    ) ||
-    !pointOnSegment2D(
-      frontage.forecourtOutline[4],
-      approachRoadEdge[0],
-      approachRoadEdge[1],
-      1e-10,
-    )
+    polygonArea(frontage.forecourtOutline) < 6 ||
+    forecourtRoadSeamPoints.length < 2 ||
+    pointDistance(
+      forecourtRoadSeamPoints[0],
+      forecourtRoadSeamPoints.at(-1),
+    ) < 0.25
   ) {
     throw new Error(
-      "SEWA Billboard hardstand must cover stale OSM 617 and meet the diagonal road/showroom seams exactly",
+      "SEWA Billboard forecourt must remain one usable property-side hardstand with a real shared diagonal-road seam",
     );
   }
-  const suppressedOccluderCenter = [16.42, 18.14];
+  const suppressedOccluderCenter = [17.00769238126079, 21.588810790132104];
   const suppressedOccluderNearestObstacleGap = Math.min(
     ...ALUN_ALUN_TRAFFIC_COLLISION_OBSTACLES.filter(
       (obstacle) => obstacle.playerCollision !== false,
@@ -2682,14 +2919,10 @@ function validateSoutheastJunctionDefinition() {
     ),
   );
   if (
-    !pointInsideOrOnPolygon(
-      suppressedOccluderCenter,
-      frontage.forecourtOutline,
-    ) ||
     suppressedOccluderNearestObstacleGap < RIDER_COLLISION_RADIUS - 1e-8
   ) {
     throw new Error(
-      "stale OSM 617 center must remain on the walkable showroom forecourt without replacement collision",
+      "suppressed rear OSM 567 center must remain free of invisible replacement collision",
     );
   }
   const frontageEnvelope = obstacleEnvelope({
@@ -2719,6 +2952,15 @@ function validateSoutheastJunctionDefinition() {
   ) {
     throw new Error(
       "SEWA Billboard replacement footprint must remain outside rendered asphalt",
+    );
+  }
+  const frontageRoadClearance = polygonClearance(
+    frontageCorners,
+    definition.showroomApproachSurfaceOutline,
+  );
+  if (frontageRoadClearance < 0.12 || frontageRoadClearance > 0.3) {
+    throw new Error(
+      "SEWA Billboard road-facing wall must stay tight to its roadside hardstand without entering the east carriageway",
     );
   }
   if (
@@ -2758,7 +3000,7 @@ function validateSoutheastJunctionDefinition() {
   validateNumberedCollisionSeries(
     "Ahmad Jafar context tree",
     definition.contextTrees,
-    4,
+    3,
     (tree) => ({
       center: tree.center,
       width: tree.collisionWidth,
@@ -2819,12 +3061,28 @@ function validateSoutheastJunctionDefinition() {
     yaw: beigeRowObstacle.yaw ?? 0,
   });
   if (
+    !polygonsOverlapOrTouch(dwiConnector.outline, beigeRowFootprint) ||
+    polygonsHaveInteriorOverlap2D(dwiConnector.outline, beigeRowFootprint) ||
+    ALUN_ALUN_TRAFFIC_COLLISION_OBSTACLES.filter(
+      ({ label, playerCollision }) =>
+        playerCollision !== false && label !== "frontage beige row",
+    ).some((obstacle) =>
+      polygonsHaveInteriorOverlap2D(
+        dwiConnector.outline,
+        obstacleFootprint({
+          center: [obstacle.north, obstacle.east],
+          width: obstacle.width,
+          depth: obstacle.depth,
+          yaw: obstacle.yaw ?? 0,
+        }),
+      ),
+    ) ||
     contextTreeFootprints.some((treeFootprint) =>
       polygonsHaveInteriorOverlap2D(treeFootprint, beigeRowFootprint),
     )
   ) {
     throw new Error(
-      "Ahmad Jafar context trees must not overlap the DWI PUTRI frontage",
+      "DWI PUTRI connector must touch only its facade while context objects stay outside the frontage",
     );
   }
   const utilities = definition.utilityCorridor;
@@ -2891,7 +3149,11 @@ function validateSoutheastJunctionDefinition() {
     }
   }
 
-  const renderedAsphaltPolygons = asphaltOwners.map(({ polygon }) => polygon);
+  const renderedAsphaltPolygons = [
+    ...asphaltOwners.map(({ polygon }) => polygon),
+    definition.showroomApproachSurfaceOutline,
+    ...ALUN_ALUN_SOUTH_APPROACH_DEFINITION.terminalHardstandOutlines,
+  ];
   const validateBackedPath = (label, path, halfWidth, spacing) => {
     let checkedSamples = 0;
     path.slice(0, -1).forEach((start, segmentIndex) => {
@@ -2942,10 +3204,14 @@ function validateSoutheastJunctionDefinition() {
     "ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.openFrontageAsphaltOutline",
     "ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.eastAsphaltInfillOutline",
     "junctionDefinition.barrierSupports.forEach",
+    "junctionDefinition.dwiPutriFrontageConnector.outline",
+    "junctionDefinition.dwiPutriFrontageConnector.height",
     "const parcel = junctionDefinition.parcel",
     "parcel.curbCenterline",
     "parcel.sidewalkOutline",
     "parcel.apronOutline",
+    "parcel.noseHardstandOutline",
+    "parcel.noseHardstandHeight",
     "parcel.landOutline",
     "parcel.forecourtHeight",
     "junctionDefinition.showroom.forecourtOutline",
@@ -2970,7 +3236,11 @@ function validateSoutheastJunctionDefinition() {
     asphaltCoverageSamples,
     barrierCount: supports.length,
     circulationSamples: monumentCirculationSamples.length,
+    frontageRoadClearance,
     greenBackingSamples,
+    minimumOpeningRaisedSurfaceGap,
+    openingRaisedSurfaceComparisons,
+    openingRoadSamples,
     parcelSurfaceSamples: retainedParcelSamples,
     southGuideBackingSamples,
   };
@@ -2981,9 +3251,32 @@ function validateSoutheastJunctionNavigationSurfaces() {
   const expected = [
     {
       points:
+        ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.dwiPutriFrontageConnector
+          .outline,
+      height:
+        ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.dwiPutriFrontageConnector
+          .height,
+      label: "DWI PUTRI rounded flush storefront connector",
+    },
+    {
+      points:
         ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.openFrontageAsphaltOutline,
       height: ALUN_ALUN_ROAD_SURFACE_Y,
       label: "open Ahmad Jafar showroom-side asphalt hardstand",
+    },
+    {
+      points:
+        ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.cornerReturns.southeast
+          .asphaltOutline,
+      height: ALUN_ALUN_ROAD_SURFACE_Y,
+      label: "rounded Ahmad Jafar south-east corner asphalt",
+    },
+    {
+      points:
+        ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION
+          .showroomApproachSurfaceOutline,
+      height: ALUN_ALUN_ROAD_SURFACE_Y,
+      label: "Ahmad Jafar diagonal east-road asphalt",
     },
   ];
   for (const routeName of ["northWest", "northEast"]) {
@@ -3001,6 +3294,11 @@ function validateSoutheastJunctionNavigationSurfaces() {
       },
     );
   }
+  expected.push({
+    points: parcel.noseHardstandOutline,
+    height: parcel.noseHardstandHeight,
+    label: "Ahmad Jafar flush rounded-corner throat hardstand",
+  });
   expected.push({
     points: parcel.landOutline,
     height: parcel.forecourtHeight,
@@ -3037,7 +3335,7 @@ function validateSoutheastJunctionNavigationSurfaces() {
     )
   ) {
     throw new Error(
-      "southeast-junction navigation must export the exact north-west, north-east, showroom and parcel forecourt/sidewalk/apron polygons",
+      "southeast-junction navigation must export the exact DWI connector, north-west, north-east, showroom, flush nose and parcel forecourt/sidewalk/apron polygons",
     );
   }
   expected.forEach(({ label, points }) =>
@@ -6477,6 +6775,7 @@ function validateSouthCorridorNavigationSurfaces() {
   const combinedSurfaces = [
     ...ALUN_ALUN_FRONTAGE_NAVIGATION_SURFACES,
     ...ALUN_ALUN_SOUTH_CORRIDOR_NAVIGATION_SURFACES,
+    ...ALUN_ALUN_SOUTHEAST_JUNCTION_NAVIGATION_SURFACES,
   ];
   const navigation = createNavigationSystem({
     constants: {
@@ -7580,16 +7879,23 @@ if (
   );
   console.log(
     `Ahmad Jafar junction: open unsignalised asphalt; ` +
-      `${southeastJunctionResult.asphaltCoverageSamples} W/S/J/F/E owner ` +
+      `${southeastJunctionResult.asphaltCoverageSamples} W/S/J/F/R/N/E owner ` +
       `triangles and ` +
       `${southeastJunctionResult.southGuideBackingSamples.toLocaleString("en-US")} ` +
       `south-guide backing samples; ` +
+      `${southeastJunctionResult.openingRoadSamples.toLocaleString("en-US")} ` +
+      `south/east opening samples with ` +
+      `${southeastJunctionResult.openingRaisedSurfaceComparisons.toLocaleString("en-US")} ` +
+      `raised-surface comparisons and minimum clearance ` +
+      `${formatDistance(southeastJunctionResult.minimumOpeningRaisedSurfaceGap)}; ` +
       `${southeastJunctionResult.circulationSamples} ` +
       `walkable monument-ring samples; ` +
       `${southeastJunctionResult.greenBackingSamples.toLocaleString("en-US")} ` +
       `green-edge asphalt samples; ` +
       `${southeastJunctionResult.parcelSurfaceSamples} paved parcel samples; ` +
-      `${southeastNavigationResult.surfaceCount} exact pedestrian navigation ` +
+      `showroom wall ${formatDistance(southeastJunctionResult.frontageRoadClearance)} ` +
+      `from the east carriageway; ` +
+      `${southeastNavigationResult.surfaceCount} exact navigation ` +
       `polygons at ${southeastNavigationResult.heightSamples} verified heights; ` +
       `${southeastJunctionResult.barrierCount} barriers.`,
   );

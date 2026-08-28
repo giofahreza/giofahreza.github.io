@@ -615,8 +615,14 @@ const compactLoopSourceRoad = compactLoopReplacement
 // gap at the loop's south-west nose to pass unnoticed.
 const renderedJunctionAsphaltPolygons = [
   ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.junctionAsphaltOutline,
+  ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.openFrontageAsphaltOutline,
+  ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.cornerReturns.southeast
+    .asphaltOutline,
+  ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.showroomApproachSurfaceOutline,
+  ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.parcel.noseHardstandOutline,
   ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.eastAsphaltInfillOutline,
   ALUN_ALUN_SOUTH_APPROACH_DEFINITION.surfaceOutline,
+  ...ALUN_ALUN_SOUTH_APPROACH_DEFINITION.terminalHardstandOutlines,
   ALUN_ALUN_WESTERN_ASPHALT_UNION_OUTLINE,
 ];
 let compactLoopCoverageSamples = 0;

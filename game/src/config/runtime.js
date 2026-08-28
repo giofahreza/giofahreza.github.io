@@ -44,9 +44,8 @@ export function getMapRadiusUnits(mapData, metersPerWorldUnit) {
 // Kantor Pos, municipal library, the east-side tyre shop, Warung Pojok, the
 // southeast SEWA BILLBOARD showroom, Bakti Motor, Pendopo Aryo, SD Islam
 // Al-Abror and the Pendopo gazebo. Their generic extrusions are replaced
-// one-for-one by surveyed art. OSM 617 is a stale duplicate immediately in
-// front of showroom 567; its footprint is retained as the surveyed open
-// hardstand rather than rendered as a second two-storey building.
+// one-for-one by surveyed art. OSM 617 is the road-edge SEWA BILLBOARD
+// showroom used by the custom facade; OSM 567 is its masked rear duplicate.
 export const REPLACEMENT_BUILDING_INDEX_LIST = [
   0,
   3,
