@@ -11,9 +11,6 @@ export function createAlunAlunEastSchoolsFactory({
   helpers: {
     getSitubondoSignMaterial,
   },
-  junction: {
-    showroom,
-  },
 }) {
   const AL_ABROR_ROAD_YAW = 0.199;
 
@@ -1710,11 +1707,7 @@ export function createAlunAlunEastSchoolsFactory({
     // Leave a real pedestrian-width gap between the facade and the west
     // footway of Jl. Susanto.  The former position forced the footway into the
     // northbound vehicle envelope at the junction throat.
-    beigeBlock.position.set(0.15, 0, -2.45);
-    // The real corner is a low, weathered kiosk row.  Compress the inherited
-    // two-storey shell so it no longer towers over the monument and mature
-    // street tree.
-    beigeBlock.scale.y = 0.67;
+    beigeBlock.position.set(0.15, 0, -2.15);
     const beigeBody = new THREE.Mesh(
       roundedBox(2.72, 1.62, 4.3, 0.045),
       beigeMaterial,
@@ -1736,15 +1729,22 @@ export function createAlunAlunEastSchoolsFactory({
 
     const catBoard = new THREE.Mesh(
       roundedBox(0.065, 0.48, 1.58, 0.015),
-      blueMaterial,
+      maroonMaterial,
     );
     catBoard.position.set(-1.43, 1.3, -1.12);
     beigeBlock.add(catBoard);
-    const catBoardLabel = new THREE.Mesh(
-      new THREE.PlaneGeometry(1.32, 0.24),
-      getSitubondoSignMaterial("JUS BUAH DWI PUTRI", "#f0dfd3", 780),
+    const catFace = new THREE.Mesh(
+      new THREE.CircleGeometry(0.16, 16),
+      paleMaterial,
     );
-    catBoardLabel.position.set(-1.47, 1.3, -1.12);
+    catFace.position.set(-1.47, 1.31, -1.58);
+    catFace.rotation.y = -Math.PI * 0.5;
+    beigeBlock.add(catFace);
+    const catBoardLabel = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.92, 0.24),
+      getSitubondoSignMaterial("ATURR... PATENANG!", "#f0dfd3", 780),
+    );
+    catBoardLabel.position.set(-1.47, 1.3, -0.96);
     catBoardLabel.rotation.y = -Math.PI * 0.5;
     beigeBlock.add(catBoardLabel);
 
@@ -1813,39 +1813,107 @@ export function createAlunAlunEastSchoolsFactory({
     });
     shopRow.add(beigeBlock);
 
+    const modernShop = new THREE.Group();
+    // Set the facade back far enough for the east footway to pass between the
+    // storefront and the southbound lane, matching the paved setback visible
+    // in Street View.
+    modernShop.position.set(0.65, 0, 4.45);
+    const modernBody = new THREE.Mesh(
+      roundedBox(2.5, 1.82, 1.6, 0.04),
+      paleMaterial,
+    );
+    modernBody.position.y = 0.91;
+    modernShop.add(modernBody);
+    const modernCap = new THREE.Mesh(
+      roundedBox(2.6, 0.1, 1.7, 0.018),
+      roofDarkMaterial,
+    );
+    modernCap.position.y = 1.86;
+    modernShop.add(modernCap);
+    const darkUpperPanel = new THREE.Mesh(
+      roundedBox(0.06, 0.82, 0.72, 0.014),
+      darkMaterial,
+    );
+    darkUpperPanel.position.set(-1.28, 1.38, -0.13);
+    modernShop.add(darkUpperPanel);
+    const greenPier = new THREE.Mesh(
+      roundedBox(0.07, 1.42, 0.25, 0.012),
+      greenMaterial,
+    );
+    greenPier.position.set(-1.29, 1.08, 0.63);
+    modernShop.add(greenPier);
+    [-0.5, 0.5].forEach((eastOffset) => {
+      const frameSide = new THREE.Mesh(
+        roundedBox(0.075, 0.96, 0.12, 0.012),
+        creamMaterial,
+      );
+      frameSide.position.set(-1.31, 1.34, eastOffset);
+      modernShop.add(frameSide);
+    });
+    [0.9, 1.8].forEach((height) => {
+      const frameRail = new THREE.Mesh(
+        roundedBox(0.075, 0.12, 1.12, 0.012),
+        creamMaterial,
+      );
+      frameRail.position.set(-1.31, height, 0);
+      modernShop.add(frameRail);
+    });
+    const modernOpening = new THREE.Mesh(
+      roundedBox(0.06, 0.62, 0.92, 0.016),
+      shutterMaterial,
+    );
+    modernOpening.position.set(-1.29, 0.39, 0.08);
+    modernShop.add(modernOpening);
+    const modernAwning = new THREE.Mesh(
+      roundedBox(0.42, 0.08, 1.42, 0.016),
+      roofMaterial,
+    );
+    modernAwning.position.set(-1.45, 0.75, 0.05);
+    modernShop.add(modernAwning);
+    const arumBoard = new THREE.Mesh(
+      roundedBox(0.07, 0.38, 0.68, 0.014),
+      blueMaterial,
+    );
+    arumBoard.position.set(-1.31, 1.1, -0.62);
+    modernShop.add(arumBoard);
+    const arumLabel = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.55, 0.25),
+      getSitubondoSignMaterial("ARUM SHOP", "#f3eee0", 760),
+    );
+    arumLabel.position.set(-1.35, 1.1, -0.62);
+    arumLabel.rotation.y = -Math.PI * 0.5;
+    modernShop.add(arumLabel);
+    shopRow.add(modernShop);
+
     shopRow.traverse((child) => {
       if (child.isMesh) child.castShadow = true;
     });
     frontage.add(shopRow);
 
     const workshop = new THREE.Group();
-    workshop.name = "Bakti Motor · SEWA BILLBOARD · May 2025 Street View";
-    workshop.position.set(showroom.center[0], 0.05, showroom.center[1]);
-    workshop.rotation.y = showroom.yaw;
+    workshop.name = "Bakti Motor · Google Street View workshop";
+    workshop.position.set(30.82, 0.05, 23.74);
+    workshop.rotation.y = 0.145;
     const workshopBody = new THREE.Mesh(
-      roundedBox(showroom.width, 1.06, showroom.depth, 0.045),
+      roundedBox(6.25, 1.06, 4.38, 0.045),
       paleMaterial,
     );
     workshopBody.position.y = 0.53;
     workshop.add(workshopBody);
     const workshopRoof = new THREE.Mesh(
-      createGableRoofGeometry(
-        showroom.width + 0.37,
-        showroom.depth + 0.34,
-        0.42,
-      ),
+      createGableRoofGeometry(6.62, 4.72, 0.42),
       silverMaterial,
     );
     workshopRoof.position.y = 1.02;
     workshop.add(workshopRoof);
     const workshopRidge = new THREE.Mesh(
-      roundedBox(0.08, 0.08, showroom.depth + 0.27, 0.014),
+      roundedBox(0.08, 0.08, 4.65, 0.014),
       roofDarkMaterial,
     );
     workshopRidge.position.set(0, 1.47, 0);
     workshop.add(workshopRidge);
 
-    const workshopFrontX = -showroom.width * 0.5 - 0.05;
+    const workshopFrontX = -3.16;
     const openBay = new THREE.Mesh(
       roundedBox(0.065, 0.72, 1.52, 0.018),
       darkMaterial,
@@ -1921,50 +1989,26 @@ export function createAlunAlunEastSchoolsFactory({
     oxyLabel.rotation.y = -Math.PI * 0.5;
     workshop.add(oxyLabel);
 
-    [-1.55, 1.55].forEach((eastOffset) => {
+    [-1.2, 1.2].forEach((eastOffset) => {
       const billboardSupport = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.035, 0.05, 1.05, 7),
+        new THREE.CylinderGeometry(0.035, 0.05, 1.45, 7),
         roofDarkMaterial,
       );
-      billboardSupport.position.set(workshopFrontX - 0.03, 1.55, eastOffset);
+      billboardSupport.position.set(-0.55, 1.72, eastOffset + 0.35);
       workshop.add(billboardSupport);
     });
     const roofBillboard = new THREE.Mesh(
-      roundedBox(0.13, 1.22, 4.04, 0.028),
-      darkMaterial,
+      roundedBox(0.13, 1.3, 3.45, 0.028),
+      silverMaterial,
     );
-    roofBillboard.position.set(workshopFrontX - 0.04, 1.72, 0);
+    roofBillboard.position.set(-0.55, 2.2, 0.35);
     workshop.add(roofBillboard);
     const roofBillboardInset = new THREE.Mesh(
-      roundedBox(0.045, 1.08, 3.86, 0.018),
-      blueMaterial,
+      roundedBox(0.045, 1.08, 3.2, 0.018),
+      roofMaterial,
     );
-    roofBillboardInset.position.set(workshopFrontX - 0.115, 1.72, 0);
+    roofBillboardInset.position.set(-0.63, 2.2, 0.35);
     workshop.add(roofBillboardInset);
-    const roofBillboardLabel = new THREE.Mesh(
-      new THREE.PlaneGeometry(3.5, 0.34),
-      getSitubondoSignMaterial("SEWA BILLBOARD", "#f4efe0", 920),
-    );
-    roofBillboardLabel.position.set(workshopFrontX - 0.142, 2.03, 0);
-    roofBillboardLabel.rotation.y = -Math.PI * 0.5;
-    roofBillboardLabel.renderOrder = 5;
-    workshop.add(roofBillboardLabel);
-    const roofBillboardBonus = new THREE.Mesh(
-      new THREE.PlaneGeometry(3.28, 0.2),
-      getSitubondoSignMaterial("BONUS IKLAN TV NASIONAL", "#cf5b4a", 840),
-    );
-    roofBillboardBonus.position.set(workshopFrontX - 0.143, 1.72, 0);
-    roofBillboardBonus.rotation.y = -Math.PI * 0.5;
-    roofBillboardBonus.renderOrder = 5;
-    workshop.add(roofBillboardBonus);
-    const roofBillboardPhone = new THREE.Mesh(
-      new THREE.PlaneGeometry(3.08, 0.27),
-      getSitubondoSignMaterial("0811 340 3901", "#e0bd47", 900),
-    );
-    roofBillboardPhone.position.set(workshopFrontX - 0.144, 1.43, 0);
-    roofBillboardPhone.rotation.y = -Math.PI * 0.5;
-    roofBillboardPhone.renderOrder = 5;
-    workshop.add(roofBillboardPhone);
 
     workshop.traverse((child) => {
       if (child.isMesh) child.castShadow = true;
@@ -1980,6 +2024,9 @@ export function createAlunAlunEastSchoolsFactory({
     const poleMaterial = toonMaterial({ color: 0x596360 });
     const blueMaterial = toonMaterial({ color: 0x2c6e9b });
     const paleMaterial = toonMaterial({ color: 0xe9e6da });
+    const blankMaterial = toonMaterial({ color: 0x777c78 });
+    const greenMaterial = toonMaterial({ color: 0x315a43 });
+    const redMaterial = toonMaterial({ color: 0x99483f });
 
     const directionBoard = new THREE.Group();
     directionBoard.position.set(17.35, 0.05, 10.15);
@@ -2012,6 +2059,63 @@ export function createAlunAlunEastSchoolsFactory({
     directionBoard.add(arrow);
     mergeDirectMeshesByMaterial(directionBoard);
     boards.add(directionBoard);
+
+    const blankBoard = new THREE.Group();
+    blankBoard.position.set(23.9, 0.05, 10.4);
+    [-0.24, 0.24].forEach((northOffset) => {
+      const support = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.025, 0.035, 2.15, 7),
+        poleMaterial,
+      );
+      support.position.set(northOffset, 1.08, 0);
+      blankBoard.add(support);
+    });
+    const blankFace = new THREE.Mesh(
+      roundedBox(0.88, 1.42, 0.08, 0.025),
+      blankMaterial,
+    );
+    blankFace.position.y = 1.92;
+    blankBoard.add(blankFace);
+    const blankInset = new THREE.Mesh(
+      roundedBox(0.68, 1.12, 0.035, 0.014),
+      redMaterial,
+    );
+    blankInset.position.set(0, 1.92, -0.055);
+    blankBoard.add(blankInset);
+    mergeDirectMeshesByMaterial(blankBoard);
+    boards.add(blankBoard);
+
+    const parkBillboard = new THREE.Group();
+    parkBillboard.position.set(14.85, 0.05, 10.85);
+    [-0.52, 0.52].forEach((northOffset) => {
+      const support = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.025, 0.04, 1.8, 7),
+        poleMaterial,
+      );
+      support.position.set(northOffset, 0.9, 0);
+      parkBillboard.add(support);
+    });
+    const parkFace = new THREE.Mesh(
+      roundedBox(1.5, 0.72, 0.08, 0.025),
+      greenMaterial,
+    );
+    parkFace.position.y = 1.61;
+    parkBillboard.add(parkFace);
+    const parkHeader = new THREE.Mesh(
+      roundedBox(1.22, 0.08, 0.035, 0.01),
+      paleMaterial,
+    );
+    parkHeader.position.set(0, 1.81, -0.06);
+    parkBillboard.add(parkHeader);
+    const parkLabel = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.92, 0.23),
+      getSitubondoSignMaterial("SAFARI", "#eee6d5", 760),
+    );
+    parkLabel.position.set(0, 1.58, -0.068);
+    parkLabel.rotation.y = Math.PI;
+    parkBillboard.add(parkLabel);
+    mergeDirectMeshesByMaterial(parkBillboard);
+    boards.add(parkBillboard);
 
     group.add(boards);
   }

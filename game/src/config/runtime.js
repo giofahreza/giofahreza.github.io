@@ -41,11 +41,9 @@ export function getMapRadiusUnits(mapData, metersPerWorldUnit) {
 // OSM buildings 0, 3, 4, 10, 11, 12, 13, 15, 169, 2122, 2225, 2226 and 2228
 // are Al-Abror, Bank BRI KC Situbondo, SD Negeri 6 Dawuhan, the
 // Lesehan/Pegadaian frontage block, Kantor Pos's west-side compound wing,
-// Kantor Pos, municipal library, the east-side tyre shop, Warung Pojok, the
-// SEWA BILLBOARD/Bakti Motor workshop, Pendopo Aryo, SD Islam Al-Abror and
-// the Pendopo gazebo. Their generic extrusions are replaced one-for-one by
-// surveyed art. OSM 567 and 617 are two separate Hasanudin-side buildings;
-// both retain their source-map visuals and exact polygon collision.
+// Kantor Pos, municipal library, the east-side tyre shop, Warung Pojok, Bakti
+// Motor, Pendopo Aryo, SD Islam Al-Abror and the Pendopo gazebo. Their generic
+// extrusions are replaced one-for-one by surveyed art.
 export const REPLACEMENT_BUILDING_INDEX_LIST = [
   0,
   3,

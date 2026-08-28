@@ -45,6 +45,29 @@ export const ALUN_ALUN_GENERATED_ROAD_REPLACEMENTS = Object.freeze([
     ]),
   }),
   Object.freeze({
+    label: "true south-east Jalan Cendrawasih arm",
+    style: 1,
+    // The source runs away from the junction, so keep its distant suffix and
+    // replace only the first segment whose generated curb caps the road mouth.
+    retainedPointStart: 1,
+    retainedPointCount: 5,
+    coordinates: freezeCoordinates([
+      1039, -642, 1110, -922, 1400, -2212, 1552, -2930, 1552, -3058, 1551,
+      -3076,
+    ]),
+  }),
+  Object.freeze({
+    label: "true south-east Jalan Diponegoro arm",
+    style: 0,
+    // This source runs toward the junction. Retain the distant prefix through
+    // [1420,-853] and replace only its final segment to [1039,-642].
+    retainedPointCount: 6,
+    coordinates: freezeCoordinates([
+      4205, -2591, 3317, -2038, 2945, -1805, 2702, -1653, 2053, -1239,
+      1420, -853, 1039, -642,
+    ]),
+  }),
+  Object.freeze({
     label: "north-arm continuation",
     style: 1,
     // Retain the distant prefix through [755, 1610]. The custom north arm
@@ -150,14 +173,34 @@ export function getAlunAlunGeneratedRoadReplacement(road) {
   return replacementsByRoadKey.get(roadKey(road[0], road[2])) ?? null;
 }
 
+export function getAlunAlunGeneratedRoadRetainedPointRange(replacement) {
+  const start = replacement.retainedPointStart ?? 0;
+  return Object.freeze({
+    start,
+    end: start + replacement.retainedPointCount,
+  });
+}
+
+export function isAlunAlunGeneratedRoadSegmentRetained(
+  replacement,
+  segmentEndPointIndex,
+) {
+  if (!replacement) return true;
+  const { start, end } =
+    getAlunAlunGeneratedRoadRetainedPointRange(replacement);
+  return segmentEndPointIndex > start && segmentEndPointIndex < end;
+}
+
 export function maskAlunAlunGeneratedRoads(roads) {
   return roads.flatMap((road) => {
     const replacement = getAlunAlunGeneratedRoadReplacement(road);
     if (!replacement) return [road];
 
+    const { start, end } =
+      getAlunAlunGeneratedRoadRetainedPointRange(replacement);
     const retainedCoordinates = road[2].slice(
-      0,
-      replacement.retainedPointCount * 2,
+      start * 2,
+      end * 2,
     );
     if (retainedCoordinates.length < 4) return [];
 

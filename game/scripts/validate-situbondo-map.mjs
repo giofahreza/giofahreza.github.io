@@ -1,14 +1,17 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import {
+  ALUN_ALUN_JUNCTION_ASPHALT_OUTLINE,
+  ALUN_ALUN_JUNCTION_LOOP_PATH,
+  ALUN_ALUN_JUNCTION_LOOP_SURFACE_WIDTH,
   ALUN_ALUN_PARK_OUTLINE,
   ALUN_ALUN_SOUTH_APPROACH_DEFINITION,
-  ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION,
-  ALUN_ALUN_WESTERN_ASPHALT_UNION_OUTLINE,
   createAlunAlunRoadRibbonGeometry,
 } from "../src/features/landmarks/alun-alun/traffic.js";
 import {
   ALUN_ALUN_GENERATED_ROAD_REPLACEMENTS,
+  getAlunAlunGeneratedRoadRetainedPointRange,
+  isAlunAlunGeneratedRoadSegmentRetained,
   maskAlunAlunGeneratedRoads,
 } from "../src/features/landmarks/alun-alun/generated-road-mask.js";
 import {
@@ -17,6 +20,10 @@ import {
 
 const path = resolve("public/data/situbondo-map.json");
 const map = JSON.parse(await readFile(path, "utf8"));
+const geospatialWorldSource = await readFile(
+  resolve("src/world/geospatial-world.js"),
+  "utf8",
+);
 const failures = [];
 const MAP_METERS_PER_WORLD_UNIT = 5;
 const SURVEYED_CARRIAGEWAY_WIDTH_METERS = 6.6;
@@ -42,6 +49,32 @@ const PEGADAIAN_FRONTAGE_SOURCE_COORDINATES = Object.freeze([
   -1999, 2521, -1929, 2497, -1876, 2447, -1751, 2089,
   -1712, 2021, -1447, 1775, -1317, 1704, -1272, 1616,
   -1251, 1486, -1319, 1128, -1385, 790, -1423, 564,
+]);
+const TRUE_SOUTHEAST_REPLACED_ROADS = Object.freeze([
+  Object.freeze({
+    roadIndex: 42,
+    label: "true south-east Jalan Cendrawasih arm",
+    style: 1,
+    width: 61,
+    retainedPointStart: 1,
+    retainedPointCount: 5,
+    coordinates: Object.freeze([
+      1039, -642, 1110, -922, 1400, -2212, 1552, -2930, 1552, -3058,
+      1551, -3076,
+    ]),
+  }),
+  Object.freeze({
+    roadIndex: 43,
+    label: "true south-east Jalan Diponegoro arm",
+    style: 0,
+    width: 110,
+    retainedPointStart: 0,
+    retainedPointCount: 6,
+    coordinates: Object.freeze([
+      4205, -2591, 3317, -2038, 2945, -1805, 2702, -1653, 2053, -1239,
+      1420, -853, 1039, -642,
+    ]),
+  }),
 ]);
 const ALUN_ALUN_SURVEYED_ROADS = Object.freeze([
   Object.freeze({
@@ -245,6 +278,17 @@ function roadRibbonTriangles(points, width) {
   }
 }
 
+function pointInTriangle(point, triangle) {
+  const first = segmentCross(triangle[0], triangle[1], point);
+  const second = segmentCross(triangle[1], triangle[2], point);
+  const third = segmentCross(triangle[2], triangle[0], point);
+  const epsilon = 1e-8;
+  return (
+    (first >= -epsilon && second >= -epsilon && third >= -epsilon) ||
+    (first <= epsilon && second <= epsilon && third <= epsilon)
+  );
+}
+
 function triangleMaximumEdgeLength(triangle) {
   return Math.max(
     Math.hypot(
@@ -377,9 +421,11 @@ ALUN_ALUN_GENERATED_ROAD_REPLACEMENTS.forEach((replacement) => {
     `generated-road replacement ${replacement.label} has ` +
       `${sourceMatches.length} exact source matches`,
   );
+  const retainedRange =
+    getAlunAlunGeneratedRoadRetainedPointRange(replacement);
   const retainedCoordinates = replacement.coordinates.slice(
-    0,
-    replacement.retainedPointCount * 2,
+    retainedRange.start * 2,
+    retainedRange.end * 2,
   );
   if (retainedCoordinates.length < 4) {
     check(
@@ -392,9 +438,76 @@ ALUN_ALUN_GENERATED_ROAD_REPLACEMENTS.forEach((replacement) => {
     renderableRoadFingerprints.has(
       roadFingerprint(replacement.style, retainedCoordinates),
     ),
-    `generated-road replacement ${replacement.label} retained the wrong prefix`,
+    `generated-road replacement ${replacement.label} retained the wrong point range`,
   );
 });
+TRUE_SOUTHEAST_REPLACED_ROADS.forEach((expected) => {
+  const sourceRoad = map.roads[expected.roadIndex];
+  const replacement = ALUN_ALUN_GENERATED_ROAD_REPLACEMENTS.find(
+    (candidate) => candidate.label === expected.label,
+  );
+  const expectedFingerprint = roadFingerprint(
+    expected.style,
+    expected.coordinates,
+  );
+  check(
+    sourceRoad?.[0] === expected.style &&
+      sourceRoad?.[1] === expected.width &&
+      coordinateFingerprint(sourceRoad?.[2] ?? []) ===
+        coordinateFingerprint(expected.coordinates),
+    `source road ${expected.roadIndex} is no longer the complete ` +
+      `${expected.label} fingerprint`,
+  );
+  check(
+    replacement?.style === expected.style &&
+      (replacement?.retainedPointStart ?? 0) ===
+        expected.retainedPointStart &&
+      replacement?.retainedPointCount === expected.retainedPointCount &&
+      coordinateFingerprint(replacement?.coordinates ?? []) ===
+        coordinateFingerprint(expected.coordinates),
+    `${expected.label} must retain the exact distant portion of source road ` +
+      `${expected.roadIndex}`,
+  );
+  const retainedCoordinates = expected.coordinates.slice(
+    expected.retainedPointStart * 2,
+    (expected.retainedPointStart + expected.retainedPointCount) * 2,
+  );
+  check(
+    !renderableRoadFingerprints.has(expectedFingerprint) &&
+      renderableRoadFingerprints.has(
+        roadFingerprint(expected.style, retainedCoordinates),
+      ),
+    `source road ${expected.roadIndex} did not retain only its distant ` +
+      `carriageway portion`,
+  );
+  const segmentEndIndexes = Array.from(
+    { length: expected.coordinates.length / 2 - 1 },
+    (_, index) => index + 1,
+  );
+  const maskedSegmentIndexes = segmentEndIndexes.filter(
+    (segmentEndPointIndex) =>
+      !isAlunAlunGeneratedRoadSegmentRetained(
+        replacement,
+        segmentEndPointIndex,
+      ),
+  );
+  const expectedMaskedSegmentIndex =
+    expected.retainedPointStart === 0
+      ? expected.coordinates.length / 2 - 1
+      : expected.retainedPointStart;
+  check(
+    maskedSegmentIndexes.length === 1 &&
+      maskedSegmentIndexes[0] === expectedMaskedSegmentIndex,
+    `source road ${expected.roadIndex} must suppress exactly its one ` +
+      `junction-side sidewalk segment`,
+  );
+});
+check(
+  /isAlunAlunGeneratedRoadSegmentRetained\(\s*replacement,\s*segmentEndPointIndex,?\s*\)/.test(
+    geospatialWorldSource,
+  ),
+  "generated geospatial sidewalks do not use the shared retained-segment predicate",
+);
 const pegadaianRetainedCoordinates =
   PEGADAIAN_FRONTAGE_SOURCE_COORDINATES.slice(
     0,
@@ -609,22 +722,40 @@ const compactLoopSourceRoad = compactLoopReplacement
       ),
     )?.[0]
   : null;
-// Audit only polygons that addAlunAlunRoadContext() actually renders. The
-// former check counted the masked OSM loop and adjacent source ribbons as
-// coverage even though neither existed in the scene, allowing a real asphalt
-// gap at the loop's south-west nose to pass unnoticed.
-const renderedJunctionAsphaltPolygons = [
-  ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.junctionAsphaltOutline,
-  ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.openFrontageAsphaltOutline,
-  ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.cornerReturns.southeast
-    .asphaltOutline,
-  ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.hasanudinApproachSurfaceOutline,
-  ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.parcel.noseHardstandOutline,
-  ALUN_ALUN_SOUTHEAST_JUNCTION_DEFINITION.eastAsphaltInfillOutline,
-  ALUN_ALUN_SOUTH_APPROACH_DEFINITION.surfaceOutline,
-  ...ALUN_ALUN_SOUTH_APPROACH_DEFINITION.terminalHardstandOutlines,
-  ALUN_ALUN_WESTERN_ASPHALT_UNION_OUTLINE,
-];
+const adjacentJunctionLabels = new Set([
+  "east inbound carriageway",
+  "east opposing carriageway",
+  "east outbound carriageway",
+  "north-arm junction connector",
+  "west park-side carriageway",
+  "west post-office-side carriageway",
+]);
+const junctionCoverageTriangles = roadRibbonTriangles(
+  ALUN_ALUN_JUNCTION_LOOP_PATH,
+  ALUN_ALUN_JUNCTION_LOOP_SURFACE_WIDTH,
+);
+ALUN_ALUN_GENERATED_ROAD_REPLACEMENTS.filter((replacement) =>
+  adjacentJunctionLabels.has(replacement.label),
+).forEach((replacement) => {
+  const sourceRoad = sourceRoadsByFingerprint.get(
+    roadFingerprint(replacement.style, replacement.coordinates),
+  )?.[0];
+  if (!sourceRoad) return;
+  const coreWidth =
+    sourceRoad[1] /
+    map.coordinatePrecision /
+    MAP_METERS_PER_WORLD_UNIT;
+  const renderedWidth = coreWidth + Math.min(0.28, coreWidth * 0.18);
+  junctionCoverageTriangles.push(
+    ...roadRibbonTriangles(
+      decodeRoadCenterline(sourceRoad).map(([north, east]) => [
+        north / MAP_METERS_PER_WORLD_UNIT,
+        east / MAP_METERS_PER_WORLD_UNIT,
+      ]),
+      renderedWidth,
+    ),
+  );
+});
 let compactLoopCoverageSamples = 0;
 let firstCompactLoopCoverageGap = null;
 if (compactLoopSourceRoad) {
@@ -658,9 +789,15 @@ if (compactLoopSourceRoad) {
             triangle[2][1] * secondWeight,
         ];
         compactLoopCoverageSamples += 1;
-        const covered = renderedJunctionAsphaltPolygons.some((polygon) =>
-          pointInPolygon(point, polygon),
-        );
+        const covered =
+          pointInPolygon(point, ALUN_ALUN_JUNCTION_ASPHALT_OUTLINE) ||
+          pointInPolygon(
+            point,
+            ALUN_ALUN_SOUTH_APPROACH_DEFINITION.surfaceOutline,
+          ) ||
+          junctionCoverageTriangles.some((coverageTriangle) =>
+            pointInTriangle(point, coverageTriangle),
+          );
         if (!covered && !firstCompactLoopCoverageGap) {
           firstCompactLoopCoverageGap = point;
         }
@@ -817,6 +954,10 @@ if (failures.length > 0) {
   console.log(
     `Renderable generated roads: ${renderableRoads.length}; closest complete ` +
       `envelope-to-park clearance: ${closestGeneratedParkClearance.toFixed(2)} m`,
+  );
+  console.log(
+    `True south-east road masks: ${TRUE_SOUTHEAST_REPLACED_ROADS.length} ` +
+      `junction-side segments; distant road 42/43 carriageways retained`,
   );
   console.log(
     `Masked compact-junction core coverage: ` +

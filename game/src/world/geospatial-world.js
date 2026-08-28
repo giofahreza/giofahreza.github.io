@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import {
   getAlunAlunGeneratedRoadReplacement,
+  isAlunAlunGeneratedRoadSegmentRetained,
   maskAlunAlunGeneratedRoads,
 } from "../features/landmarks/alun-alun/generated-road-mask.js";
 
@@ -2259,8 +2260,10 @@ export function createMapNavigation(mapData, options = {}) {
     for (let index = 2; index < coordinates.length; index += 2) {
       const segmentEndPointIndex = index / 2;
       const sidewalkIsRendered =
-        !replacement ||
-        segmentEndPointIndex < replacement.retainedPointCount;
+        isAlunAlunGeneratedRoadSegmentRetained(
+          replacement,
+          segmentEndPointIndex,
+        );
       roadSegments.push({
         ax: coordinates[index - 2] / precision,
         ay: coordinates[index - 1] / precision,
