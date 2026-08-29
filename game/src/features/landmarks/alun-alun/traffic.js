@@ -1662,8 +1662,17 @@ const trueSoutheastFrontageAprons = Object.freeze([
   }),
 ]);
 
+// The junction centre is the intersection of the north/south and west/east
+// arm centre lines, using the midpoint of each surveyed throat below. Keep
+// the monument on this geometric crossing rather than on the displaced OSM
+// node or the visual centroid of the irregular asphalt polygon.
+const trueSoutheastJunctionCenter = Object.freeze([
+  -15.7095994108,
+  20.8645585444,
+]);
+
 export const ALUN_ALUN_TRUE_SOUTHEAST_JUNCTION_DEFINITION = Object.freeze({
-  center: Object.freeze([-13.126, 18.151]),
+  center: trueSoutheastJunctionCenter,
   roadSurfaceY: ALUN_ALUN_ROAD_SURFACE_Y,
   asphaltOutline: trueSoutheastAsphaltOutline,
   cornerReturns: Object.freeze({
@@ -1685,9 +1694,7 @@ export const ALUN_ALUN_TRUE_SOUTHEAST_JUNCTION_DEFINITION = Object.freeze({
   roadsideBands: trueSoutheastRoadsideBands,
   frontageAprons: trueSoutheastFrontageAprons,
   monument: Object.freeze({
-    // Google z20 satellite places the compact island here, about 2.6 world
-    // units west of the OSM junction node hidden beneath the shop canopy.
-    center: Object.freeze([-13.126, 18.151]),
+    center: trueSoutheastJunctionCenter,
     yaw: -0.2,
     // Local dimensions compensate for yaw so the projected outer island is
     // approximately 0.80 north by 0.68 east, matching the satellite mosaic.
@@ -1868,15 +1875,16 @@ export const ALUN_ALUN_TRAFFIC_ROUTE_DEFINITIONS = Object.freeze({
     [13.2, -20.0],
   ], 3),
   crossNorthbound: defineTrafficRoute([
-    [-15.8, 21.58],
-    // The raw OSM node lies under the north-east frontage apron. Bend both
-    // directions through the actual asphalt lane corridor east of the small
-    // monument. These cubic samples keep opposing long vehicles parallel as
-    // the shared centreline turns, instead of converging at a sharp vertex.
-    [-15.0888, 20.62816],
-    [-13.9504, 19.90288],
-    [-12.4376, 19.39552],
-    [-10.6032, 19.09744],
+    // Open both directions through the broad asphalt east of the central
+    // monument. The slight centreline asymmetry supplements the signed
+    // left-hand lane offsets so opposing long vehicles remain parallel and
+    // clear one another throughout the bend.
+    [-16.0, 22.55],
+    [-15.1, 22.55],
+    [-14.2, 22.05],
+    [-13.2, 20.85],
+    [-11.6, 19.35],
+    [-10.6032, 19.04744],
     [-8.5, 19.0],
     [-1.52, 17.94],
     [10.06, 15.2],
@@ -1896,7 +1904,7 @@ export const ALUN_ALUN_TRAFFIC_ROUTE_DEFINITIONS = Object.freeze({
     [23.58, 12.86],
     [29.16, 14.28],
     [32.2, 15.1],
-  ], 9),
+  ], 10),
   crossSouthbound: defineTrafficRoute([
     [32.2, 15.1],
     [29.16, 14.28],
@@ -1914,11 +1922,12 @@ export const ALUN_ALUN_TRAFFIC_ROUTE_DEFINITIONS = Object.freeze({
     [10.06, 15.2],
     [-1.52, 17.94],
     [-8.5, 19.0],
-    [-10.6032, 19.09744],
-    [-12.4376, 19.39552],
-    [-13.9504, 19.90288],
-    [-15.0888, 20.62816],
-    [-15.8, 21.58],
+    [-10.6032, 19.14744],
+    [-11.6, 19.65],
+    [-13.2, 21.15],
+    [-14.2, 22.35],
+    [-15.1, 22.85],
+    [-16.0, 22.85],
   ], 2),
 });
 

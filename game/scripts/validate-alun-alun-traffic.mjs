@@ -5504,14 +5504,10 @@ function validateTrueSoutheastJunction() {
     !Array.isArray(definition.center) ||
     definition.center.length !== 2 ||
     !definition.center.every(isFiniteNumber) ||
-    !samePoint(definition.center, definition.monument?.center) ||
-    definition.center[0] > -11 ||
-    definition.center[0] < -15 ||
-    definition.center[1] < 16 ||
-    definition.center[1] > 20
+    !samePoint(definition.center, definition.monument?.center)
   ) {
     throw new Error(
-      "true south-east monument must remain at the satellite-registered junction centre",
+      "true south-east monument and junction centres must remain identical",
     );
   }
   if (
@@ -6241,33 +6237,68 @@ function validateTrueSoutheastJunction() {
   if (!turnControl || !pointInsidePolygon(turnControl, definition.asphaltOutline)) {
     throw new Error("true south-east arm centre lines do not meet on asphalt");
   }
-  // A north/east right turn naturally runs just inside the junction centre;
-  // using the four-arm line intersection as its Bezier control would place
-  // the longest vehicle's front corner against the newly restrained curb.
-  const northEastTurnControl = [
-    turnControl[0] - 0.5,
-    turnControl[1] - 0.3,
+  if (!samePoint(definition.center, turnControl, 1e-9)) {
+    throw new Error(
+      "true south-east monument must sit at the exact four-arm centre-line intersection",
+    );
+  }
+  const pointFromCenterToward = (endpoint, distance) => {
+    const direction = [
+      endpoint[0] - turnControl[0],
+      endpoint[1] - turnControl[1],
+    ];
+    const length = Math.hypot(...direction);
+    return [
+      turnControl[0] + (direction[0] / length) * distance,
+      turnControl[1] + (direction[1] / length) * distance,
+    ];
+  };
+  // Preserve the approach and exit tangents while opening both turns around
+  // the central monument. Separate cubic controls model a real circulation
+  // path; repeating the centre-line intersection as both controls would send
+  // the swept vehicle envelope through the island.
+  const southEastTurnControls = [
+    pointFromCenterToward(armCenters.south, 1.2),
+    pointFromCenterToward(armCenters.east, 1.2),
   ];
-  const cubicPoint = (start, control, end, amount) => {
+  const northEastTurnControls = [
+    pointFromCenterToward(armCenters.north, 0.1),
+    pointFromCenterToward(armCenters.east, 0.7),
+  ];
+  const cubicPoint = (
+    start,
+    firstControl,
+    secondControl,
+    end,
+    amount,
+  ) => {
     const remaining = 1 - amount;
     return [
       remaining ** 3 * start[0] +
-        3 * remaining ** 2 * amount * control[0] +
-        3 * remaining * amount ** 2 * control[0] +
+        3 * remaining ** 2 * amount * firstControl[0] +
+        3 * remaining * amount ** 2 * secondControl[0] +
         amount ** 3 * end[0],
       remaining ** 3 * start[1] +
-        3 * remaining ** 2 * amount * control[1] +
-        3 * remaining * amount ** 2 * control[1] +
+        3 * remaining ** 2 * amount * firstControl[1] +
+        3 * remaining * amount ** 2 * secondControl[1] +
         amount ** 3 * end[1],
     ];
   };
-  const cubicTangent = (start, control, end, amount) => {
+  const cubicTangent = (
+    start,
+    firstControl,
+    secondControl,
+    end,
+    amount,
+  ) => {
     const remaining = 1 - amount;
     const tangent = [
-      3 * remaining ** 2 * (control[0] - start[0]) +
-        3 * amount ** 2 * (end[0] - control[0]),
-      3 * remaining ** 2 * (control[1] - start[1]) +
-        3 * amount ** 2 * (end[1] - control[1]),
+      3 * remaining ** 2 * (firstControl[0] - start[0]) +
+        6 * remaining * amount * (secondControl[0] - firstControl[0]) +
+        3 * amount ** 2 * (end[0] - secondControl[0]),
+      3 * remaining ** 2 * (firstControl[1] - start[1]) +
+        6 * remaining * amount * (secondControl[1] - firstControl[1]) +
+        3 * amount ** 2 * (end[1] - secondControl[1]),
     ];
     const length = Math.hypot(...tangent);
     return [tangent[0] / length, tangent[1] / length];
@@ -6277,25 +6308,51 @@ function validateTrueSoutheastJunction() {
   let minimumRaisedClearance = Infinity;
   let minimumMonumentClearance = Infinity;
   [
-    ["south-to-east", armCenters.south, turnControl, armCenters.east],
-    ["east-to-south", armCenters.east, turnControl, armCenters.south],
+    [
+      "south-to-east",
+      armCenters.south,
+      southEastTurnControls[0],
+      southEastTurnControls[1],
+      armCenters.east,
+    ],
+    [
+      "east-to-south",
+      armCenters.east,
+      southEastTurnControls[1],
+      southEastTurnControls[0],
+      armCenters.south,
+    ],
     [
       "north-to-east",
       armCenters.north,
-      northEastTurnControl,
+      northEastTurnControls[0],
+      northEastTurnControls[1],
       armCenters.east,
     ],
     [
       "east-to-north",
       armCenters.east,
-      northEastTurnControl,
+      northEastTurnControls[1],
+      northEastTurnControls[0],
       armCenters.north,
     ],
-  ].forEach(([label, start, control, end]) => {
+  ].forEach(([label, start, firstControl, secondControl, end]) => {
     for (let index = 0; index <= 240; index += 1) {
       const amount = 0.04 + (index / 240) * 0.92;
-      const center = cubicPoint(start, control, end, amount);
-      const forward = cubicTangent(start, control, end, amount);
+      const center = cubicPoint(
+        start,
+        firstControl,
+        secondControl,
+        end,
+        amount,
+      );
+      const forward = cubicTangent(
+        start,
+        firstControl,
+        secondControl,
+        end,
+        amount,
+      );
       const lateral = [-forward[1], forward[0]];
       const sample = {
         north: center[0],
