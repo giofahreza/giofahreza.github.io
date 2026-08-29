@@ -1517,19 +1517,43 @@ const trueSoutheastSouthEastReturnPath = freezePath([
   [-18.2094, 26.6484],
   [-18.118689126, 27.754417058],
 ]);
-const trueSoutheastNorthEastBoundaryPath = freezePath([
-  [-9.6974, 20.2645],
-  [-10.8796, 20.028],
-  [-12.0618, 20.0871],
-  [-13.1258, 20.3236],
-  [-14.0125, 20.7965],
-  [-14.7514, 21.624],
-  [-15.2834, 22.8062],
-  [-15.6381, 23.9885],
-  [-15.9336, 25.4662],
-  [-16.5247, 27.3873],
-  [-16.001310874, 29.045582942],
+// The north-to-east road edge uses the same normalized profile as the
+// west-to-south return opposite it. Mapping the source axes onto the two
+// surveyed north/east throat endpoints preserves the real arm widths while
+// avoiding the old 130-degree S-hook, which made this single corner look much
+// rounder than its southern reference.
+const trueSoutheastNorthEastBoundaryStart = Object.freeze([
+  -9.6974, 20.2645,
 ]);
+const trueSoutheastNorthEastBoundaryEnd = Object.freeze([
+  -16.001310874, 29.045582942,
+]);
+const trueSoutheastSouthWestProfileStart =
+  trueSoutheastSouthWestReturnPath[0];
+const trueSoutheastSouthWestProfileEnd =
+  trueSoutheastSouthWestReturnPath.at(-1);
+const trueSoutheastNorthEastBoundaryPath = freezePath(
+  trueSoutheastSouthWestReturnPath.map(([north, east]) => {
+    const northProgress =
+      (east - trueSoutheastSouthWestProfileStart[1]) /
+      (trueSoutheastSouthWestProfileEnd[1] -
+        trueSoutheastSouthWestProfileStart[1]);
+    const eastProgress =
+      (north - trueSoutheastSouthWestProfileStart[0]) /
+      (trueSoutheastSouthWestProfileEnd[0] -
+        trueSoutheastSouthWestProfileStart[0]);
+    return [
+      trueSoutheastNorthEastBoundaryStart[0] +
+        northProgress *
+          (trueSoutheastNorthEastBoundaryEnd[0] -
+            trueSoutheastNorthEastBoundaryStart[0]),
+      trueSoutheastNorthEastBoundaryStart[1] +
+        eastProgress *
+          (trueSoutheastNorthEastBoundaryEnd[1] -
+            trueSoutheastNorthEastBoundaryStart[1]),
+    ];
+  }),
+);
 // Traverse the north-east edge from the east arm back to the north arm so the
 // positive offset remains on the property side, consistent with every other
 // return and with the clockwise asphalt boundary below.
@@ -1592,10 +1616,7 @@ const trueSoutheastFrontageAprons = Object.freeze([
     id: "building-596",
     label: "south-east junction building 596 facade apron",
     outline: freezePath([
-      [-13.0130171302, 20.6337290445],
-      [-12.0187432286, 20.4142790251],
-      [-10.904290371, 20.3570750455],
-      [-9.7621341159, 20.5880884643],
+      ...trueSoutheastNorthEastReturn.sidewalkOuterBoundary.slice(7),
       [-10.02, 23.0],
       [-10.6, 23.74],
     ]),
@@ -1650,12 +1671,9 @@ const trueSoutheastFrontageAprons = Object.freeze([
     id: "building-569",
     label: "south-east junction building 569 facade apron",
     outline: freezePath([
-      [-13.0130171302, 20.6337290445],
-      [-13.8063583672, 21.0541928932],
-      [-14.4724899502, 21.8003779581],
-      [-14.9744119084, 22.9220721678],
-      [-15.3175377101, 24.0668569928],
-      [-15.6142853024, 25.5494954016],
+      ...trueSoutheastNorthEastReturn.sidewalkOuterBoundary
+        .slice(2, 8)
+        .reverse(),
       [-12.98, 27.5],
       [-11.2, 24.52],
     ]),

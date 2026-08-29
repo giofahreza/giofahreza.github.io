@@ -5535,6 +5535,7 @@ function validateTrueSoutheastJunction() {
       dot(first, second) / Math.max(1e-12, firstLength * secondLength);
     return Math.acos(Math.max(-1, Math.min(1, cosine)));
   };
+  const returnHeadingChanges = new Map();
   let returnPointCount = 0;
   returnNames.forEach((name) => {
     const corner = definition.cornerReturns[name];
@@ -5565,6 +5566,7 @@ function validateTrueSoutheastJunction() {
       .slice(0, -1)
       .map((direction, index) => headingChange(direction, directions[index + 1]));
     const totalChange = changes.reduce((total, change) => total + change, 0);
+    returnHeadingChanges.set(name, totalChange);
     if (
       totalChange < 0.3 ||
       totalChange > 2.8 ||
@@ -5654,6 +5656,64 @@ function validateTrueSoutheastJunction() {
     });
     returnPointCount += path.length;
   });
+
+  // This is the exact corner the user identifies as north-to-east. Keep its
+  // natural traversal order monotonic and lock its normalized shape to the
+  // west-to-south reference instead of merely allowing any rounded polygon.
+  const southWestProfile = definition.cornerReturns.southwest.path;
+  const northEastProfile = [
+    ...definition.cornerReturns.northeast.path,
+  ].reverse();
+  if (northEastProfile.length !== southWestProfile.length) {
+    throw new Error(
+      "true south-east north-to-east return must retain every west-to-south reference station",
+    );
+  }
+  const southWestStart = southWestProfile[0];
+  const southWestEnd = southWestProfile.at(-1);
+  const northEastStart = northEastProfile[0];
+  const northEastEnd = northEastProfile.at(-1);
+  let maximumProfileDivergence = 0;
+  northEastProfile.forEach((point, index) => {
+    if (index > 0) {
+      const previous = northEastProfile[index - 1];
+      if (point[0] >= previous[0] || point[1] <= previous[1]) {
+        throw new Error(
+          `true south-east north-to-east return hooks backward at station ${index}`,
+        );
+      }
+    }
+    const source = southWestProfile[index];
+    const sourceNorthProgress =
+      (source[0] - southWestStart[0]) /
+      (southWestEnd[0] - southWestStart[0]);
+    const sourceEastProgress =
+      (source[1] - southWestStart[1]) /
+      (southWestEnd[1] - southWestStart[1]);
+    const targetNorthProgress =
+      (point[0] - northEastStart[0]) /
+      (northEastEnd[0] - northEastStart[0]);
+    const targetEastProgress =
+      (point[1] - northEastStart[1]) /
+      (northEastEnd[1] - northEastStart[1]);
+    maximumProfileDivergence = Math.max(
+      maximumProfileDivergence,
+      Math.abs(targetNorthProgress - sourceEastProgress),
+      Math.abs(targetEastProgress - sourceNorthProgress),
+    );
+  });
+  const southWestHeadingChange = returnHeadingChanges.get("southwest");
+  const northEastHeadingChange = returnHeadingChanges.get("northeast");
+  if (
+    maximumProfileDivergence > 1e-10 ||
+    northEastHeadingChange > Math.PI * (100 / 180) ||
+    Math.abs(northEastHeadingChange - southWestHeadingChange) >
+      Math.PI * (3 / 180)
+  ) {
+    throw new Error(
+      "true south-east north-to-east return must match the restrained west-to-south curve profile",
+    );
+  }
 
   const northwest = definition.cornerReturns.northwest;
   if (
@@ -6143,6 +6203,10 @@ function validateTrueSoutheastJunction() {
   if (!turnControl || !pointInsidePolygon(turnControl, definition.asphaltOutline)) {
     throw new Error("true south-east arm centre lines do not meet on asphalt");
   }
+  // A north/east right turn naturally runs just inside the junction centre;
+  // using the four-arm line intersection as its Bezier control would place
+  // the longest vehicle's front corner against the newly restrained curb.
+  const northEastTurnControl = [turnControl[0], turnControl[1] - 0.2];
   const cubicPoint = (start, control, end, amount) => {
     const remaining = 1 - amount;
     return [
@@ -6172,13 +6236,25 @@ function validateTrueSoutheastJunction() {
   let minimumRaisedClearance = Infinity;
   let minimumMonumentClearance = Infinity;
   [
-    ["south-to-east", armCenters.south, armCenters.east],
-    ["east-to-south", armCenters.east, armCenters.south],
-  ].forEach(([label, start, end]) => {
+    ["south-to-east", armCenters.south, turnControl, armCenters.east],
+    ["east-to-south", armCenters.east, turnControl, armCenters.south],
+    [
+      "north-to-east",
+      armCenters.north,
+      northEastTurnControl,
+      armCenters.east,
+    ],
+    [
+      "east-to-north",
+      armCenters.east,
+      northEastTurnControl,
+      armCenters.north,
+    ],
+  ].forEach(([label, start, control, end]) => {
     for (let index = 0; index <= 240; index += 1) {
       const amount = 0.04 + (index / 240) * 0.92;
-      const center = cubicPoint(start, turnControl, end, amount);
-      const forward = cubicTangent(start, turnControl, end, amount);
+      const center = cubicPoint(start, control, end, amount);
+      const forward = cubicTangent(start, control, end, amount);
       const lateral = [-forward[1], forward[0]];
       const sample = {
         north: center[0],
@@ -7244,7 +7320,7 @@ if (
       `${formatDistance(trueSoutheastResult.facadeContactLength)}; ` +
       `${trueSoutheastResult.productionRouteSamples.toLocaleString("en-US")} ` +
       `production-route samples; ${trueSoutheastResult.sweptSamples.toLocaleString("en-US")} ` +
-      `synthetic S↔E samples / ` +
+      `synthetic S↔E + N↔E samples / ` +
       `${trueSoutheastResult.sweptCoverageChecks.toLocaleString("en-US")} ` +
       `road-height coverage checks; ${trueSoutheastResult.ringSamples} ` +
       `walkable monument-ring samples.`,
