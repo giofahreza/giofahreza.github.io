@@ -1519,19 +1519,21 @@ const trueSoutheastSouthEastReturnPath = freezePath([
 ]);
 // The north-to-east road edge is the property-side curb visible on the left
 // of the May 2025 Jalan Achmad Jafar Street View. It follows the two oblique
-// road-edge tangents with only a short, shallow transition between them. A
-// 90-degree quadrant fillet is deliberately wrong here: Jalan Diponegoro
-// leaves at about 46 degrees and the quadrant
-// leaves an L-shaped lobe of raised frontage paving protruding into the road.
+// road-edge tangents with one straight chamfer between them. Keep the seven
+// render stations on that chamfer collinear: even the former 0.65 m shallow
+// bow produced a frontage bump that is absent from Street View. A 90-degree
+// quadrant fillet is also deliberately wrong here: Jalan Diponegoro leaves at
+// about 46 degrees and the quadrant leaves an L-shaped lobe of raised frontage
+// paving protruding into the road.
 const trueSoutheastNorthEastBoundaryPath = freezePath([
   [-9.6974, 20.2645],
   [-10.2078197474, 20.4032777193],
   [-10.7182394948, 20.5420554387],
-  [-10.92828245, 20.6146011638],
-  [-11.1250336435, 20.7136167997],
-  [-11.3061794646, 20.8372871846],
-  [-11.469406303, 20.9837971565],
-  [-11.6124005479, 21.1513315536],
+  [-10.8873410105, 20.6747254012],
+  [-11.0564425262, 20.8073953638],
+  [-11.2255440419, 20.9400653263],
+  [-11.3946455575, 21.0727352888],
+  [-11.5637470732, 21.2054052514],
   [-11.7328485889, 21.3380752139],
   [-13.8670797314, 25.191829078],
   [-16.001310874, 29.045582942],

@@ -5654,9 +5654,9 @@ function validateTrueSoutheastJunction() {
   });
 
   // The May 2025 Jalan Achmad Jafar Street View shows this property-side curb
-  // as two oblique legs joined by a short, shallow chamfer. Lock the asphalt
-  // edge to that surveyed tangent envelope so a quadrant-shaped frontage lobe
-  // cannot be reintroduced through the rendered curb, sidewalk, or apron.
+  // as two oblique legs joined by one straight chamfer. Lock all seven render
+  // stations to that chord so neither a quadrant nor a shallow rounded bump
+  // can be reintroduced through the curb, sidewalk, or derived frontage apron.
   const northEastDefinition = definition.cornerReturns.northeast;
   const northEastProfile = [
     ...northEastDefinition.path,
@@ -5681,22 +5681,23 @@ function validateTrueSoutheastJunction() {
       }
     }
   });
-  const tangentIntersection = [-11.3937176321, 20.7257107848];
-  const chamferDepartures = northEastProfile.map((point) =>
-    Math.min(
-      pointSegmentDistance(
-        point,
-        northEastStart,
-        tangentIntersection,
-      ),
-      pointSegmentDistance(
-        point,
-        tangentIntersection,
-        northEastEnd,
-      ),
+  const expectedChamferStart = [-10.7182394948, 20.5420554387];
+  const expectedChamferEnd = [-11.7328485889, 21.3380752139];
+  const expectedChamferStations = Array.from({ length: 7 }, (_, index) => {
+    const progress = index / 6;
+    return [
+      expectedChamferStart[0] +
+        (expectedChamferEnd[0] - expectedChamferStart[0]) * progress,
+      expectedChamferStart[1] +
+        (expectedChamferEnd[1] - expectedChamferStart[1]) * progress,
+    ];
+  });
+  const chamferStations = northEastProfile.slice(2, 9);
+  const maximumChamferDeviation = Math.max(
+    ...chamferStations.map((point) =>
+      pointSegmentDistance(point, expectedChamferStart, expectedChamferEnd),
     ),
   );
-  const maximumChamferDeparture = Math.max(...chamferDepartures);
   const incomingDirection = [
     northEastProfile[2][0] - northEastStart[0],
     northEastProfile[2][1] - northEastStart[1],
@@ -5714,6 +5715,11 @@ function validateTrueSoutheastJunction() {
   if (
     !samePoint(northEastStart, expectedStart) ||
     !samePoint(northEastEnd, expectedEnd) ||
+    !samePoint(northEastProfile[2], expectedChamferStart) ||
+    !samePoint(northEastProfile[8], expectedChamferEnd) ||
+    chamferStations.some(
+      (point, index) => !samePoint(point, expectedChamferStations[index]),
+    ) ||
     pointSegmentDistance(
       northEastProfile[1],
       northEastStart,
@@ -5724,8 +5730,7 @@ function validateTrueSoutheastJunction() {
       northEastProfile[8],
       northEastEnd,
     ) > 1e-7 ||
-    maximumChamferDeparture < 0.125 ||
-    maximumChamferDeparture > 0.135 ||
+    maximumChamferDeviation > 1e-7 ||
     streetViewTurnAngle < Math.PI * (45 / 180) ||
     streetViewTurnAngle > Math.PI * (46.5 / 180) ||
     Math.abs(
@@ -5733,7 +5738,7 @@ function validateTrueSoutheastJunction() {
     ) > Math.PI * (0.2 / 180)
   ) {
     throw new Error(
-      "true south-east north-to-east return must remain a shallow Street View chamfer without a frontage bulge",
+      "true south-east north-to-east return must retain the straight Street View chamfer without a frontage bulge",
     );
   }
 
@@ -5831,11 +5836,6 @@ function validateTrueSoutheastJunction() {
     }
     if (buildingIndex === 569) {
       northEastApronArea = polygonArea(apron.outline);
-      if (northEastApronArea < 4.05 || northEastApronArea > 4.2) {
-        throw new Error(
-          "building 569 apron recreates the Street View curb lobe",
-        );
-      }
     }
     facadeContactLength += sharedFacade;
     return { label: apron.label, polygon: apron.outline };
@@ -6416,7 +6416,7 @@ function validateTrueSoutheastJunction() {
 
   return {
     facadeContactLength,
-    maximumChamferDeparture,
+    maximumChamferDeviation,
     navigationPolygonCount: expectedNavigationSurfaces.length,
     northEastApronArea,
     productionRouteSamples,
@@ -7418,7 +7418,7 @@ if (
       `${trueSoutheastResult.returnPointCount} surveyed stations; ` +
       `north-to-east Street View chamfer ` +
       `${trueSoutheastResult.streetViewTurnAngleDegrees.toFixed(2)}° / ` +
-      `${formatDistance(trueSoutheastResult.maximumChamferDeparture)} maximum rounding; ` +
+      `${formatDistance(trueSoutheastResult.maximumChamferDeviation)} maximum local bow; ` +
       `building 569 apron ${trueSoutheastResult.northEastApronArea.toFixed(3)} world²; ` +
       `${trueSoutheastResult.navigationPolygonCount} exact render/navigation ` +
       `polygons; facade contact ` +
