@@ -1517,72 +1517,25 @@ const trueSoutheastSouthEastReturnPath = freezePath([
   [-18.2094, 26.6484],
   [-18.118689126, 27.754417058],
 ]);
-// The north-to-east road edge is the far curb visible from the checker-paved
-// south-east corner of the park. Keep the measured arm endpoints, but use the
-// same compact effective radius as the west-to-south reference. Long tangent
-// legs plus one circular fillet make the reduction visible from that exact
-// viewpoint instead of spreading a broad curve across the whole junction.
-const trueSoutheastNorthEastBoundaryStart = Object.freeze([
-  -9.6974, 20.2645,
+// The north-to-east road edge is the property-side curb visible on the left
+// of the May 2025 Jalan Achmad Jafar Street View. It follows the two oblique
+// road-edge tangents with only a short, shallow transition between them. A
+// 90-degree quadrant fillet is deliberately wrong here: Jalan Diponegoro
+// leaves at about 46 degrees and the quadrant
+// leaves an L-shaped lobe of raised frontage paving protruding into the road.
+const trueSoutheastNorthEastBoundaryPath = freezePath([
+  [-9.6974, 20.2645],
+  [-10.2078197474, 20.4032777193],
+  [-10.7182394948, 20.5420554387],
+  [-10.92828245, 20.6146011638],
+  [-11.1250336435, 20.7136167997],
+  [-11.3061794646, 20.8372871846],
+  [-11.469406303, 20.9837971565],
+  [-11.6124005479, 21.1513315536],
+  [-11.7328485889, 21.3380752139],
+  [-13.8670797314, 25.191829078],
+  [-16.001310874, 29.045582942],
 ]);
-const trueSoutheastNorthEastBoundaryEnd = Object.freeze([
-  -16.001310874, 29.045582942,
-]);
-const TRUE_SOUTHEAST_NORTH_EAST_TURN_RADIUS = 3;
-const TRUE_SOUTHEAST_NORTH_EAST_CUBIC_KAPPA = 0.5522847498;
-const TRUE_SOUTHEAST_NORTH_ARM_ROAD_EDGE_EAST = 20.86;
-const trueSoutheastNorthEastSharpCorner = Object.freeze([
-  trueSoutheastNorthEastBoundaryEnd[0],
-  TRUE_SOUTHEAST_NORTH_ARM_ROAD_EDGE_EAST,
-]);
-const trueSoutheastNorthEastTangentStart = Object.freeze([
-  trueSoutheastNorthEastSharpCorner[0] +
-    TRUE_SOUTHEAST_NORTH_EAST_TURN_RADIUS,
-  trueSoutheastNorthEastSharpCorner[1],
-]);
-const trueSoutheastNorthEastTangentEnd = Object.freeze([
-  trueSoutheastNorthEastSharpCorner[0],
-  trueSoutheastNorthEastSharpCorner[1] +
-    TRUE_SOUTHEAST_NORTH_EAST_TURN_RADIUS,
-]);
-const trueSoutheastNorthEastArc = sampleAlunAlunCubicPath(
-  [
-    trueSoutheastNorthEastTangentStart,
-    [
-      trueSoutheastNorthEastTangentStart[0] -
-        TRUE_SOUTHEAST_NORTH_EAST_CUBIC_KAPPA *
-          TRUE_SOUTHEAST_NORTH_EAST_TURN_RADIUS,
-      trueSoutheastNorthEastTangentStart[1],
-    ],
-    [
-      trueSoutheastNorthEastTangentEnd[0],
-      trueSoutheastNorthEastTangentEnd[1] -
-        TRUE_SOUTHEAST_NORTH_EAST_CUBIC_KAPPA *
-          TRUE_SOUTHEAST_NORTH_EAST_TURN_RADIUS,
-    ],
-    trueSoutheastNorthEastTangentEnd,
-  ],
-  6,
-);
-const trueSoutheastNorthEastBoundaryPath = freezePath(
-  [
-    trueSoutheastNorthEastBoundaryStart,
-    [
-      (trueSoutheastNorthEastBoundaryStart[0] +
-        trueSoutheastNorthEastTangentStart[0]) *
-        0.5,
-      TRUE_SOUTHEAST_NORTH_ARM_ROAD_EDGE_EAST,
-    ],
-    ...trueSoutheastNorthEastArc,
-    [
-      trueSoutheastNorthEastBoundaryEnd[0],
-      (trueSoutheastNorthEastTangentEnd[1] +
-        trueSoutheastNorthEastBoundaryEnd[1]) *
-        0.5,
-    ],
-    trueSoutheastNorthEastBoundaryEnd,
-  ],
-);
 // Traverse the north-east edge from the east arm back to the north arm so the
 // positive offset remains on the property side, consistent with every other
 // return and with the clockwise asphalt boundary below.
@@ -1727,7 +1680,6 @@ export const ALUN_ALUN_TRUE_SOUTHEAST_JUNCTION_DEFINITION = Object.freeze({
     }),
     northeast: Object.freeze({
       ...trueSoutheastNorthEastReturn,
-      turnRadius: TRUE_SOUTHEAST_NORTH_EAST_TURN_RADIUS,
     }),
   }),
   roadsideBands: trueSoutheastRoadsideBands,

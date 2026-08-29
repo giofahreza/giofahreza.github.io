@@ -5657,21 +5657,19 @@ function validateTrueSoutheastJunction() {
     returnPointCount += path.length;
   });
 
-  // This is the exact far curb visible in the user's checker-paving screenshot.
-  // It must use long straight tangents and one compact circular fillet, rather
-  // than distributing a broad curve across the complete north/east opening.
-  const southWestProfile = definition.cornerReturns.southwest.path;
+  // The May 2025 Jalan Achmad Jafar Street View shows this property-side curb
+  // as two oblique legs joined by a short, shallow chamfer. Lock the asphalt
+  // edge to that surveyed tangent envelope so a quadrant-shaped frontage lobe
+  // cannot be reintroduced through the rendered curb, sidewalk, or apron.
   const northEastDefinition = definition.cornerReturns.northeast;
   const northEastProfile = [
     ...northEastDefinition.path,
   ].reverse();
-  if (northEastProfile.length !== southWestProfile.length) {
+  if (northEastProfile.length !== 11) {
     throw new Error(
-      "true south-east north-to-east return must retain every west-to-south reference station",
+      "true south-east north-to-east Street View chamfer must retain 11 render stations",
     );
   }
-  const southWestStart = southWestProfile[0];
-  const southWestEnd = southWestProfile.at(-1);
   const northEastStart = northEastProfile[0];
   const northEastEnd = northEastProfile.at(-1);
   northEastProfile.forEach((point, index) => {
@@ -5687,47 +5685,59 @@ function validateTrueSoutheastJunction() {
       }
     }
   });
-  const radius = northEastDefinition.turnRadius;
-  const tangentStart = northEastProfile[2];
-  const sharpCorner = [northEastEnd[0], tangentStart[1]];
-  const tangentEnd = [sharpCorner[0], sharpCorner[1] + radius];
-  const circleCenter = [tangentStart[0], tangentEnd[1]];
-  const arcStations = northEastProfile.slice(2, 9);
-  const circumradius = (first, second, third) => {
-    const firstSecond = pointDistance(first, second);
-    const secondThird = pointDistance(second, third);
-    const thirdFirst = pointDistance(third, first);
-    const twiceArea = Math.abs(
-      (second[0] - first[0]) * (third[1] - first[1]) -
-        (second[1] - first[1]) * (third[0] - first[0]),
-    );
-    return (firstSecond * secondThird * thirdFirst) / (2 * twiceArea);
-  };
-  const southWestReferenceRadius = circumradius(
-    southWestProfile[2],
-    southWestProfile[4],
-    southWestProfile[6],
+  const tangentIntersection = [-11.3937176321, 20.7257107848];
+  const chamferDepartures = northEastProfile.map((point) =>
+    Math.min(
+      pointSegmentDistance(
+        point,
+        northEastStart,
+        tangentIntersection,
+      ),
+      pointSegmentDistance(
+        point,
+        tangentIntersection,
+        northEastEnd,
+      ),
+    ),
   );
+  const maximumChamferDeparture = Math.max(...chamferDepartures);
+  const incomingDirection = [
+    northEastProfile[2][0] - northEastStart[0],
+    northEastProfile[2][1] - northEastStart[1],
+  ];
+  const outgoingDirection = [
+    northEastEnd[0] - northEastProfile[8][0],
+    northEastEnd[1] - northEastProfile[8][1],
+  ];
+  const streetViewTurnAngle = headingChange(
+    incomingDirection,
+    outgoingDirection,
+  );
+  const expectedStart = [-9.6974, 20.2645];
+  const expectedEnd = [-16.001310874, 29.045582942];
   if (
-    radius !== 3 ||
-    !samePoint(northEastProfile[8], tangentEnd) ||
-    northEastProfile.slice(1, 3).some(
-      (point) => Math.abs(point[1] - tangentStart[1]) > 1e-10,
-    ) ||
-    tangentStart[1] < northEastStart[1] ||
-    tangentStart[1] - northEastStart[1] > 0.6 ||
-    northEastProfile.slice(8).some(
-      (point) => Math.abs(point[0] - northEastEnd[0]) > 1e-10,
-    ) ||
-    arcStations.some(
-      (point) =>
-        Math.abs(pointDistance(point, circleCenter) - radius) > 0.002,
-    ) ||
-    Math.abs(radius - southWestReferenceRadius) > 0.2 ||
-    returnHeadingChanges.get("northeast") > Math.PI * (110 / 180)
+    !samePoint(northEastStart, expectedStart) ||
+    !samePoint(northEastEnd, expectedEnd) ||
+    pointSegmentDistance(
+      northEastProfile[1],
+      northEastStart,
+      northEastProfile[2],
+    ) > 1e-7 ||
+    pointSegmentDistance(
+      northEastProfile[9],
+      northEastProfile[8],
+      northEastEnd,
+    ) > 1e-7 ||
+    maximumChamferDeparture < 0.125 ||
+    maximumChamferDeparture > 0.135 ||
+    streetViewTurnAngle < Math.PI * (45 / 180) ||
+    streetViewTurnAngle > Math.PI * (46.5 / 180) ||
+    Math.abs(
+      returnHeadingChanges.get("northeast") - streetViewTurnAngle,
+    ) > Math.PI * (0.2 / 180)
   ) {
     throw new Error(
-      "true south-east north-to-east return must visibly retain the compact west-to-south reference radius",
+      "true south-east north-to-east return must remain a shallow Street View chamfer without a frontage bulge",
     );
   }
 
@@ -5791,6 +5801,7 @@ function validateTrueSoutheastJunction() {
     return footprint;
   };
   let facadeContactLength = 0;
+  let northEastApronArea = null;
   const apronSurfaces = definition.frontageAprons.map((apron) => {
     validateFiniteSimplePolygon(apron.label, apron.outline);
     const buildingIndex = Number.parseInt(
@@ -5822,9 +5833,20 @@ function validateTrueSoutheastJunction() {
     if (sharedSidewalk < 0.08) {
       throw new Error(`${apron.label} does not close the sidewalk-to-facade gap`);
     }
+    if (buildingIndex === 569) {
+      northEastApronArea = polygonArea(apron.outline);
+      if (northEastApronArea < 4.05 || northEastApronArea > 4.2) {
+        throw new Error(
+          "building 569 apron recreates the Street View curb lobe",
+        );
+      }
+    }
     facadeContactLength += sharedFacade;
     return { label: apron.label, polygon: apron.outline };
   });
+  if (northEastApronArea === null) {
+    throw new Error("building 569 Street View apron was not audited");
+  }
 
   const raisedSurfaces = [
     { label: "northwest park ceramic", polygon: ALUN_ALUN_PARK_OUTLINE },
@@ -6337,10 +6359,13 @@ function validateTrueSoutheastJunction() {
 
   return {
     facadeContactLength,
+    maximumChamferDeparture,
     navigationPolygonCount: expectedNavigationSurfaces.length,
+    northEastApronArea,
     productionRouteSamples,
     returnPointCount,
     ringSamples: ringSamples.length,
+    streetViewTurnAngleDegrees: streetViewTurnAngle * (180 / Math.PI),
     sweptCoverageChecks,
     sweptSamples,
   };
@@ -7332,8 +7357,12 @@ if (
       `${southNavigationResult.treadSamples} tread samples.`,
   );
   console.log(
-    `True south-east junction: 4 rounded returns / ` +
+    `True south-east junction: 4 returns / ` +
       `${trueSoutheastResult.returnPointCount} surveyed stations; ` +
+      `north-to-east Street View chamfer ` +
+      `${trueSoutheastResult.streetViewTurnAngleDegrees.toFixed(2)}° / ` +
+      `${formatDistance(trueSoutheastResult.maximumChamferDeparture)} maximum rounding; ` +
+      `building 569 apron ${trueSoutheastResult.northEastApronArea.toFixed(3)} world²; ` +
       `${trueSoutheastResult.navigationPolygonCount} exact render/navigation ` +
       `polygons; facade contact ` +
       `${formatDistance(trueSoutheastResult.facadeContactLength)}; ` +
