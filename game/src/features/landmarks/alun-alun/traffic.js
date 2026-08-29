@@ -1517,42 +1517,71 @@ const trueSoutheastSouthEastReturnPath = freezePath([
   [-18.2094, 26.6484],
   [-18.118689126, 27.754417058],
 ]);
-// The north-to-east road edge uses the same normalized profile as the
-// west-to-south return opposite it. Mapping the source axes onto the two
-// surveyed north/east throat endpoints preserves the real arm widths while
-// avoiding the old 130-degree S-hook, which made this single corner look much
-// rounder than its southern reference.
+// The north-to-east road edge is the far curb visible from the checker-paved
+// south-east corner of the park. Keep the measured arm endpoints, but use the
+// same compact effective radius as the west-to-south reference. Long tangent
+// legs plus one circular fillet make the reduction visible from that exact
+// viewpoint instead of spreading a broad curve across the whole junction.
 const trueSoutheastNorthEastBoundaryStart = Object.freeze([
   -9.6974, 20.2645,
 ]);
 const trueSoutheastNorthEastBoundaryEnd = Object.freeze([
   -16.001310874, 29.045582942,
 ]);
-const trueSoutheastSouthWestProfileStart =
-  trueSoutheastSouthWestReturnPath[0];
-const trueSoutheastSouthWestProfileEnd =
-  trueSoutheastSouthWestReturnPath.at(-1);
+const TRUE_SOUTHEAST_NORTH_EAST_TURN_RADIUS = 3;
+const TRUE_SOUTHEAST_NORTH_EAST_CUBIC_KAPPA = 0.5522847498;
+const TRUE_SOUTHEAST_NORTH_ARM_ROAD_EDGE_EAST = 20.86;
+const trueSoutheastNorthEastSharpCorner = Object.freeze([
+  trueSoutheastNorthEastBoundaryEnd[0],
+  TRUE_SOUTHEAST_NORTH_ARM_ROAD_EDGE_EAST,
+]);
+const trueSoutheastNorthEastTangentStart = Object.freeze([
+  trueSoutheastNorthEastSharpCorner[0] +
+    TRUE_SOUTHEAST_NORTH_EAST_TURN_RADIUS,
+  trueSoutheastNorthEastSharpCorner[1],
+]);
+const trueSoutheastNorthEastTangentEnd = Object.freeze([
+  trueSoutheastNorthEastSharpCorner[0],
+  trueSoutheastNorthEastSharpCorner[1] +
+    TRUE_SOUTHEAST_NORTH_EAST_TURN_RADIUS,
+]);
+const trueSoutheastNorthEastArc = sampleAlunAlunCubicPath(
+  [
+    trueSoutheastNorthEastTangentStart,
+    [
+      trueSoutheastNorthEastTangentStart[0] -
+        TRUE_SOUTHEAST_NORTH_EAST_CUBIC_KAPPA *
+          TRUE_SOUTHEAST_NORTH_EAST_TURN_RADIUS,
+      trueSoutheastNorthEastTangentStart[1],
+    ],
+    [
+      trueSoutheastNorthEastTangentEnd[0],
+      trueSoutheastNorthEastTangentEnd[1] -
+        TRUE_SOUTHEAST_NORTH_EAST_CUBIC_KAPPA *
+          TRUE_SOUTHEAST_NORTH_EAST_TURN_RADIUS,
+    ],
+    trueSoutheastNorthEastTangentEnd,
+  ],
+  6,
+);
 const trueSoutheastNorthEastBoundaryPath = freezePath(
-  trueSoutheastSouthWestReturnPath.map(([north, east]) => {
-    const northProgress =
-      (east - trueSoutheastSouthWestProfileStart[1]) /
-      (trueSoutheastSouthWestProfileEnd[1] -
-        trueSoutheastSouthWestProfileStart[1]);
-    const eastProgress =
-      (north - trueSoutheastSouthWestProfileStart[0]) /
-      (trueSoutheastSouthWestProfileEnd[0] -
-        trueSoutheastSouthWestProfileStart[0]);
-    return [
-      trueSoutheastNorthEastBoundaryStart[0] +
-        northProgress *
-          (trueSoutheastNorthEastBoundaryEnd[0] -
-            trueSoutheastNorthEastBoundaryStart[0]),
-      trueSoutheastNorthEastBoundaryStart[1] +
-        eastProgress *
-          (trueSoutheastNorthEastBoundaryEnd[1] -
-            trueSoutheastNorthEastBoundaryStart[1]),
-    ];
-  }),
+  [
+    trueSoutheastNorthEastBoundaryStart,
+    [
+      (trueSoutheastNorthEastBoundaryStart[0] +
+        trueSoutheastNorthEastTangentStart[0]) *
+        0.5,
+      TRUE_SOUTHEAST_NORTH_ARM_ROAD_EDGE_EAST,
+    ],
+    ...trueSoutheastNorthEastArc,
+    [
+      trueSoutheastNorthEastBoundaryEnd[0],
+      (trueSoutheastNorthEastTangentEnd[1] +
+        trueSoutheastNorthEastBoundaryEnd[1]) *
+        0.5,
+    ],
+    trueSoutheastNorthEastBoundaryEnd,
+  ],
 );
 // Traverse the north-east edge from the east arm back to the north arm so the
 // positive offset remains on the property side, consistent with every other
@@ -1698,6 +1727,7 @@ export const ALUN_ALUN_TRUE_SOUTHEAST_JUNCTION_DEFINITION = Object.freeze({
     }),
     northeast: Object.freeze({
       ...trueSoutheastNorthEastReturn,
+      turnRadius: TRUE_SOUTHEAST_NORTH_EAST_TURN_RADIUS,
     }),
   }),
   roadsideBands: trueSoutheastRoadsideBands,

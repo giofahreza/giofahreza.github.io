@@ -5657,12 +5657,13 @@ function validateTrueSoutheastJunction() {
     returnPointCount += path.length;
   });
 
-  // This is the exact corner the user identifies as north-to-east. Keep its
-  // natural traversal order monotonic and lock its normalized shape to the
-  // west-to-south reference instead of merely allowing any rounded polygon.
+  // This is the exact far curb visible in the user's checker-paving screenshot.
+  // It must use long straight tangents and one compact circular fillet, rather
+  // than distributing a broad curve across the complete north/east opening.
   const southWestProfile = definition.cornerReturns.southwest.path;
+  const northEastDefinition = definition.cornerReturns.northeast;
   const northEastProfile = [
-    ...definition.cornerReturns.northeast.path,
+    ...northEastDefinition.path,
   ].reverse();
   if (northEastProfile.length !== southWestProfile.length) {
     throw new Error(
@@ -5673,45 +5674,60 @@ function validateTrueSoutheastJunction() {
   const southWestEnd = southWestProfile.at(-1);
   const northEastStart = northEastProfile[0];
   const northEastEnd = northEastProfile.at(-1);
-  let maximumProfileDivergence = 0;
   northEastProfile.forEach((point, index) => {
     if (index > 0) {
       const previous = northEastProfile[index - 1];
-      if (point[0] >= previous[0] || point[1] <= previous[1]) {
+      if (
+        point[0] > previous[0] + 1e-10 ||
+        point[1] < previous[1] - 1e-10
+      ) {
         throw new Error(
           `true south-east north-to-east return hooks backward at station ${index}`,
         );
       }
     }
-    const source = southWestProfile[index];
-    const sourceNorthProgress =
-      (source[0] - southWestStart[0]) /
-      (southWestEnd[0] - southWestStart[0]);
-    const sourceEastProgress =
-      (source[1] - southWestStart[1]) /
-      (southWestEnd[1] - southWestStart[1]);
-    const targetNorthProgress =
-      (point[0] - northEastStart[0]) /
-      (northEastEnd[0] - northEastStart[0]);
-    const targetEastProgress =
-      (point[1] - northEastStart[1]) /
-      (northEastEnd[1] - northEastStart[1]);
-    maximumProfileDivergence = Math.max(
-      maximumProfileDivergence,
-      Math.abs(targetNorthProgress - sourceEastProgress),
-      Math.abs(targetEastProgress - sourceNorthProgress),
-    );
   });
-  const southWestHeadingChange = returnHeadingChanges.get("southwest");
-  const northEastHeadingChange = returnHeadingChanges.get("northeast");
+  const radius = northEastDefinition.turnRadius;
+  const tangentStart = northEastProfile[2];
+  const sharpCorner = [northEastEnd[0], tangentStart[1]];
+  const tangentEnd = [sharpCorner[0], sharpCorner[1] + radius];
+  const circleCenter = [tangentStart[0], tangentEnd[1]];
+  const arcStations = northEastProfile.slice(2, 9);
+  const circumradius = (first, second, third) => {
+    const firstSecond = pointDistance(first, second);
+    const secondThird = pointDistance(second, third);
+    const thirdFirst = pointDistance(third, first);
+    const twiceArea = Math.abs(
+      (second[0] - first[0]) * (third[1] - first[1]) -
+        (second[1] - first[1]) * (third[0] - first[0]),
+    );
+    return (firstSecond * secondThird * thirdFirst) / (2 * twiceArea);
+  };
+  const southWestReferenceRadius = circumradius(
+    southWestProfile[2],
+    southWestProfile[4],
+    southWestProfile[6],
+  );
   if (
-    maximumProfileDivergence > 1e-10 ||
-    northEastHeadingChange > Math.PI * (100 / 180) ||
-    Math.abs(northEastHeadingChange - southWestHeadingChange) >
-      Math.PI * (3 / 180)
+    radius !== 3 ||
+    !samePoint(northEastProfile[8], tangentEnd) ||
+    northEastProfile.slice(1, 3).some(
+      (point) => Math.abs(point[1] - tangentStart[1]) > 1e-10,
+    ) ||
+    tangentStart[1] < northEastStart[1] ||
+    tangentStart[1] - northEastStart[1] > 0.6 ||
+    northEastProfile.slice(8).some(
+      (point) => Math.abs(point[0] - northEastEnd[0]) > 1e-10,
+    ) ||
+    arcStations.some(
+      (point) =>
+        Math.abs(pointDistance(point, circleCenter) - radius) > 0.002,
+    ) ||
+    Math.abs(radius - southWestReferenceRadius) > 0.2 ||
+    returnHeadingChanges.get("northeast") > Math.PI * (110 / 180)
   ) {
     throw new Error(
-      "true south-east north-to-east return must match the restrained west-to-south curve profile",
+      "true south-east north-to-east return must visibly retain the compact west-to-south reference radius",
     );
   }
 
@@ -6206,7 +6222,10 @@ function validateTrueSoutheastJunction() {
   // A north/east right turn naturally runs just inside the junction centre;
   // using the four-arm line intersection as its Bezier control would place
   // the longest vehicle's front corner against the newly restrained curb.
-  const northEastTurnControl = [turnControl[0], turnControl[1] - 0.2];
+  const northEastTurnControl = [
+    turnControl[0] - 0.5,
+    turnControl[1] - 0.3,
+  ];
   const cubicPoint = (start, control, end, amount) => {
     const remaining = 1 - amount;
     return [
