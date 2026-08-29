@@ -14,6 +14,7 @@ import {
 
 export function createRiderSystem({
   constants: {
+    DEV_FAST_RUN_SPEED,
     PLANET_RADIUS,
     RIDER_SCALE,
     RIDER_VISUAL_GROUND_OFFSET,
@@ -632,10 +633,14 @@ export function createRiderSystem({
   
   function updateRiderAnimation(delta, elapsed) {
     rider.celebration = Math.max(0, rider.celebration - delta);
+    const configuredRunSpeed =
+      gameState.devMode && gameState.runSpeedMode === "fast"
+        ? DEV_FAST_RUN_SPEED
+        : RUN_SPEED;
     const speedRatio = THREE.MathUtils.clamp(
       rider.actualSpeed / WALK_SPEED,
       0,
-      RUN_SPEED / WALK_SPEED,
+      configuredRunSpeed / WALK_SPEED,
     );
     const measuredMotion = Math.min(1, speedRatio);
     const blockedTarget = rider.collisionActive

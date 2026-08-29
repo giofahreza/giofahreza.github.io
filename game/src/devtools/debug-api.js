@@ -26,10 +26,13 @@ export function installDebugApi({
 }) {
   const {
     ANALOG_INPUT_RADIUS,
+    DEV_FAST_RUN_SPEED,
     MAP_METERS_PER_WORLD_UNIT,
     MAP_RADIUS_UNITS,
     PLANET_RADIUS,
     RIDER_COLLISION_RADIUS,
+    RUN_SPEED,
+    WALK_SPEED,
   } = constants;
   const {
     deliveryToast,
@@ -59,6 +62,10 @@ export function installDebugApi({
     configurable: true,
     get: () => {
       const geospatialWorld = getGeospatialWorld();
+      const effectiveRunSpeed =
+        gameState.devMode && gameState.runSpeedMode === "fast"
+          ? DEV_FAST_RUN_SPEED
+          : RUN_SPEED;
       return {
         started: gameState.started,
         devMode: gameState.devMode,
@@ -95,6 +102,11 @@ export function installDebugApi({
           pointerActive: touchState.analogPointerId !== null,
           run: touchState.run,
           brake: touchState.brake,
+          walkSpeed: WALK_SPEED,
+          runSpeedMode: gameState.runSpeedMode,
+          normalRunSpeed: RUN_SPEED,
+          devFastRunSpeed: DEV_FAST_RUN_SPEED,
+          effectiveRunSpeed,
         },
         camera: {
           position: camera.position.toArray(),

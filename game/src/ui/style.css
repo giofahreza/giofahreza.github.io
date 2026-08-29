@@ -657,15 +657,55 @@ body {
   pointer-events: none;
 }
 
+.dev-settings {
+  position: absolute;
+  z-index: 5;
+  top: max(152px, calc(env(safe-area-inset-top) + 148px));
+  left: max(116px, calc(env(safe-area-inset-left) + 102px));
+  color: var(--ink);
+  pointer-events: auto;
+}
+
+.dev-settings label {
+  display: flex;
+  min-height: 38px;
+  align-items: center;
+  gap: 7px;
+  padding: 0 8px 0 10px;
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  background: rgba(249, 247, 237, 0.94);
+  box-shadow: 0 3px 0 rgba(49, 75, 72, 0.86);
+  font-size: 11px;
+  font-weight: 950;
+}
+
+.dev-settings select {
+  min-height: 28px;
+  border: 1px solid rgba(49, 75, 72, 0.42);
+  border-radius: 6px;
+  padding: 0 6px;
+  background: rgba(255, 252, 240, 0.98);
+  color: var(--ink);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.dev-settings select:focus {
+  border-color: #d59f2a;
+  outline: 2px solid rgba(239, 199, 79, 0.34);
+}
+
 .map-editor {
   position: absolute;
   z-index: 5;
-  top: max(48px, calc(env(safe-area-inset-top) + 44px));
+  top: max(152px, calc(env(safe-area-inset-top) + 148px));
   bottom: auto;
   left: max(14px, env(safe-area-inset-left));
   width: min(360px, calc(100vw - 28px));
   color: var(--ink);
-  pointer-events: auto;
+  pointer-events: none;
 }
 
 .map-editor-toggle,
@@ -681,6 +721,11 @@ body {
   font-weight: 950;
 }
 
+.map-editor-toggle,
+.map-editor-panel {
+  pointer-events: auto;
+}
+
 .map-editor-toggle {
   min-width: 92px;
   padding: 0 13px;
@@ -688,7 +733,7 @@ body {
 
 .map-editor-panel {
   display: flex;
-  max-height: min(640px, calc(100vh - 78px));
+  max-height: min(640px, calc(100vh - 206px));
   overflow: auto;
   margin-top: 8px;
   padding: 12px;

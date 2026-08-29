@@ -4,6 +4,7 @@ export function createGameState() {
   return {
     started: false,
     devMode: false,
+    runSpeedMode: "normal",
     mapEditorOpen: false,
     complete: false,
     timeLeft: ROUND_TIME,

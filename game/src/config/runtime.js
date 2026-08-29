@@ -17,7 +17,8 @@ export const RIDER_COLLISION_RADIUS = 0.06;
 export const RIDER_VISUAL_GROUND_OFFSET = -0.032;
 export const TURN_SPEED = 10.2;
 export const WALK_SPEED = 0.82;
-export const RUN_SPEED = 6.4;
+export const RUN_SPEED = WALK_SPEED * 2;
+export const DEV_FAST_RUN_SPEED = 6.4;
 
 export const MAX_WALKABLE_STEP_HEIGHT = 0.055;
 export const MAX_NAVIGATION_SUBSTEP = 0.025;

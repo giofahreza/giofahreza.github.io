@@ -9,6 +9,7 @@ export function createInputController({
 }) {
   const { ANALOG_INPUT_RADIUS, ANALOG_VISUAL_RESPONSE } = constants;
   const { analog, analogStick, brakeButton, canvas, runButton } = elements;
+  canvas.tabIndex = -1;
 
   function resetAnalog(event) {
     if (
@@ -88,6 +89,7 @@ export function createInputController({
 
   function bindAnalog() {
     canvas.addEventListener("pointerdown", (event) => {
+      canvas.focus({ preventScroll: true });
       if (
         !gameState.started ||
         touchState.analogPointerId !== null ||
@@ -185,6 +187,15 @@ export function createInputController({
 
   function bindKeyboardControls() {
     window.addEventListener("keydown", (event) => {
+      if (
+        event.target instanceof Element &&
+        event.target.closest(
+          "button, input, select, textarea, [contenteditable='true']",
+        )
+      ) {
+        return;
+      }
+
       keys.add(event.code);
       if (
         [

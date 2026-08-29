@@ -222,6 +222,12 @@ npm install
 npm run dev
 ```
 
+Run uses the normal `1.64` world-units-per-second preset by default. After an
+authenticated Dev Mode session is opened with `?dev=1`, the dev toolbar can
+switch Run between **Normal** and the `6.4` fast traversal preset. Dev links can
+also request the fast preset with `?dev=1&runSpeed=fast`; the option is ignored
+outside authenticated Dev Mode.
+
 ## Build
 
 Build from this folder to generate the static game files:

@@ -22,6 +22,7 @@ import {
   ANALOG_VISUAL_RESPONSE,
   DEADZONE,
   DELIVERY_DISTANCE,
+  DEV_FAST_RUN_SPEED,
   FOUNDATION_SINK,
   GROUND_EPSILON,
   LOGICAL_CENTER_PHI,
@@ -51,6 +52,7 @@ import {
 } from "../config/runtime.js";
 import { createStops } from "../data/stops.js";
 import { initializeDevSession } from "../devtools/dev-session.js";
+import { installDevSettings } from "../devtools/dev-settings.js";
 import { installDebugApi } from "../devtools/debug-api.js";
 import { installMapEditor } from "../devtools/map-editor.js";
 import { populateBaseWorld } from "../features/environment/populate-base-world.js";
@@ -445,6 +447,7 @@ const {
   updateRiderTransform,
 } = createRiderSystem({
   constants: {
+    DEV_FAST_RUN_SPEED,
     PLANET_RADIUS,
     RIDER_SCALE,
     RIDER_VISUAL_GROUND_OFFSET,
@@ -477,6 +480,7 @@ const {
   constants: {
     ACTUAL_CENTER_PHI,
     DEADZONE,
+    DEV_FAST_RUN_SPEED,
     LOGICAL_CENTER_PHI,
     LOGICAL_THETA_PERIOD,
     MAP_METERS_PER_WORLD_UNIT,
@@ -634,17 +638,24 @@ window.addEventListener("resize", () => {
   resetAnalog();
   resize();
 });
-startButton.addEventListener("click", resetGame);
+startButton.addEventListener("click", () => {
+  startButton.blur();
+  resetGame();
+  canvas.focus({ preventScroll: true });
+});
 
 installDebugApi({
   camera,
   cameraRig,
   constants: {
     ANALOG_INPUT_RADIUS,
+    DEV_FAST_RUN_SPEED,
     MAP_METERS_PER_WORLD_UNIT,
     MAP_RADIUS_UNITS,
     PLANET_RADIUS,
     RIDER_COLLISION_RADIUS,
+    RUN_SPEED,
+    WALK_SPEED,
   },
   distanceToNearestRoad,
   elements: uiElements,
@@ -722,26 +733,38 @@ bindAnalog();
 bindRunButton();
 bindBrakeButton();
 
-let mapEditor = null;
-const installMapEditorOnce = () => {
-  if (mapEditor) return;
-  mapEditor = installMapEditor({
-    elements: uiElements,
-    gameState,
-    placeOnPlanet,
-    requestGameFrame,
-    scene,
-    stops,
-    updateHud,
-    updateTargetMarker,
-    world,
-  });
+let devTools = null;
+const installDevToolsOnce = () => {
+  if (devTools) return;
+  devTools = {
+    settings: installDevSettings({
+      constants: {
+        DEV_FAST_RUN_SPEED,
+        RUN_SPEED,
+      },
+      elements: uiElements,
+      gameState,
+      requestGameFrame,
+      rider,
+    }),
+    mapEditor: installMapEditor({
+      elements: uiElements,
+      gameState,
+      placeOnPlanet,
+      requestGameFrame,
+      scene,
+      stops,
+      updateHud,
+      updateTargetMarker,
+      world,
+    }),
+  };
 };
 
 initializeDevSession({
   elements: uiElements,
   gameState,
-  onAuthenticated: installMapEditorOnce,
+  onAuthenticated: installDevToolsOnce,
   startGame: resetGame,
 }).catch((error) => {
   console.error("Dev session failed to initialize", error);

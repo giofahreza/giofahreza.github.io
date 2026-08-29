@@ -11,6 +11,7 @@ export function createMovementController({
   constants: {
     ACTUAL_CENTER_PHI,
     DEADZONE,
+    DEV_FAST_RUN_SPEED,
     LOGICAL_CENTER_PHI,
     LOGICAL_THETA_PERIOD,
     MAP_METERS_PER_WORLD_UNIT,
@@ -159,7 +160,12 @@ export function createMovementController({
     );
   
     const running = touchState.run || keys.has("ShiftLeft") || keys.has("ShiftRight");
-    const targetSpeed = (running ? RUN_SPEED : WALK_SPEED) * input.magnitude;
+    const configuredRunSpeed =
+      gameState.devMode && gameState.runSpeedMode === "fast"
+        ? DEV_FAST_RUN_SPEED
+        : RUN_SPEED;
+    const targetSpeed =
+      (running ? configuredRunSpeed : WALK_SPEED) * input.magnitude;
     const speedResponse =
       targetSpeed > rider.speed ? 8.2 : 11.5;
   
