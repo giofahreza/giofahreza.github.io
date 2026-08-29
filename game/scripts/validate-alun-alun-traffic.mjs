@@ -2547,6 +2547,66 @@ function validateParkSurfaceOwnership() {
       "raised ceramic must remain an outer ring around the inset lawn",
     );
   }
+  const streetViewLawnEdgeIndices = [5, 6, 7, 8];
+  const formerCeramicTongueSample = [-9.83, 13.67];
+  if (
+    !pointInsidePolygon(
+      formerCeramicTongueSample,
+      ALUN_ALUN_PARK_LAWN_OUTLINE,
+    )
+  ) {
+    throw new Error(
+      "the Street View corner must not recreate the raised ceramic tongue",
+    );
+  }
+  streetViewLawnEdgeIndices.forEach((pointIndex, profileIndex) => {
+    const outerPoint = parkOutline[pointIndex];
+    const lawnPoint = ALUN_ALUN_PARK_LAWN_OUTLINE[pointIndex];
+    const ringWidth = Math.hypot(
+      outerPoint[0] - lawnPoint[0],
+      outerPoint[1] - lawnPoint[1],
+    );
+    if (ringWidth < 3.55 || ringWidth > 3.85) {
+      throw new Error(
+        "the Street View lawn edge must preserve its smooth pedestrian-ring width",
+      );
+    }
+    if (profileIndex === 0) return;
+    const previousPoint =
+      ALUN_ALUN_PARK_LAWN_OUTLINE[
+        streetViewLawnEdgeIndices[profileIndex - 1]
+      ];
+    if (
+      lawnPoint[0] <= previousPoint[0] ||
+      lawnPoint[1] <= previousPoint[1]
+    ) {
+      throw new Error(
+        "the Street View lawn edge must advance without a backward hook",
+      );
+    }
+  });
+  streetViewLawnEdgeIndices.forEach((pointIndex) => {
+    const previousPoint = ALUN_ALUN_PARK_LAWN_OUTLINE[pointIndex - 1];
+    const point = ALUN_ALUN_PARK_LAWN_OUTLINE[pointIndex];
+    const nextPoint = ALUN_ALUN_PARK_LAWN_OUTLINE[pointIndex + 1];
+    const incomingHeading = Math.atan2(
+      point[1] - previousPoint[1],
+      point[0] - previousPoint[0],
+    );
+    const outgoingHeading = Math.atan2(
+      nextPoint[1] - point[1],
+      nextPoint[0] - point[0],
+    );
+    const turn = Math.atan2(
+      Math.sin(outgoingHeading - incomingHeading),
+      Math.cos(outgoingHeading - incomingHeading),
+    );
+    if (turn > 1e-9 || turn < (-35 * Math.PI) / 180) {
+      throw new Error(
+        "the Street View lawn edge must remain one smooth, convex turn",
+      );
+    }
+  });
   perimeterRoadSeam.slice(0, -1).forEach((point, index) => {
     if (!samePoint(point, perimeterAsphaltFill[index])) {
       throw new Error(

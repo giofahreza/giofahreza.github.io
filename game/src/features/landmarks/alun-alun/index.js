@@ -60,10 +60,35 @@ export const ALUN_ALUN_PARK_SURFACE_HEIGHTS = Object.freeze({
   tactileHeight: 0.018,
 });
 
+const ALUN_ALUN_PARK_LAWN_STREET_VIEW_EDGE_INDICES = Object.freeze([
+  5, 6, 7, 8,
+]);
+const ALUN_ALUN_PARK_LAWN_STREET_VIEW_EDGE_EXPANSION = 0.9;
+
 export const ALUN_ALUN_PARK_LAWN_OUTLINE = Object.freeze(
-  ALUN_ALUN_PARK_OUTLINE.map(([north, east]) =>
-    Object.freeze([north * 0.77 - 0.1, east * 0.76 + 0.2]),
-  ),
+  ALUN_ALUN_PARK_OUTLINE.map(([north, east], index) => {
+    let lawnNorth = north * 0.77 - 0.1;
+    let lawnEast = east * 0.76 + 0.2;
+
+    // Street View shows a continuous corner here, without the raised ceramic
+    // tongue produced by the park-wide affine inset. Bring this local lawn
+    // edge toward the unchanged blue-white outer curb. Moving the four
+    // vertices together keeps the two profiles aligned while preserving a
+    // broad pedestrian ring and its existing furniture.
+    if (ALUN_ALUN_PARK_LAWN_STREET_VIEW_EDGE_INDICES.includes(index)) {
+      const deltaNorth = north - lawnNorth;
+      const deltaEast = east - lawnEast;
+      const distance = Math.hypot(deltaNorth, deltaEast);
+      lawnNorth +=
+        (deltaNorth / distance) *
+        ALUN_ALUN_PARK_LAWN_STREET_VIEW_EDGE_EXPANSION;
+      lawnEast +=
+        (deltaEast / distance) *
+        ALUN_ALUN_PARK_LAWN_STREET_VIEW_EDGE_EXPANSION;
+    }
+
+    return Object.freeze([lawnNorth, lawnEast]);
+  }),
 );
 
 export const ALUN_ALUN_PARK_NAVIGATION_SURFACES = Object.freeze([
