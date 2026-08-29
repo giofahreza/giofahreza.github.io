@@ -4,7 +4,7 @@
       <img src="{{ '/assets/img/logo.png' | relative_url }}" alt="{{ site.title }}">
       <span>
         <strong>{{ site.title }}</strong>
-        <small>Fullstack Software Engineer</small>
+        <small>{{ page.brand_label | default: "Fullstack Software Engineer" }}</small>
       </span>
     </a>
     <button class="global-menu-toggle" type="button" aria-label="Open navigation" aria-controls="globalNav" aria-expanded="false">
