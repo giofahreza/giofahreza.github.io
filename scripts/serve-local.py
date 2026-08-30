@@ -660,32 +660,10 @@ class LocalJekyllRenderer:
         else:
             resume_html = "<p>Resume source is unavailable.</p>"
 
-        active_variant = str(page.get("resume_variant", "career-profile"))
-
-        def variant_link(variant: str, href: str, label: str) -> str:
-            active = variant == active_variant
-            class_name = "resume-variant-link is-active" if active else "resume-variant-link"
-            current = ' aria-current="page"' if active else ""
-            return (
-                f'<a class="{class_name}" href="{escape_attr(href)}"{current}>'
-                f"{escape_text(label)}</a>"
-            )
-
-        variants = "".join(
-            (
-                variant_link("career-profile", "/resume/", "Complete Profile"),
-                variant_link("software-engineer", "/resume/software-engineer/", "Software Engineer"),
-                variant_link("it-manager", "/resume/it-manager/", "IT Manager"),
-            )
-        )
         resume_aria = page.get("resume_aria") or page.get("title") or "Resume"
 
         return f"""<main class="site-main" aria-label="Content">
 <div class="resume-shell">
-  <nav class="resume-variants" aria-label="Career profile versions">
-    <span class="resume-variants__label">Choose a version</span>
-    {variants}
-  </nav>
   <div class="resume-toolbar" aria-label="Resume actions">
     <a class="resume-action resume-action--secondary" href="{escape_attr(resume_download)}" download>Download Markdown</a>
     <button class="resume-action resume-action--primary" type="button" onclick="window.print()">Print / Save PDF</button>
@@ -853,7 +831,7 @@ def main() -> None:
 
     print(f"Serving {root}")
     print(f"Local URL: http://{args.host}:{port}/")
-    print("Clean URLs enabled: /resume/, /resume/software-engineer/, /resume/it-manager/, /tools/")
+    print("Clean URLs enabled: /resume/ and /tools/")
 
     try:
         server.serve_forever()

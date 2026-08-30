@@ -16,55 +16,6 @@ body.resume-page {
   margin: 0 auto;
 }
 
-.resume-variants {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 10px;
-  border: 1px solid #c9d1dc;
-  border-radius: 7px;
-  background: #f7f9fb;
-  padding: 10px;
-}
-
-.resume-variants__label {
-  margin-right: auto;
-  padding: 0 6px;
-  color: #526071;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.resume-variant-link {
-  min-height: 36px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid transparent;
-  border-radius: 5px;
-  color: #2c394b;
-  padding: 0 12px;
-  font-size: 13px;
-  font-weight: 700;
-  text-decoration: none;
-}
-
-.resume-variant-link:hover,
-.resume-variant-link:focus-visible {
-  border-color: #8da0b7;
-  background: #fff;
-  outline: 0;
-}
-
-.resume-variant-link.is-active {
-  border-color: #172033;
-  background: #172033;
-  color: #fff;
-}
-
 .resume-toolbar {
   display: flex;
   justify-content: flex-end;
@@ -239,20 +190,6 @@ body.resume-page {
     padding: 20px 12px 40px;
   }
 
-  .resume-variants {
-    display: grid;
-    grid-template-columns: 1fr;
-  }
-
-  .resume-variants__label {
-    margin: 0;
-    padding: 2px 4px 4px;
-  }
-
-  .resume-variant-link {
-    justify-content: flex-start;
-  }
-
   .resume-toolbar {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -309,7 +246,6 @@ body.resume-page {
   .resume-page .global-header,
   .resume-page .site-footer,
   .resume-page .site-loader,
-  .resume-variants,
   .resume-toolbar {
     display: none !important;
   }
