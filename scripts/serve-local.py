@@ -831,7 +831,7 @@ def main() -> None:
 
     print(f"Serving {root}")
     print(f"Local URL: http://{args.host}:{port}/")
-    print("Clean URLs enabled: /resume/ and /tools/")
+    print("Clean URLs enabled: /resume/, direct targeted resumes, and /tools/")
 
     try:
         server.serve_forever()

@@ -55,8 +55,6 @@ exclude:
   - README.md
   - reference-current.png
   - reference-mobile-current.png
-  - assets/resume-it-manager.md
-  - assets/resume-software-engineer.md
   - scripts
   - stage-desktop-mid-before.png
   - stage-desktop-settled-before.png

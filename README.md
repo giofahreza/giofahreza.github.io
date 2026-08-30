@@ -60,7 +60,7 @@ If Ruby/Jekyll is not installed and you only need to test static pages locally, 
 python3 scripts/serve-local.py
 ```
 
-This local server checks ports `8100`, `8101`, and `8102`, then uses the first available port. It also mimics GitHub Pages clean URLs for `/resume/` and `/tools/`.
+This local server checks ports `8100`, `8101`, and `8102`, then uses the first available port. It also mimics GitHub Pages clean URLs for `/resume/`, the direct targeted résumé URLs, and `/tools/`.
 
 ## Usage
 - Updating pages: edit the relevant HTML file.
