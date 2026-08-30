@@ -271,7 +271,7 @@
         window.history.pushState({ toolId: tool.id }, "", nextPath);
       }
     }
-    if (!isToolsIndexPath()) document.title = `${tool.title} - Giofahreza`;
+    if (!isToolsIndexPath()) document.title = `${tool.title} - Giofahreza Asady`;
     $("#toolTitle").textContent = tool.title;
     $("#toolCategory").textContent = tool.category;
     unbindToolCache();
@@ -314,7 +314,7 @@
               <div class="inline-grid two">
                 ${field("Secret Base32", "secret", "JBSWY3DPEHPK3PXP")}
                 ${field("Account", "account", "gio@example.com")}
-                ${field("Issuer", "issuer", "Giofahreza")}
+                ${field("Issuer", "issuer", "Giofahreza Asady")}
                 ${selectField("Digits", "digits", [{ value: "6", label: "6" }, { value: "8", label: "8" }])}
               </div>
               <div class="tool-actions">${action("Generate Secret", "newSecret", true, "fa-shuffle")}${action("Refresh", "refresh")}</div>
@@ -355,9 +355,9 @@
       case "favicon":
         return `<div class="inline-grid three">${field("Text", "text", "G")}${field("Background", "bg", "#111318", "color")}${field("Foreground", "fg", "#ffffff", "color")}</div><div class="tool-actions">${action("Generate", "generate", true)}<a id="downloadIcon" class="tool-action hidden" download="favicon.png"><i class="fa fa-download"></i>Download</a></div><canvas id="iconCanvas" width="256" height="256" class="swatch"></canvas>${outputArea("HTML snippet")}`;
       case "pwa":
-        return `<div class="inline-grid two">${field("Name", "name", "Giofahreza Tools")}${field("Short Name", "shortName", "Tools")}${field("Start URL", "startUrl", "/tools")}${field("Theme Color", "theme", "#111318", "color")}</div><div class="tool-actions">${action("Generate", "generate", true)}</div>${outputArea("Manifest JSON")}`;
+        return `<div class="inline-grid two">${field("Name", "name", "Giofahreza Asady Tools")}${field("Short Name", "shortName", "Tools")}${field("Start URL", "startUrl", "/tools")}${field("Theme Color", "theme", "#111318", "color")}</div><div class="tool-actions">${action("Generate", "generate", true)}</div>${outputArea("Manifest JSON")}`;
       case "meta":
-        return `<div class="inline-grid two">${field("Title", "title", "Giofahreza Developer Tools")}${field("Description", "description", "Free browser-based developer tools.")}${field("URL", "url", "https://giofahreza.com/tools")}${field("Image URL", "image", "https://giofahreza.com/assets/img/logo.png")}</div><div class="tool-actions">${action("Generate", "generate", true)}</div>${outputArea("Meta tags")}`;
+        return `<div class="inline-grid two">${field("Title", "title", "Giofahreza Asady Developer Tools")}${field("Description", "description", "Free browser-based developer tools.")}${field("URL", "url", "https://giofahreza.com/tools")}${field("Image URL", "image", "https://giofahreza.com/assets/img/logo.png")}</div><div class="tool-actions">${action("Generate", "generate", true)}</div>${outputArea("Meta tags")}`;
       case "robots":
         return `<div class="inline-grid three">${selectField("Robots", "robotsMode", [{ value: "allow", label: "Allow All" }, { value: "block", label: "Block All" }])}${field("Sitemap URL", "sitemap", "https://giofahreza.com/sitemap.xml")}${field("Crawl Delay", "delay", "")}</div><div class="tool-actions">${action("Generate", "generate", true)}</div>${outputArea("Robots.txt")}`;
       case "sitemap":

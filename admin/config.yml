@@ -15,7 +15,7 @@ backend:
     uploadMedia: "media: upload"
     deleteMedia: "media: delete"
 
-app_title: Giofahreza CMS
+app_title: Giofahreza Asady CMS
 site_url: https://giofahreza.com
 display_url: https://giofahreza.com
 media_folder: assets/img/blog

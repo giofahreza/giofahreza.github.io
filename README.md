@@ -1,8 +1,8 @@
 # giofahreza.github.io
 
-Welcome to the repository for [giofahreza.com](https://giofahreza.com), the personal website of Giofahreza. This website showcases my projects, and professional profile.
+Welcome to the repository for [giofahreza.com](https://giofahreza.com), the personal technology portfolio of Giofahreza Asady. It covers software engineering, AI systems, business applications, cybersecurity, and IT operations.
 
-![Website Screenshot](https://giofahreza.com/assets/img/ss_index072024.png)
+![Website Screenshot](https://giofahreza.com/assets/img/work/personal-website.png)
 
 
 ## Table of Contents
@@ -60,7 +60,7 @@ If Ruby/Jekyll is not installed and you only need to test static pages locally, 
 python3 scripts/serve-local.py
 ```
 
-This local server checks ports `8100`, `8101`, and `8102`, then uses the first available port. It also mimics GitHub Pages clean URLs, so `/resume` resolves to `/resume.html` and `/tools` resolves to `/tools/index.html`.
+This local server checks ports `8100`, `8101`, and `8102`, then uses the first available port. It also mimics GitHub Pages clean URLs for `/resume/`, both targeted résumé variants, and `/tools/`.
 
 ## Usage
 - Updating pages: edit the relevant HTML file.

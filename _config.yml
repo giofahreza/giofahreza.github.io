@@ -1,5 +1,6 @@
-title: Giofahreza
-description: Fullstack Software Engineer writing about software engineering, backend systems, frontend work, and browser-first developer tools.
+title: Giofahreza Asady
+description: Technology portfolio covering software engineering, AI systems, business applications, cybersecurity, and IT operations.
+brand_label: Software · AI · IT Systems
 url: https://giofahreza.com
 baseurl: ""
 timezone: Asia/Jakarta
@@ -8,7 +9,7 @@ permalink: /blog/:year/:month/:day/:title/
 nav_asset_version: 20260729h
 
 author:
-  name: Giofahreza
+  name: Giofahreza Asady
   url: https://giofahreza.com
 
 defaults:
@@ -38,7 +39,7 @@ defaults:
         - /assets/tools.css?v=20260729c
       scripts:
         - https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js
-        - /assets/tools.js?v=20260729c
+        - /assets/tools.js?v=20260830a
 
 exclude:
   - .git

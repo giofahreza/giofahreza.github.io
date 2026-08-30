@@ -1,6 +1,6 @@
 # Giofahreza Asady
 
-Technology Professional - Software, AI, and IT Systems
+IT Manager - Business Applications and Technology Operations
 
 Phone: +62 831-2212-7772
 Email: giofahreza2000@gmail.com
@@ -10,19 +10,19 @@ GitHub: https://github.com/giofahreza
 
 ## Professional Summary
 
-Technology professional with 9+ years of experience building, operating, and improving software, AI systems, business applications, and digital platforms across cybersecurity, fintech, banking, climate technology, education technology, human resources, logistics, and hospitality. Combines hands-on engineering in cloud platforms, backend systems, databases, integrations, automation, and secure architecture with project ownership, stakeholder coordination, team guidance, production support, and continuous improvement. Experienced across the full technology lifecycle, from requirements and solution planning through implementation, launch, incident resolution, modernization, and ongoing operations.
+Information Technology (IT) Manager and hands-on technology leader with 9+ years of progressive experience aligning technology with business priorities, leading cross-functional teams, and delivering business applications and digital platforms across AI, cybersecurity, fintech, banking, climate technology, education technology, human resources, logistics, and hospitality. Experienced in IT operations, application and platform delivery, production support, incident and problem resolution, security and risk controls, vendor coordination, team development, and legacy modernization. Combines management and stakeholder leadership with a strong technical foundation in cloud platforms, backend systems, databases, integrations, automation, and software delivery, overseeing work from requirements and solution planning through implementation, launch, support, and continuous improvement.
 
-## Core Capabilities
+## IT Leadership and Management Competencies
 
-- Software Engineering and Architecture: Full-stack applications, backend services, RESTful APIs, gRPC, WebSockets, microservices, integrations, maintainable architecture, performance optimization
-- AI and Data Systems: Retrieval-augmented generation, Video RAG, LightRAG, AI video analytics, data analytics, natural language processing, vector databases, embedding models
-- IT Operations and Reliability: Production support, application monitoring, incident coordination, root-cause analysis, issue resolution, service reliability, cloud platforms, CI/CD, Docker
-- Business Applications and Delivery: Requirements analysis, stakeholder coordination, solution evaluation, workflow automation, application launches, legacy modernization, continuous improvement
-- Cybersecurity and Risk Controls: Security auditing, encryption, authentication and authorization, access controls, transaction monitoring, fraud and anomaly investigation, secure architecture
-- Collaboration and Capability Development: Cross-functional coordination, junior engineer mentoring, technical instruction, knowledge transfer, vendor evaluation, engineering standards
+- IT Strategy and Business Alignment: Executive and stakeholder collaboration, business needs analysis, technology planning, requirements alignment, solution evaluation, implementation guidance
+- IT Operations and Service Delivery: Production support, application monitoring, incident coordination, root-cause analysis, issue resolution, performance optimization, service reliability
+- Project and Application Delivery: Cross-functional project coordination, application launches, workflow automation, systems integration, legacy modernization, continuous improvement
+- People and Vendor Management: Team leadership, junior engineer mentoring, technical instruction, knowledge transfer, vendor evaluation, service quality and delivery monitoring
+- Cybersecurity and Risk Management: Security auditing, authentication and authorization, access controls, transaction risk monitoring, fraud and anomaly investigation, secure architecture
+- Technology Standards and Quality: Architecture guidance, code quality, automated testing, security, performance, maintainability, engineering best practices
 - Industry Experience: Artificial intelligence, cybersecurity, financial technology, peer-to-peer lending, neobanking, KYC, QRIS, climate technology, education technology, human resources, logistics, hospitality
 
-## Technical and Operational Expertise
+## Technology and Operations Expertise
 
 - IT Operations and Cloud Platforms: Production support, incident response, root-cause analysis, application monitoring, Git, CI/CD, Docker, Amazon Web Services, Google Cloud Platform, Microsoft Azure, CloudLinux, Ubuntu, Debian, macOS, Windows, Armbian
 - Cybersecurity and Identity: AI security auditing, XChaCha20-Poly1305 encryption, local-first and zero-knowledge architecture, OAuth, API key access controls, authentication and authorization, biometric and PIN authentication, TOTP

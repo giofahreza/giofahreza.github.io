@@ -1,10 +1,10 @@
 <header class="global-header">
   <div class="global-header__inner">
-    <a class="global-brand" href="{{ '/' | relative_url }}" aria-label="Giofahreza home">
+    <a class="global-brand" href="{{ '/' | relative_url }}" aria-label="{{ site.title }} home">
       <img src="{{ '/assets/img/logo.png' | relative_url }}" alt="{{ site.title }}">
       <span>
         <strong>{{ site.title }}</strong>
-        <small>{{ page.brand_label | default: "Fullstack Software Engineer" }}</small>
+        <small>{{ page.brand_label | default: site.brand_label | default: "Software · AI · IT Systems" }}</small>
       </span>
     </a>
     <button class="global-menu-toggle" type="button" aria-label="Open navigation" aria-controls="globalNav" aria-expanded="false">

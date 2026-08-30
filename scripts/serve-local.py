@@ -19,6 +19,7 @@ DEFAULT_PORTS = (8100, 8101, 8102)
 FRONT_MATTER_RE = re.compile(r"\A---\s*\n(.*?)\n---\s*\n?", re.DOTALL)
 POST_FILE_RE = re.compile(r"(\d{4})-(\d{2})-(\d{2})-(.+)\.md\Z")
 POST_URL_RE = re.compile(r"\A/blog/(\d{4})/(\d{2})/(\d{2})/([^/]+)/?\Z")
+INCLUDE_RE = re.compile(r"{%\s*include\s+([A-Za-z0-9._/-]+)\s*%}")
 
 
 def first_available_port(ports: tuple[int, ...], host: str) -> int:
@@ -224,13 +225,14 @@ def markdown_to_html(markdown: str) -> str:
     blocks: list[str] = []
     paragraph: list[str] = []
     ordered_items: list[str] = []
+    unordered_items: list[str] = []
     code_lines: list[str] = []
     code_language = ""
     in_code = False
 
     def flush_paragraph() -> None:
         if paragraph:
-            blocks.append(f"<p>{inline_markdown(' '.join(paragraph))}</p>")
+            blocks.append(f"<p>{inline_markdown(chr(10).join(paragraph))}</p>")
             paragraph.clear()
 
     def flush_ordered_list() -> None:
@@ -238,6 +240,12 @@ def markdown_to_html(markdown: str) -> str:
             items = "".join(f"<li>{inline_markdown(item)}</li>" for item in ordered_items)
             blocks.append(f"<ol>{items}</ol>")
             ordered_items.clear()
+
+    def flush_unordered_list() -> None:
+        if unordered_items:
+            items = "".join(f"<li>{inline_markdown(item)}</li>" for item in unordered_items)
+            blocks.append(f"<ul>{items}</ul>")
+            unordered_items.clear()
 
     for line in lines:
         stripped = line.strip()
@@ -252,6 +260,7 @@ def markdown_to_html(markdown: str) -> str:
             else:
                 flush_paragraph()
                 flush_ordered_list()
+                flush_unordered_list()
                 code_language = stripped[3:].strip()
                 in_code = True
             continue
@@ -263,12 +272,14 @@ def markdown_to_html(markdown: str) -> str:
         if not stripped:
             flush_paragraph()
             flush_ordered_list()
+            flush_unordered_list()
             continue
 
-        heading = re.match(r"^(#{2,4})\s+(.+)$", stripped)
+        heading = re.match(r"^(#{1,4})\s+(.+)$", stripped)
         if heading:
             flush_paragraph()
             flush_ordered_list()
+            flush_unordered_list()
             level = len(heading.group(1))
             blocks.append(f"<h{level}>{inline_markdown(heading.group(2))}</h{level}>")
             continue
@@ -276,14 +287,24 @@ def markdown_to_html(markdown: str) -> str:
         ordered = re.match(r"^\d+\.\s+(.+)$", stripped)
         if ordered:
             flush_paragraph()
+            flush_unordered_list()
             ordered_items.append(ordered.group(1))
             continue
 
+        unordered = re.match(r"^[-*]\s+(.+)$", stripped)
+        if unordered:
+            flush_paragraph()
+            flush_ordered_list()
+            unordered_items.append(unordered.group(1))
+            continue
+
         flush_ordered_list()
+        flush_unordered_list()
         paragraph.append(stripped)
 
     flush_paragraph()
     flush_ordered_list()
+    flush_unordered_list()
     if in_code:
         language_class = f' class="language-{escape_attr(code_language)}"' if code_language else ""
         blocks.append(f"<pre><code{language_class}>{escape_text(chr(10).join(code_lines))}</code></pre>")
@@ -355,6 +376,16 @@ class LocalJekyllRenderer:
             if candidate.exists() and candidate.is_file():
                 return candidate
 
+        normalized_request = "/" + request_path.strip("/") + "/"
+        for candidate in self.root.glob("*.html"):
+            split = split_front_matter(read_text(candidate))
+            if not split:
+                continue
+            metadata, _ = split
+            permalink = str(metadata.get("permalink", ""))
+            if permalink and "/" + permalink.strip("/") + "/" == normalized_request:
+                return candidate
+
         return None
 
     def page_url(self, source_path: Path, request_path: str) -> str:
@@ -367,14 +398,40 @@ class LocalJekyllRenderer:
     def render_page(self, page: dict[str, object], content: str) -> str:
         layout = str(page.get("layout", "")).strip()
         if layout == "tool":
-            return self.document(page, content, footer_scripts=self.script_tags(page.get("scripts", [])))
+            return self.document(
+                page,
+                self.render_includes(content),
+                footer_scripts=self.script_tags(page.get("scripts", [])),
+            )
         if layout == "blog":
             return self.document(page, self.blog_index(page), include_footer=True)
         if layout == "post":
             return self.document(page, self.post_article(page, content), include_footer=True)
         if layout == "page":
             return self.document(page, self.generic_page(page, content), include_footer=True)
+        if layout == "resume":
+            return self.document(
+                page,
+                self.resume_page(page),
+                include_footer=True,
+                footer_scripts='<script src="/assets/resume.js?v=20260830a" defer></script>',
+            )
         return self.document(page, content, include_footer=True)
+
+    def render_includes(self, content: str) -> str:
+        include_root = (self.root / "_includes").resolve()
+
+        def replace_include(match: re.Match[str]) -> str:
+            include_path = (include_root / match.group(1)).resolve()
+            try:
+                include_path.relative_to(include_root)
+            except ValueError:
+                return ""
+            if not include_path.exists() or not include_path.is_file():
+                return ""
+            return read_text(include_path)
+
+        return INCLUDE_RE.sub(replace_include, content)
 
     def document(
         self,
@@ -400,7 +457,7 @@ class LocalJekyllRenderer:
         )
 
     def head(self, page: dict[str, object]) -> str:
-        site_title = self.config.get("title", "Giofahreza")
+        site_title = self.config.get("title", "Giofahreza Asady")
         title = f"{page.get('title')} - {site_title}" if page.get("title") else str(site_title)
         description = (
             page.get("description")
@@ -449,6 +506,8 @@ class LocalJekyllRenderer:
         links = []
         page_url = str(page.get("url", ""))
         nav_active = str(page.get("nav_active", ""))
+        site_title = str(self.config.get("title", "Giofahreza Asady"))
+        brand_label = str(self.config.get("brand_label", "Software · AI · IT Systems"))
 
         for item in self.navigation:
             label = escape_text(item.get("label", ""))
@@ -467,11 +526,11 @@ class LocalJekyllRenderer:
 
         return f"""<header class="global-header">
   <div class="global-header__inner">
-    <a class="global-brand" href="/" aria-label="Giofahreza home">
-      <img src="/assets/img/giofahreza.png" alt="{escape_attr(self.config.get('title', 'Giofahreza'))}">
+    <a class="global-brand" href="/" aria-label="{escape_attr(site_title)} home">
+      <img src="/assets/img/logo.png" alt="{escape_attr(site_title)}">
       <span>
-        <strong>{escape_text(self.config.get('title', 'Giofahreza'))}</strong>
-        <small>Fullstack Software Engineer</small>
+        <strong>{escape_text(site_title)}</strong>
+        <small>{escape_text(brand_label)}</small>
       </span>
     </a>
     <button class="global-menu-toggle" type="button" aria-label="Open navigation" aria-controls="globalNav" aria-expanded="false">
@@ -486,9 +545,10 @@ class LocalJekyllRenderer:
 </header>"""
 
     def site_footer(self) -> str:
+        site_title = str(self.config.get("title", "Giofahreza Asady"))
         return f"""<footer class="site-footer">
   <div class="site-footer__inner">
-    <p>&copy; {datetime.now().year} Giofahreza. All rights reserved.</p>
+    <p>&copy; {datetime.now().year} {escape_text(site_title)}. All rights reserved.</p>
     <div class="site-footer__links">
       <a href="https://github.com/giofahreza" target="_blank" rel="noopener noreferrer">GitHub</a>
       <a href="https://linkedin.com/in/giofahreza" target="_blank" rel="noopener noreferrer">LinkedIn</a>
@@ -586,6 +646,56 @@ class LocalJekyllRenderer:
 </article>
 </main>"""
 
+    def resume_page(self, page: dict[str, object]) -> str:
+        resume_download = str(page.get("resume_download", "/assets/resume.md"))
+        resume_source = (self.root / resume_download.lstrip("/")).resolve()
+
+        try:
+            resume_source.relative_to(self.root)
+        except ValueError:
+            resume_source = self.root / "assets" / "resume.md"
+
+        if resume_source.exists() and resume_source.is_file():
+            resume_html = markdown_to_html(read_text(resume_source))
+        else:
+            resume_html = "<p>Resume source is unavailable.</p>"
+
+        active_variant = str(page.get("resume_variant", "career-profile"))
+
+        def variant_link(variant: str, href: str, label: str) -> str:
+            active = variant == active_variant
+            class_name = "resume-variant-link is-active" if active else "resume-variant-link"
+            current = ' aria-current="page"' if active else ""
+            return (
+                f'<a class="{class_name}" href="{escape_attr(href)}"{current}>'
+                f"{escape_text(label)}</a>"
+            )
+
+        variants = "".join(
+            (
+                variant_link("career-profile", "/resume/", "Complete Profile"),
+                variant_link("software-engineer", "/resume/software-engineer/", "Software Engineer"),
+                variant_link("it-manager", "/resume/it-manager/", "IT Manager"),
+            )
+        )
+        resume_aria = page.get("resume_aria") or page.get("title") or "Resume"
+
+        return f"""<main class="site-main" aria-label="Content">
+<div class="resume-shell">
+  <nav class="resume-variants" aria-label="Career profile versions">
+    <span class="resume-variants__label">Choose a version</span>
+    {variants}
+  </nav>
+  <div class="resume-toolbar" aria-label="Resume actions">
+    <a class="resume-action resume-action--secondary" href="{escape_attr(resume_download)}" download>Download Markdown</a>
+    <button class="resume-action resume-action--primary" type="button" onclick="window.print()">Print / Save PDF</button>
+  </div>
+  <article class="resume-document" data-resume-content aria-label="{escape_attr(resume_aria)}">
+    {resume_html}
+  </article>
+</div>
+</main>"""
+
     def render_post_url(self, year: str, month: str, day: str, slug: str) -> str | None:
         for post in self.posts():
             if post["url"].strip("/") == f"blog/{year}/{month}/{day}/{slug}":
@@ -661,8 +771,8 @@ class LocalJekyllRenderer:
     def author_name(self) -> str:
         author = self.config.get("author")
         if isinstance(author, dict):
-            return str(author.get("name", self.config.get("title", "Giofahreza")))
-        return str(self.config.get("title", "Giofahreza"))
+            return str(author.get("name", self.config.get("title", "Giofahreza Asady")))
+        return str(self.config.get("title", "Giofahreza Asady"))
 
 
 class GitHubPagesHandler(http.server.SimpleHTTPRequestHandler):
@@ -743,7 +853,7 @@ def main() -> None:
 
     print(f"Serving {root}")
     print(f"Local URL: http://{args.host}:{port}/")
-    print("Clean URLs enabled: /resume -> /resume.html, /tools -> /tools/index.html")
+    print("Clean URLs enabled: /resume/, /resume/software-engineer/, /resume/it-manager/, /tools/")
 
     try:
         server.serve_forever()

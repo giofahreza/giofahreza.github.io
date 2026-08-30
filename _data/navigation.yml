@@ -8,7 +8,7 @@ items:
   - label: Game
     url: /game/
   - label: Resume
-    url: /resume
+    url: /resume/
   - label: Contact
     url: https://t.me/giofahreza
     external: true

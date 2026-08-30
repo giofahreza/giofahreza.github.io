@@ -1,89 +1,17 @@
 ---
-layout: default
-title: IT Manager Resume
-description: Giofahreza Asady's IT Manager resume, covering IT operations, business applications, cybersecurity, technology leadership, and application delivery.
-nav_active: /resume
+layout: resume
+title: Career Profile
+description: Complete career profile of Giofahreza Asady across software engineering, AI systems, business applications, cybersecurity, and IT operations.
+permalink: /resume/
+nav_active: /resume/
 body_class: resume-page
-brand_label: IT Manager
 theme_color: "#172033"
 stylesheets:
-  - /assets/resume.css?v=20260829a
+  - /assets/resume.css?v=20260830a
+resume_variant: career-profile
+resume_download: /assets/resume.md
+resume_aria: Complete career profile of Giofahreza Asady
 ---
 
-<div class="resume-shell">
-  <div class="resume-toolbar" aria-label="Resume actions">
-    <a class="resume-action resume-action--secondary" href="{{ '/assets/resume.md' | relative_url }}" download>
-      Download Markdown
-    </a>
-    <button class="resume-action resume-action--primary" type="button" onclick="window.print()">
-      Print / Save PDF
-    </button>
-  </div>
-
-  <article class="resume-document" data-resume-content aria-label="Resume of Giofahreza Asady">
-    {% capture resume_markdown %}{% include_relative assets/resume.md %}{% endcapture %}
-    {{ resume_markdown | markdownify }}
-  </article>
-</div>
-
-<script>
-  document.addEventListener("DOMContentLoaded", () => {
-    const resume = document.querySelector("[data-resume-content]");
-
-    if (!resume) {
-      return;
-    }
-
-    const linkPattern = /(https?:\/\/[^\s<>"']+|[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})/gi;
-    const textNodes = [];
-    const walker = document.createTreeWalker(resume, NodeFilter.SHOW_TEXT);
-    let currentNode = walker.nextNode();
-
-    while (currentNode) {
-      const parent = currentNode.parentElement;
-
-      if (parent && !parent.closest("a, code, script, style") && linkPattern.test(currentNode.nodeValue)) {
-        textNodes.push(currentNode);
-      }
-
-      linkPattern.lastIndex = 0;
-      currentNode = walker.nextNode();
-    }
-
-    textNodes.forEach((textNode) => {
-      const fragment = document.createDocumentFragment();
-      let cursor = 0;
-
-      textNode.nodeValue.replace(linkPattern, (matchedText, _capture, offset) => {
-        let linkText = matchedText;
-        let trailingPunctuation = "";
-
-        while (/[,.;:!?)]$/.test(linkText)) {
-          trailingPunctuation = linkText.slice(-1) + trailingPunctuation;
-          linkText = linkText.slice(0, -1);
-        }
-
-        fragment.append(document.createTextNode(textNode.nodeValue.slice(cursor, offset)));
-
-        const link = document.createElement("a");
-        const isWebLink = /^https?:\/\//i.test(linkText);
-        link.href = isWebLink ? linkText : `mailto:${linkText}`;
-        link.textContent = linkText;
-
-        if (isWebLink) {
-          link.target = "_blank";
-          link.rel = "noopener noreferrer";
-        }
-
-        fragment.append(link);
-        fragment.append(document.createTextNode(trailingPunctuation));
-        cursor = offset + matchedText.length;
-        return matchedText;
-      });
-
-      fragment.append(document.createTextNode(textNode.nodeValue.slice(cursor)));
-      textNode.replaceWith(fragment);
-      linkPattern.lastIndex = 0;
-    });
-  });
-</script>
+{% capture resume_markdown %}{% include_relative assets/resume.md %}{% endcapture %}
+{{ resume_markdown | markdownify }}

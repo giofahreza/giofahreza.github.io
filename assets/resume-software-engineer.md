@@ -1,6 +1,6 @@
 # Giofahreza Asady
 
-Technology Professional - Software, AI, and IT Systems
+Full-Stack Software Engineer - Backend, Cloud, and AI Systems
 
 Phone: +62 831-2212-7772
 Email: giofahreza2000@gmail.com
@@ -10,19 +10,19 @@ GitHub: https://github.com/giofahreza
 
 ## Professional Summary
 
-Technology professional with 9+ years of experience building, operating, and improving software, AI systems, business applications, and digital platforms across cybersecurity, fintech, banking, climate technology, education technology, human resources, logistics, and hospitality. Combines hands-on engineering in cloud platforms, backend systems, databases, integrations, automation, and secure architecture with project ownership, stakeholder coordination, team guidance, production support, and continuous improvement. Experienced across the full technology lifecycle, from requirements and solution planning through implementation, launch, incident resolution, modernization, and ongoing operations.
+Full-Stack Software Engineer with 9+ years of technology experience designing, building, testing, deploying, and supporting web applications, backend services, AI systems, and business-critical platforms across cybersecurity, fintech, banking, climate technology, education technology, human resources, logistics, and hospitality. Strong foundation in Go, Rust, PHP, Laravel, Node.js, Python, JavaScript, TypeScript, cloud platforms, SQL and NoSQL databases, APIs, messaging, automation, and secure architecture. Experienced in system design, integration, performance optimization, automated testing, production incident response, legacy modernization, technical mentoring, and end-to-end software delivery.
 
-## Core Capabilities
+## Engineering Strengths
 
-- Software Engineering and Architecture: Full-stack applications, backend services, RESTful APIs, gRPC, WebSockets, microservices, integrations, maintainable architecture, performance optimization
-- AI and Data Systems: Retrieval-augmented generation, Video RAG, LightRAG, AI video analytics, data analytics, natural language processing, vector databases, embedding models
-- IT Operations and Reliability: Production support, application monitoring, incident coordination, root-cause analysis, issue resolution, service reliability, cloud platforms, CI/CD, Docker
-- Business Applications and Delivery: Requirements analysis, stakeholder coordination, solution evaluation, workflow automation, application launches, legacy modernization, continuous improvement
-- Cybersecurity and Risk Controls: Security auditing, encryption, authentication and authorization, access controls, transaction monitoring, fraud and anomaly investigation, secure architecture
-- Collaboration and Capability Development: Cross-functional coordination, junior engineer mentoring, technical instruction, knowledge transfer, vendor evaluation, engineering standards
+- Backend and Application Engineering: Web applications, backend services, RESTful APIs, gRPC, WebSockets, microservices, integrations, workflow automation
+- System Design and Modernization: Scalable architecture, legacy migration, performance optimization, maintainability, secure design, technical decision-making
+- AI and Data Systems: Retrieval-augmented generation, Video RAG, LightRAG, AI video analytics, data analytics, natural language processing, vector databases
+- Testing and Code Quality: Unit, integration, and end-to-end testing, code quality automation, defect reduction, clean-code practices, release reliability
+- Production Engineering: Application monitoring, incident response, root-cause analysis, issue resolution, cloud platforms, CI/CD, Docker, service reliability
+- Technical Collaboration: Requirements clarification, stakeholder communication, cross-functional delivery, junior engineer mentoring, technical instruction, knowledge sharing
 - Industry Experience: Artificial intelligence, cybersecurity, financial technology, peer-to-peer lending, neobanking, KYC, QRIS, climate technology, education technology, human resources, logistics, hospitality
 
-## Technical and Operational Expertise
+## Technology Stack
 
 - IT Operations and Cloud Platforms: Production support, incident response, root-cause analysis, application monitoring, Git, CI/CD, Docker, Amazon Web Services, Google Cloud Platform, Microsoft Azure, CloudLinux, Ubuntu, Debian, macOS, Windows, Armbian
 - Cybersecurity and Identity: AI security auditing, XChaCha20-Poly1305 encryption, local-first and zero-knowledge architecture, OAuth, API key access controls, authentication and authorization, biometric and PIN authentication, TOTP

@@ -1,0 +1,33 @@
+---
+layout: default
+---
+
+<div class="resume-shell">
+  <nav class="resume-variants" aria-label="Career profile versions">
+    <span class="resume-variants__label">Choose a version</span>
+    <a class="resume-variant-link{% if page.resume_variant == 'career-profile' %} is-active{% endif %}" href="{{ '/resume/' | relative_url }}"{% if page.resume_variant == 'career-profile' %} aria-current="page"{% endif %}>
+      Complete Profile
+    </a>
+    <a class="resume-variant-link{% if page.resume_variant == 'software-engineer' %} is-active{% endif %}" href="{{ '/resume/software-engineer/' | relative_url }}"{% if page.resume_variant == 'software-engineer' %} aria-current="page"{% endif %}>
+      Software Engineer
+    </a>
+    <a class="resume-variant-link{% if page.resume_variant == 'it-manager' %} is-active{% endif %}" href="{{ '/resume/it-manager/' | relative_url }}"{% if page.resume_variant == 'it-manager' %} aria-current="page"{% endif %}>
+      IT Manager
+    </a>
+  </nav>
+
+  <div class="resume-toolbar" aria-label="Resume actions">
+    <a class="resume-action resume-action--secondary" href="{{ page.resume_download | relative_url }}" download>
+      Download Markdown
+    </a>
+    <button class="resume-action resume-action--primary" type="button" onclick="window.print()">
+      Print / Save PDF
+    </button>
+  </div>
+
+  <article class="resume-document" data-resume-content aria-label="{{ page.resume_aria | default: page.title | escape }}">
+    {{ content }}
+  </article>
+</div>
+
+<script src="{{ '/assets/resume.js' | relative_url }}?v=20260830a" defer></script>
