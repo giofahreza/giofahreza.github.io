@@ -10,7 +10,7 @@ GitHub: https://github.com/giofahreza
 
 ## Professional Summary
 
-Information Technology (IT) Manager and hands-on technology leader with 9+ years of progressive experience aligning technology with business priorities, leading cross-functional teams, and delivering business applications and digital platforms across AI, cybersecurity, fintech, banking, climate technology, education technology, human resources, logistics, and hospitality. Experienced in IT operations, application and platform delivery, production support, incident and problem resolution, security and risk controls, vendor coordination, team development, and legacy modernization. Combines management and stakeholder leadership with a strong technical foundation in cloud platforms, backend systems, databases, integrations, automation, and software delivery, overseeing work from requirements and solution planning through implementation, launch, support, and continuous improvement.
+Information Technology (IT) Manager and hands-on technology leader with 8+ years of progressive experience aligning technology with business priorities, leading cross-functional teams, and delivering business applications and digital platforms across AI, cybersecurity, fintech, banking, climate technology, education technology, human resources, logistics, and hospitality. Experienced in IT operations, application and platform delivery, production support, incident and problem resolution, security and risk controls, vendor coordination, team development, and legacy modernization. Combines management and stakeholder leadership with a strong technical foundation in cloud platforms, backend systems, databases, integrations, automation, and software delivery, overseeing work from requirements and solution planning through implementation, launch, support, and continuous improvement.
 
 ## IT Leadership and Management Competencies
 
@@ -44,7 +44,7 @@ Information Technology (IT) Manager and hands-on technology leader with 9+ years
 
 ## Professional Experience
 
-### Senior AI Engineer
+### AI Engineer
 
 GSC (PT. Garuda Satria Cyber Indonesia) - Cybersecurity and AI Auditing
 June 2025 - Present

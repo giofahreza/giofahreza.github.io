@@ -10,7 +10,7 @@ GitHub: https://github.com/giofahreza
 
 ## Professional Summary
 
-Full-Stack Software Engineer with 9+ years of technology experience designing, building, testing, deploying, and supporting web applications, backend services, AI systems, and business-critical platforms across cybersecurity, fintech, banking, climate technology, education technology, human resources, logistics, and hospitality. Strong foundation in Go, Rust, PHP, Laravel, Node.js, Python, JavaScript, TypeScript, cloud platforms, SQL and NoSQL databases, APIs, messaging, automation, and secure architecture. Experienced in system design, integration, performance optimization, automated testing, production incident response, legacy modernization, technical mentoring, and end-to-end software delivery.
+Full-Stack Software Engineer with 8+ years of technology experience designing, building, testing, deploying, and supporting web applications, backend services, AI systems, and business-critical platforms across cybersecurity, fintech, banking, climate technology, education technology, human resources, logistics, and hospitality. Strong foundation in Go, Rust, PHP, Laravel, Node.js, Python, JavaScript, TypeScript, cloud platforms, SQL and NoSQL databases, APIs, messaging, automation, and secure architecture. Experienced in system design, integration, performance optimization, automated testing, production incident response, legacy modernization, technical mentoring, and end-to-end software delivery.
 
 ## Engineering Strengths
 
@@ -44,7 +44,7 @@ Full-Stack Software Engineer with 9+ years of technology experience designing, b
 
 ## Professional Experience
 
-### Senior AI Engineer
+### AI Engineer
 
 GSC (PT. Garuda Satria Cyber Indonesia) - Cybersecurity and AI Auditing
 June 2025 - Present

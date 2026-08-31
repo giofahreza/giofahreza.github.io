@@ -10,7 +10,7 @@ GitHub: https://github.com/giofahreza
 
 ## Professional Summary
 
-Technology professional with 9+ years of experience building, operating, and improving software, AI systems, business applications, and digital platforms across cybersecurity, fintech, banking, climate technology, education technology, human resources, logistics, and hospitality. Combines hands-on engineering in cloud platforms, backend systems, databases, integrations, automation, and secure architecture with project ownership, stakeholder coordination, team guidance, production support, and continuous improvement. Experienced across the full technology lifecycle, from requirements and solution planning through implementation, launch, incident resolution, modernization, and ongoing operations.
+Technology professional with 8+ years of experience building, operating, and improving software, AI systems, business applications, and digital platforms across cybersecurity, fintech, banking, climate technology, education technology, human resources, logistics, and hospitality. Combines hands-on engineering in cloud platforms, backend systems, databases, integrations, automation, and secure architecture with project ownership, stakeholder coordination, team guidance, production support, and continuous improvement. Experienced across the full technology lifecycle, from requirements and solution planning through implementation, launch, incident resolution, modernization, and ongoing operations.
 
 ## Core Capabilities
 
@@ -44,7 +44,7 @@ Technology professional with 9+ years of experience building, operating, and imp
 
 ## Professional Experience
 
-### Senior AI Engineer
+### AI Engineer
 
 GSC (PT. Garuda Satria Cyber Indonesia) - Cybersecurity and AI Auditing
 June 2025 - Present
