@@ -6,6 +6,79 @@ import {
   roundedBox,
 } from "../../../rendering/geometry.js";
 import { toonMaterial } from "../../../rendering/materials.js";
+import { ALUN_ALUN_FRONTAGE_APRON_Y, ALUN_ALUN_WEST_FRONTAGE_DEFINITION } from "./traffic.js";
+
+const northPropertyEdge =
+  ALUN_ALUN_WEST_FRONTAGE_DEFINITION.ahmadYaniSidewalkOuterBoundary;
+
+// The 330-degree west panorama puts the booth immediately behind the fence,
+// not at the rear of the plot. Keep the entire roof landward of the sloping
+// sidewalk. East station/dimensions remain provisional, not surveyed values.
+export const BICAU_BOOTH_PLACEMENT = Object.freeze({
+  north: 17.55, east: -12.35, width: 1.08, depth: 1.42,
+});
+
+function propertyNorthAt(east) {
+  for (let index = 1; index < northPropertyEdge.length; index += 1) {
+    const a = northPropertyEdge[index - 1];
+    const b = northPropertyEdge[index];
+    if (east >= a[1] && east <= b[1]) {
+      return a[0] + (east - a[1]) * (b[0] - a[0]) / (b[1] - a[1]);
+    }
+  }
+  throw new RangeError(`Fence east coordinate outside north sidewalk: ${east}`);
+}
+
+// The boundary is not parallel to the office walls. Keep buildings fixed and
+// fit each fence member's OUTER face to the property edge (1 mm landward).
+// Split members at sidewalk bends so no triangle cuts across the pavement.
+function addSidewalkFenceMember(group, originNorth, originEast, east, y,
+  depth, height, span, radius, material) {
+  const start = originEast + east - span / 2;
+  const end = originEast + east + span / 2;
+  const cuts = [start, ...northPropertyEdge.map((p) => p[1])
+    .filter((value) => value > start && value < end), end];
+  for (let section = 1; section < cuts.length; section += 1) {
+    const a = cuts[section - 1];
+    const b = cuts[section];
+    const geometry = roundedBox(depth, height, b - a,
+      Math.min(radius, (b - a) * 0.2));
+    geometry.computeBoundingBox();
+    const front = geometry.boundingBox.min.x;
+    const positions = geometry.getAttribute("position");
+    for (let index = 0; index < positions.count; index += 1) {
+      const globalEast = (a + b) / 2 + positions.getZ(index);
+      positions.setX(index, propertyNorthAt(globalEast) - originNorth +
+        positions.getX(index) - front + 0.0002);
+      positions.setZ(index, globalEast - originEast);
+    }
+    geometry.computeVertexNormals();
+    geometry.computeBoundingBox();
+    geometry.computeBoundingSphere();
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.position.y = y;
+    group.add(mesh);
+    if (group.userData.blocksPlayer) {
+      // Inscribe a rotated box in this sheared member. Both its outer face
+      // and end caps stay inside the actual fence footprint, never pavement.
+      const slope = (propertyNorthAt(b) - propertyNorthAt(a)) / (b - a);
+      const yaw = Math.atan(slope);
+      const cosine = Math.cos(yaw);
+      const obstacle = {
+        north: (propertyNorthAt(a) + propertyNorthAt(b)) / 2 + depth / 2 + 0.0002,
+        east: (a + b) / 2,
+        width: depth * cosine,
+        depth: (b - a) / cosine - depth * Math.abs(Math.sin(yaw)),
+        yaw,
+      };
+      const obstacles = group.userData.sidewalkFenceObstacles ??= [];
+      // Two rails at different heights share the same ground footprint.
+      if (!obstacles.some((existing) => JSON.stringify(existing) === JSON.stringify(obstacle))) {
+        obstacles.push(obstacle);
+      }
+    }
+  }
+}
 
 export function createAlunAlunWestRoadsideFactory({
   collections: {
@@ -219,14 +292,17 @@ export function createAlunAlunWestRoadsideFactory({
     postOffice.position.set(25.1, 0.05, 0.42);
     const wallMaterial = toonMaterial({ color: 0xe6dfd0 });
     const orangeMaterial = toonMaterial({ color: 0xd96839 });
-    const roofMaterial = toonMaterial({ color: 0xa74334 });
-    const entranceRoofMaterial = new THREE.MeshBasicMaterial({
-      color: 0xb84a35,
+    // Weathered red-brown clay in the 345/355-degree Google views. The
+    // entrance uses a separate toon material (gable UVs differ from the hip)
+    // so it receives the same daylight shading instead of glowing basic red.
+    const roofMaterial = toonMaterial({ color: 0x7b463b });
+    const entranceRoofMaterial = toonMaterial({
+      color: 0x7b463b,
       side: THREE.DoubleSide,
     });
-    const eaveMaterial = toonMaterial({ color: 0xa74334 });
-    const roofCourseMaterial = toonMaterial({ color: 0x843a34 });
-    const roofRidgeMaterial = toonMaterial({ color: 0x72302d });
+    const eaveMaterial = toonMaterial({ color: 0x754139 });
+    const roofCourseMaterial = toonMaterial({ color: 0x63362e });
+    const roofRidgeMaterial = toonMaterial({ color: 0x60342e });
     const frameMaterial = toonMaterial({ color: 0xa94c36 });
     const glassMaterial = toonMaterial({ color: 0x365357 });
     const darkMaterial = toonMaterial({ color: 0x333636 });
@@ -355,21 +431,61 @@ export function createAlunAlunWestRoadsideFactory({
       );
       glass.position.set(-1.322 + facadeShift, frame.position.y, east);
       postOffice.add(glass);
+      // The Google 360 frontage has narrow divided timber sashes, not six
+      // uninterrupted display windows. Keep the divisions ahead of the glass.
+      const divisions = isDoor ? [-0.12, 0.12] : [-width / 6, width / 6];
+      divisions.forEach((offset) => {
+        const mullion = new THREE.Mesh(
+          roundedBox(0.018, height - 0.07, 0.018, 0.003),
+          frameMaterial,
+        );
+        mullion.position.set(-1.345 + facadeShift, frame.position.y, east + offset);
+        postOffice.add(mullion);
+      });
+      const crossbar = new THREE.Mesh(
+        roundedBox(0.018, 0.018, width - 0.07, 0.003),
+        frameMaterial,
+      );
+      crossbar.position.set(-1.345 + facadeShift, frame.position.y - 0.055, east);
+      postOffice.add(crossbar);
     };
     [-2.05, -1.35, -0.45, 0.45, 1.35, 2.05].forEach((east, index) =>
-      addOpening(east, index === 2 || index === 3 ? 0.62 : 0.56, index === 2 || index === 3 ? 0.64 : 0.46, index === 2 || index === 3),
+      addOpening(east, index === 3 ? 0.62 : 0.56, index === 3 ? 0.64 : 0.46, index === 3),
     );
 
-    const signBacking = new THREE.Mesh(roundedBox(0.055, 0.24, 1.62, 0.025), darkMaterial);
-    signBacking.position.set(-1.315 + facadeShift, 0.73, 0);
+    // lRACqXqndYuLZy3hL-GgMg, heading 345: the framed sign fits underneath
+    // the small entrance gable. It is not wider than the gable itself.
+    const signFrame = new THREE.Mesh(
+      roundedBox(0.055, 0.285, 1.14, 0.008),
+      toonMaterial({ color: 0xc7a75b }),
+    );
+    signFrame.position.set(-1.315 + facadeShift, 0.79, 0);
+    postOffice.add(signFrame);
+    const signBacking = new THREE.Mesh(roundedBox(0.025, 0.235, 1.08, 0.005), darkMaterial);
+    signBacking.position.set(-1.351 + facadeShift, 0.79, 0);
     postOffice.add(signBacking);
     const sign = new THREE.Mesh(
-      new THREE.PlaneGeometry(1.38, 0.16),
-      getSitubondoSignMaterial("POS INDONESIA", "#f2eee2", 900),
+      new THREE.PlaneGeometry(0.93, 0.115),
+      getSitubondoSignMaterial("POS INDONESIA", "#dcc795", 900),
     );
-    sign.position.set(-1.347 + facadeShift, 0.73, 0);
+    sign.position.set(-1.367 + facadeShift, 0.79, 0);
     sign.rotation.y = -Math.PI * 0.5;
     postOffice.add(sign);
+
+    // Thin perpendicular postal blade sign visible above the doorway; its
+    // support is inside the existing front fence, not on the pedestrian path.
+    const bladePost = new THREE.Mesh(
+      roundedBox(0.045, 1.25, 0.045, 0.006),
+      paleMaterial,
+    );
+    bladePost.position.set(-2.61, 0.625, 0.36);
+    postOffice.add(bladePost);
+    const bladeSign = new THREE.Mesh(
+      roundedBox(0.3, 0.67, 0.065, 0.004),
+      paleMaterial,
+    );
+    bladeSign.position.set(-2.48, 1.27, 0.36);
+    postOffice.add(bladeSign);
 
     [-1.92, -1.24, 0.94, 1.48, 2.04].forEach((east) => {
       const unit = new THREE.Mesh(roundedBox(0.1, 0.2, 0.3, 0.025), paleMaterial);
@@ -402,55 +518,76 @@ export function createAlunAlunWestRoadsideFactory({
       });
     });
 
+    const frontFence = new THREE.Group();
+    frontFence.name = "Kantor Pos sidewalk-aligned fence";
+    // These posts no longer stand on the raised building-local frontage.
+    // Seat their bottoms at yard level beside the public sidewalk.
+    frontFence.position.y = -0.1;
     [-1, 1].forEach((side) => {
-      const rail = new THREE.Mesh(roundedBox(0.04, 0.045, 1.88, 0.012), orangeMaterial);
-      rail.position.set(-1.66 + facadeShift, 0.28, side * 1.46);
-      postOffice.add(rail);
+      addSidewalkFenceMember(frontFence, 25.1, 0.42, side * 1.46, 0.28,
+        0.04, 0.045, 1.88, 0.012, orangeMaterial);
     });
     for (let east = -2.38; east <= 2.38; east += 0.24) {
       if (Math.abs(east) < 0.48) continue;
-      const picket = new THREE.Mesh(roundedBox(0.045, 0.34, 0.045, 0.012), orangeMaterial);
-      picket.position.set(-1.66 + facadeShift, 0.22, east);
-      postOffice.add(picket);
+      // Include the picket's thickness, keeping the 0.9-east entrance edge open.
+      const picketEast = east > 0 ? Math.max(east, 0.504) : east;
+      addSidewalkFenceMember(frontFence, 25.1, 0.42, picketEast, 0.22,
+        0.045, 0.34, 0.045, 0.012, orangeMaterial);
     }
+    postOffice.add(frontFence);
 
+    // This garden is below the building-local floor. The sign straddles the
+    // entry paving: extend its own stone downward to the lawn, retaining its
+    // top/lettering height, rather than lowering it into the paving or adding
+    // an invented slab. -0.04 seats slightly into the curved survey ground.
+    const yardY = -0.04;
+    const entryY = ALUN_ALUN_FRONTAGE_APRON_Y - postOffice.position.y;
+    const garden = new THREE.Group();
+    garden.name = "Kantor Pos grounded garden decorations";
+    postOffice.add(garden);
+    const signTop = 0.33;
     const propertySign = new THREE.Mesh(
-      roundedBox(0.18, 0.3, 1.42, 0.045),
+      roundedBox(0.18, signTop - yardY, 1.42, 0.045),
       darkMaterial,
     );
-    propertySign.position.set(-1.91 + facadeShift, 0.18, -0.42);
-    postOffice.add(propertySign);
+    propertySign.name = "Postal garden name wall";
+    propertySign.position.set(-1.91 + facadeShift, (signTop + yardY) / 2, -0.42);
+    garden.add(propertySign);
     const propertyLabel = new THREE.Mesh(
       new THREE.PlaneGeometry(1.18, 0.13),
       getSitubondoSignMaterial("KANTOR POS SITUBONDO", "#d7b75f", 800),
     );
     propertyLabel.position.set(-2.015 + facadeShift, 0.2, -0.42);
     propertyLabel.rotation.y = -Math.PI * 0.5;
-    postOffice.add(propertyLabel);
+    garden.add(propertyLabel);
     [
-      [-1.92, 0.23, -1.18, 0.22],
-      [-1.96, 0.2, 0.32, 0.18],
-      [-1.86, 0.16, 0.72, 0.14],
-    ].forEach(([north, height, east, scale]) => {
+      [-1.92, yardY, -1.18, 0.22],
+      [-1.96, entryY - 0.001, 0.32, 0.18],
+      [-1.86, yardY, 0.72, 0.14],
+    ].forEach(([north, supportY, east, scale], index) => {
       const rock = new THREE.Mesh(
         new THREE.DodecahedronGeometry(scale, 0),
         rockMaterial,
       );
-      rock.position.set(north + facadeShift, height, east);
       rock.scale.y = 0.72;
-      postOffice.add(rock);
+      rock.geometry.computeBoundingBox();
+      rock.name = `Postal garden rock ${index + 1}`;
+      rock.position.set(north + facadeShift,
+        supportY - rock.geometry.boundingBox.min.y * rock.scale.y, east);
+      garden.add(rock);
     });
 
     const planter = new THREE.Mesh(roundedBox(0.5, 0.16, 1.08, 0.05), paleMaterial);
-    planter.position.set(-1.82 + facadeShift, 0.11, -1.7);
-    postOffice.add(planter);
+    planter.name = "Postal garden planter";
+    planter.position.set(-1.82 + facadeShift, yardY + 0.08, -1.7);
+    garden.add(planter);
     const shrubs = new THREE.Mesh(
       new THREE.SphereGeometry(0.3, 10, 7),
       foliageMaterials[1],
     );
-    shrubs.position.set(-1.82 + facadeShift, 0.31, -1.7);
+    shrubs.position.set(-1.82 + facadeShift, yardY + 0.28, -1.7);
     shrubs.scale.set(0.72, 0.52, 1.45);
-    postOffice.add(shrubs);
+    garden.add(shrubs);
 
     const westAnnex = new THREE.Group();
     westAnnex.name = "Pos Indonesia integrated west annex";
@@ -531,22 +668,20 @@ export function createAlunAlunWestRoadsideFactory({
     terraceLabel.position.set(-1.02, 0.6, -0.08);
     terraceLabel.rotation.y = -Math.PI * 0.5;
     postalTerrace.add(terraceLabel);
+    const terraceFence = new THREE.Group();
+    terraceFence.name = "Teras Pos sidewalk-aligned fence";
+    terraceFence.userData.blocksPlayer = true;
+    terraceFence.position.y = -0.06;
     [-0.98, -0.42, 0.32, 0.9].forEach((east) => {
-      const lowPost = new THREE.Mesh(
-        roundedBox(0.06, 0.32, 0.06, 0.012),
-        orangeMaterial,
-      );
-      lowPost.position.set(-1.2, 0.17, east);
-      postalTerrace.add(lowPost);
+      addSidewalkFenceMember(terraceFence, 25.1 - 3.18, 0.42 - 3.72,
+        east, 0.17, 0.06, 0.32, 0.06, 0.012, orangeMaterial);
     });
     [0.18, 0.31].forEach((height) => {
-      const lowRail = new THREE.Mesh(
-        roundedBox(0.05, 0.04, 1.96, 0.01),
-        height < 0.2 ? paleMaterial : orangeMaterial,
-      );
-      lowRail.position.set(-1.2, height, -0.02);
-      postalTerrace.add(lowRail);
+      addSidewalkFenceMember(terraceFence, 25.1 - 3.18, 0.42 - 3.72,
+        -0.02, height, 0.05, 0.04, 1.96, 0.01,
+        height < 0.2 ? paleMaterial : orangeMaterial);
     });
+    postalTerrace.add(terraceFence);
     mergeDirectMeshesByMaterial(postalTerrace);
     postOffice.add(postalTerrace);
 
@@ -593,6 +728,37 @@ export function createAlunAlunWestRoadsideFactory({
     );
     roof.position.y = 2.01;
     architecture.add(roof);
+
+    // Google 360 lRACqXqndYuLZy3hL-GgMg, headings 0 and 25 degrees:
+    // the upper storey is open behind red piers, with a shallow corrugated
+    // cover and paired rows of small vents on its exposed west party wall.
+    // Keep these details inside the existing building envelope.
+    const corrugatedCover = new THREE.Mesh(
+      roundedBox(2.86, 0.035, 3.24, 0.006),
+      wallShadowMaterial,
+    );
+    corrugatedCover.position.set(0.02, 2.095, 0);
+    corrugatedCover.rotation.z = 0.035;
+    architecture.add(corrugatedCover);
+    for (let east = -1.5; east <= 1.5; east += 0.12) {
+      const roofRib = new THREE.Mesh(
+        roundedBox(2.85, 0.018, 0.012, 0.003),
+        concreteMaterial,
+      );
+      roofRib.position.set(0.02, 2.119, east);
+      roofRib.rotation.z = 0.035;
+      architecture.add(roofRib);
+    }
+    for (let north = -1.12; north <= 1.25; north += 0.32) {
+      [1.53, 1.76].forEach((height) => {
+        const sideVent = new THREE.Mesh(
+          roundedBox(0.07, 0.045, 0.018, 0.003),
+          glassMaterial,
+        );
+        sideVent.position.set(north, height, -1.736);
+        architecture.add(sideVent);
+      });
+    }
 
     const shopApron = new THREE.Mesh(
       roundedBox(0.5, 0.08, 3.02, 0.025),
@@ -654,20 +820,26 @@ export function createAlunAlunWestRoadsideFactory({
     );
     patternedAwning.position.set(-1.69, 0.99, 0.06);
     architecture.add(patternedAwning);
-    const awningPattern = new THREE.Mesh(
-      new THREE.PlaneGeometry(2.58, 0.105),
-      getSitubondoSignMaterial("◇ ◇ ◇ ◇ ◇ ◇", "#eadfcf", 700),
-    );
-    awningPattern.position.set(-1.742, 0.99, 0.06);
-    awningPattern.rotation.y = -Math.PI * 0.5;
-    architecture.add(awningPattern);
+    // The red fascia has thin crossing white lines, not large diamond glyphs.
+    // Geometry keeps the line rhythm legible without relying on font symbols.
+    for (let east = -1.24; east <= 1.28; east += 0.24) {
+      [-1, 1].forEach((direction) => {
+        const fasciaLine = new THREE.Mesh(
+          roundedBox(0.008, 0.009, 0.3, 0.002),
+          paleMaterial,
+        );
+        fasciaLine.position.set(-1.742, 0.99, east);
+        fasciaLine.rotation.x = direction * 0.3;
+        architecture.add(fasciaLine);
+      });
+    }
 
     [-1.26, -0.42, 0.42, 1.26].forEach((east) => {
       const upperBay = new THREE.Mesh(
-        roundedBox(0.065, 0.54, 0.56, 0.016),
+        roundedBox(0.065, 0.73, 0.7, 0.01),
         glassMaterial,
       );
-      upperBay.position.set(-1.495, 1.55, east);
+      upperBay.position.set(-1.495, 1.515, east);
       architecture.add(upperBay);
       const upperLintel = new THREE.Mesh(
         roundedBox(0.075, 0.08, 0.64, 0.014),
@@ -692,7 +864,7 @@ export function createAlunAlunWestRoadsideFactory({
     [-1.63, -0.84, 0, 0.84, 1.63].forEach((east) => {
       const upperColumn = new THREE.Mesh(
         roundedBox(0.09, 0.86, 0.1, 0.016),
-        accentMaterial,
+        Math.abs(east) > 1.5 ? paleMaterial : accentMaterial,
       );
       upperColumn.position.set(-1.53, 1.53, east);
       architecture.add(upperColumn);
@@ -767,7 +939,10 @@ export function createAlunAlunWestRoadsideFactory({
 
     [-0.66, 0.14, 0.92].forEach((east, index) => {
       const tyreDisplay = new THREE.Group();
-      tyreDisplay.position.set(-1.62, 0.31 + (index % 2) * 0.03, east);
+      // Architecture has a surveyed non-uniform footprint scale. The displays
+      // are animated separately, so apply its placement transform explicitly;
+      // their old unscaled positions disappeared inside the building shell.
+      tyreDisplay.position.set(-1.62 * 1.64, 0.23 + (index % 2) * 0.025, east * 0.96);
       tyreDisplay.rotation.y = -Math.PI * 0.5;
       const wheel = new THREE.Group();
       const tyre = new THREE.Mesh(
@@ -861,7 +1036,8 @@ export function createAlunAlunWestRoadsideFactory({
 
     const kiosk = new THREE.Group();
     kiosk.name = "@BICAU STORY takeaway booth · Google Street View";
-    kiosk.position.set(23.55, 0.05, -12.35);
+    const booth = BICAU_BOOTH_PLACEMENT;
+    kiosk.position.set(booth.north, 0.05, booth.east);
     const kioskBody = new THREE.Mesh(
       roundedBox(0.96, 0.62, 1.2, 0.035),
       kioskMaterial,
@@ -975,33 +1151,27 @@ export function createAlunAlunWestRoadsideFactory({
     sideVent.position.set(0.1, 0.37, 0.615);
     kiosk.add(sideVent);
 
+    const kioskFence = new THREE.Group();
+    kioskFence.name = "BICAU sidewalk-aligned fence";
+    kioskFence.position.y = -0.07;
     for (let east = -3.05, index = 0; east <= 3.05; east += 0.34, index += 1) {
       if (Math.abs(east) < 0.82) continue;
-      const fencePost = new THREE.Mesh(
-        roundedBox(0.055, 0.42, 0.055, 0.012),
-        index % 2 === 0 ? redMaterial : paleMaterial,
-      );
-      fencePost.position.set(-0.66, 0.23, east);
-      kiosk.add(fencePost);
+      addSidewalkFenceMember(kioskFence, booth.north, booth.east, east, 0.23,
+        0.055, 0.42, 0.055, 0.012, index % 2 === 0 ? redMaterial : paleMaterial);
     }
     [-2.0, 2.0].forEach((side) => {
       [0.14, 0.32].forEach((height, index) => {
-        const fenceRail = new THREE.Mesh(
-          roundedBox(0.045, 0.045, 2.1, 0.01),
-          index === 0 ? paleMaterial : redMaterial,
-        );
-        fenceRail.position.set(-0.65, height, side);
-        kiosk.add(fenceRail);
+        addSidewalkFenceMember(kioskFence, booth.north, booth.east, side, height,
+          0.045, 0.045, 2.1, 0.01, index === 0 ? paleMaterial : redMaterial);
       });
     });
-    [-0.82, 0.82].forEach((eastOffset, index) => {
-      const gatePost = new THREE.Mesh(
-        roundedBox(0.11, 0.58, 0.11, 0.018),
-        index === 0 ? paleMaterial : redMaterial,
-      );
-      gatePost.position.set(-0.65, 0.29, eastOffset);
-      kiosk.add(gatePost);
+    // Place the jambs outside the clear opening, rather than their centres
+    // on its edges, so their thickness does not obstruct the entrance.
+    [-0.876, 0.876].forEach((eastOffset, index) => {
+      addSidewalkFenceMember(kioskFence, booth.north, booth.east, eastOffset, 0.29,
+        0.11, 0.58, 0.11, 0.018, index === 0 ? paleMaterial : redMaterial);
     });
+    kiosk.add(kioskFence);
     kiosk.traverse((child) => {
       if (child.isMesh) child.castShadow = true;
     });

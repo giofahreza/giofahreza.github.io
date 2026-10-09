@@ -10,6 +10,7 @@ export function createInputController({
   const { ANALOG_INPUT_RADIUS, ANALOG_VISUAL_RESPONSE } = constants;
   const { analog, analogStick, brakeButton, canvas, runButton } = elements;
   canvas.tabIndex = -1;
+  const resetHoldButtons = [];
 
   function resetAnalog(event) {
     if (
@@ -19,6 +20,10 @@ export function createInputController({
     ) {
       return;
     }
+
+    // Event-less resets are lifecycle resets (start/retry, focus loss, resize).
+    // Pointer release must not cancel independently held keyboard controls.
+    if (!event) keys.clear();
 
     touchState.analogX = 0;
     touchState.analogY = 0;
@@ -36,6 +41,9 @@ export function createInputController({
     runButton.setAttribute("aria-pressed", "false");
     analogStick.style.setProperty("--analog-x", "0px");
     analogStick.style.setProperty("--analog-y", "0px");
+    // Ending a drag cancels touch holds, not an independently held keyboard
+    // activation. Lifecycle resets still clear every source.
+    resetHoldButtons.forEach((reset) => reset(!event));
   }
 
   function updateAnalog(event) {
@@ -150,6 +158,47 @@ export function createInputController({
     canvas.addEventListener("contextmenu", (event) => event.preventDefault());
   }
 
+  function bindHoldButton(button, setHeld) {
+    const pointerIds = new Set();
+    const activationKeys = new Set();
+    const update = () => setHeld(pointerIds.size > 0 || activationKeys.size > 0);
+    const isActivationKey = (code) => ["Enter", "NumpadEnter", "Space"].includes(code);
+    resetHoldButtons.push((clearKeyboard) => {
+      pointerIds.clear();
+      if (clearKeyboard) activationKeys.clear();
+      update();
+    });
+    button.addEventListener("pointerdown", (event) => {
+      if (event.button !== 0) return;
+      event.preventDefault();
+      event.stopPropagation();
+      button.setPointerCapture(event.pointerId);
+      pointerIds.add(event.pointerId);
+      update();
+    });
+    for (const type of ["pointerup", "pointercancel", "lostpointercapture"]) {
+      button.addEventListener(type, (event) => {
+        pointerIds.delete(event.pointerId);
+        update();
+      });
+    }
+    button.addEventListener("keydown", (event) => {
+      if (!isActivationKey(event.code)) return;
+      event.preventDefault();
+      activationKeys.add(event.code);
+      update();
+    });
+    // Keyup may arrive after focus moved off the button.
+    window.addEventListener("keyup", (event) => {
+      if (!activationKeys.delete(event.code)) return;
+      update();
+    });
+    button.addEventListener("blur", () => {
+      activationKeys.clear();
+      update();
+    });
+  }
+
   function bindRunButton() {
     const setRun = (value) => {
       touchState.run = value;
@@ -158,15 +207,7 @@ export function createInputController({
       if (value) gameState.controlHintTime = 0;
     };
 
-    runButton.addEventListener("pointerdown", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      runButton.setPointerCapture(event.pointerId);
-      setRun(true);
-    });
-    runButton.addEventListener("pointerup", () => setRun(false));
-    runButton.addEventListener("pointercancel", () => setRun(false));
-    runButton.addEventListener("lostpointercapture", () => setRun(false));
+    bindHoldButton(runButton, setRun);
   }
 
   function bindBrakeButton() {
@@ -175,17 +216,17 @@ export function createInputController({
       if (value) gameState.controlHintTime = 0;
     };
 
-    brakeButton.addEventListener("pointerdown", (event) => {
-      event.preventDefault();
-      brakeButton.setPointerCapture(event.pointerId);
-      setBrake(true);
-    });
-    brakeButton.addEventListener("pointerup", () => setBrake(false));
-    brakeButton.addEventListener("pointercancel", () => setBrake(false));
-    brakeButton.addEventListener("lostpointercapture", () => setBrake(false));
+    bindHoldButton(brakeButton, setBrake);
   }
 
   function bindKeyboardControls() {
+    // A key released in another tab/window never sends keyup to this page.
+    // Clear all controls, including captured touch gestures, before resuming.
+    window.addEventListener("blur", () => resetAnalog());
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) resetAnalog();
+    });
+
     window.addEventListener("keydown", (event) => {
       if (
         event.target instanceof Element &&

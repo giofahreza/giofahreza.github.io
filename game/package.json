@@ -10,7 +10,11 @@
     "map:refresh": "node scripts/fetch-situbondo-map.mjs",
     "map:validate": "node scripts/validate-situbondo-map.mjs",
     "postmap:validate": "npm run traffic:validate",
-    "traffic:validate": "node scripts/validate-alun-alun-traffic.mjs"
+    "traffic:validate": "node scripts/validate-alun-alun-traffic.mjs",
+    "buildings:validate": "node scripts/validate-landmark-geometry.mjs",
+    "buildings:clearance": "node scripts/validate-building-clearance.mjs",
+    "buildings:fence-contact": "node scripts/validate-north-fence-contact.mjs",
+    "monument:validate": "node scripts/validate-southeast-monument.mjs"
   },
   "dependencies": {
     "vite": "^7.0.6",

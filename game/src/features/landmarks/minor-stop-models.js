@@ -17,6 +17,16 @@ export function createMinorStopModelFactory({
   },
 }) {
   function addMarketModel(group, primaryMaterial) {
+    // The old delivery anchor was inside the solid market footprint: its
+    // closest reachable point was 1.229 units away, outside the 1.2-unit
+    // delivery radius. Put the handoff on the accessible east frontage
+    // (local +X at this stop's -PI/2 yaw), beyond the model's side wall.
+    // Retain the exact former fallback circle; delivery must not remove walls.
+    group.userData.navigation = {
+      deliveryTarget: { x: 0.72, z: 0, height: 0.04 },
+      obstacles: [{ shape: "circle", x: 0, z: 0, radius: 0.58 * 0.72,
+        label: "market solid footprint" }],
+    };
     const concrete = toonMaterial({ color: 0xc9c8bb });
     const weathered = toonMaterial({ color: 0xa9ada5 });
     const shutter = toonMaterial({ color: 0xb85b4d });
@@ -77,6 +87,14 @@ export function createMinorStopModelFactory({
   }
 
   function addStationModel(group, primaryMaterial) {
+    // The mapped terminal hall surrounds the stop anchor. Hand off at its
+    // east boundary (world 159, -2.2), outside OSM building 9, before the road.
+    // Keep both the mapped hall and the original miniature-model collider.
+    group.userData.navigation = {
+      deliveryTarget: { x: 2.772256655765709, z: 0.5289613739720815, height: 0.04 },
+      obstacles: [{ shape: "circle", x: 0, z: 0, radius: 0.58 * 0.72,
+        label: "terminal solid footprint" }],
+    };
     const cream = toonMaterial({ color: 0xe5d5b8 });
     const roofMaterial = toonMaterial({ color: 0xa95443 });
     const railMaterial = toonMaterial({ color: 0x3f4c4b, metalness: 0.08 });
@@ -193,6 +211,12 @@ export function createMinorStopModelFactory({
   }
 
   function addStadiumModel(group, primaryMaterial) {
+    // Deliver outside the frontage, not at the center of the solid footprint.
+    group.userData.navigation = {
+      deliveryTarget: { x: 0, z: 0.75, height: 0.04 },
+      obstacles: [{ shape: "circle", x: 0, z: 0, radius: 0.72 * 0.72,
+        label: "stadium solid footprint" }],
+    };
     const field = new THREE.Mesh(
       roundedBox(1.18, 0.045, 0.7, 0.16),
       toonMaterial({ color: 0x6f9a63 }),

@@ -39,37 +39,62 @@ export function getMapRadiusUnits(mapData, metersPerWorldUnit) {
   return mapData.radiusMeters / metersPerWorldUnit;
 }
 
-// OSM buildings 0, 3, 4, 10, 11, 12, 13, 15, 169, 2122, 2225, 2226 and 2228
-// are Al-Abror, Bank BRI KC Situbondo, SD Negeri 6 Dawuhan, the
+// OSM buildings 0, 2, 3, 4, 10, 11, 12, 13, 14, 15, 50, 84, 90, 98, 104,
+// 105, 121, 169, 2122, 2225, 2226, 2227, 2228, 2229, 2230, 2231, 2232 and
+// 2233
+// are Al-Abror, Rutan Situbondo, Bank BRI KC Situbondo, SD Negeri 6 Dawuhan, the
 // Lesehan/Pegadaian frontage block, Kantor Pos's west-side compound wing,
-// Kantor Pos, municipal library, the east-side tyre shop, Warung Pojok, Bakti
-// Motor, Pendopo Aryo, SD Islam Al-Abror and the Pendopo gazebo. Their generic
-// extrusions are replaced one-for-one by surveyed art.
+// Kantor Pos, municipal library, Kwarcab Pramuka, the east-side tyre shop,
+// Suzuki–VIAR corner, the six-part low compound directly south of Al-Abror,
+// Warung Pojok, Bakti Motor, Pendopo Aryo, SD Islam Al-Abror, Pendopo's west
+// office, the public gazebo, motorcycle shelter and east office. Their generic
+// extrusions are replaced by surveyed art. Current z21 satellite and the 2023–
+// 2024 road sequence resolve stale Pendopo footprints 2229, 2230 and 2233 as
+// open landscaped lawn/garden, so those three are suppressed without custom art.
 export const REPLACEMENT_BUILDING_INDEX_LIST = [
   0,
+  2,
   3,
   4,
   10,
   11,
   12,
   13,
+  14,
   15,
+  50,
+  84,
+  90,
+  98,
+  104,
+  105,
+  121,
   169,
   2122,
   2225,
   2226,
+  2227,
   2228,
+  2229,
+  2230,
+  2231,
+  2232,
+  2233,
 ];
 
 export const REPLACEMENT_BUILDING_INDEXES = new Set(
   REPLACEMENT_BUILDING_INDEX_LIST,
 );
 
-// BRI and the Lesehan/Pegadaian block keep their exact OSM polygons for
-// collision while their generic visual extrusions are replaced. The other
-// surveyed landmarks use dedicated hand-authored navigation shapes.
+// Rutan, BRI, the Lesehan/Pegadaian block, Kwarcab Pramuka, the Suzuki–VIAR
+// corner and the six-building Al-Abror south compound keep their exact OSM
+// polygons for collision while their generic visual extrusions are replaced.
+// The other surveyed landmarks use dedicated hand-authored navigation shapes.
+// Stale Pendopo 2229, 2230 and 2233 remain in this set so their false generic
+// collisions disappear with their obsolete visual extrusions.
 export const NAVIGATION_REPLACEMENT_BUILDING_INDEXES = new Set(
   REPLACEMENT_BUILDING_INDEX_LIST.filter(
-    (buildingIndex) => buildingIndex !== 3 && buildingIndex !== 10,
+    (buildingIndex) =>
+      ![2, 3, 10, 14, 50, 84, 90, 98, 104, 105, 121].includes(buildingIndex),
   ),
 );

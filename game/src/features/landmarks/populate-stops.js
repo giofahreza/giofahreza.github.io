@@ -32,6 +32,7 @@ export function populateStops({
     addLocalPalm,
     addPendopoPennant,
     addPendopoSimpleColumn,
+    addPendopoTimberColumn,
     addSitubondoSign,
     addStopMotif,
     createArchPanelGeometry,
@@ -105,6 +106,7 @@ export function populateStops({
       addLocalPalm,
       addPendopoPennant,
       addPendopoSimpleColumn,
+      addPendopoTimberColumn,
       getSitubondoSignMaterial,
     },
   });

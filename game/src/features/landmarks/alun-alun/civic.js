@@ -28,7 +28,6 @@ export function createAlunAlunCivicFactory({
 
     const wallMaterial = toonMaterial({ color: 0xd6cabb });
     const paleWallMaterial = toonMaterial({ color: 0xe7e2d8 });
-    const grayWallMaterial = toonMaterial({ color: 0xc9cbc7 });
     const whiteMaterial = toonMaterial({ color: 0xeeeae0 });
     const darkStoneMaterial = toonMaterial({ color: 0x4d5352 });
     const stoneMaterial = toonMaterial({ color: 0x777b77 });
@@ -46,6 +45,12 @@ export function createAlunAlunCivicFactory({
     const glassMaterial = toonMaterial({ color: 0x32484a });
     const frameMaterial = toonMaterial({ color: 0xe4dfd4 });
     const boardMaterial = toonMaterial({ color: 0x302f2a });
+    const fenceWireMaterial = hideMaterialOutline(
+      toonMaterial({ color: 0xe6e4db }),
+    );
+    const boothWireMaterial = hideMaterialOutline(
+      toonMaterial({ color: 0x7f8881 }),
+    );
 
     const addFrontLabel = (
       parent,
@@ -222,43 +227,6 @@ export function createAlunAlunCivicFactory({
     mergeDirectMeshesByMaterial(middleAnnex);
     library.add(middleAnnex);
 
-    const westWing = new THREE.Group();
-    westWing.name = "Library west gable wing";
-    westWing.position.set(-2.58, 0, -2.03);
-    const westFoundation = new THREE.Mesh(
-      roundedBox(3.82, 0.14, 1.42, 0.025),
-      darkStoneMaterial,
-    );
-    westFoundation.position.y = 0.07;
-    westWing.add(westFoundation);
-    const westBody = new THREE.Mesh(
-      roundedBox(3.62, 1.02, 1.28, 0.04),
-      grayWallMaterial,
-    );
-    westBody.position.y = 0.55;
-    westWing.add(westBody);
-    const westRoof = new THREE.Mesh(
-      createGableRoofGeometry(1.55, 3.94, 0.42),
-      grayRoofMaterial,
-    );
-    westRoof.position.y = 1.06;
-    westRoof.rotation.y = Math.PI * 0.5;
-    westWing.add(westRoof);
-    const westFrontFrame = new THREE.Mesh(
-      roundedBox(0.065, 0.7, 0.67, 0.018),
-      frameMaterial,
-    );
-    westFrontFrame.position.set(1.8, 0.45, 0.05);
-    westWing.add(westFrontFrame);
-    const westFrontInset = new THREE.Mesh(
-      roundedBox(0.04, 0.62, 0.58, 0.016),
-      glassMaterial,
-    );
-    westFrontInset.position.set(1.84, 0.45, 0.05);
-    westWing.add(westFrontInset);
-    mergeDirectMeshesByMaterial(westWing);
-    library.add(westWing);
-
     const westFrontOffice = new THREE.Group();
     westFrontOffice.name = "Library west front office";
     westFrontOffice.position.set(-0.78, 0, -1.26);
@@ -369,20 +337,33 @@ export function createAlunAlunCivicFactory({
       signWall,
       "DINAS PERPUSTAKAAN",
       1.23,
-      0.13,
+      0.10,
       0.207,
-      0.36,
+      0.385,
       0,
       "#ded8ca",
       820,
     );
     addFrontLabel(
       signWall,
-      "DAN KEARSIPAN",
-      1.05,
-      0.13,
+      "DAN",
+      0.31,
+      0.085,
       0.209,
-      0.28,
+      0.313,
+      0,
+      "#ded8ca",
+      850,
+    );
+    // The black roadside plaque has three name lines, distinct from the
+    // two freestanding rows above it (pano xmX33FzrGEYDJJKhw59WYA, yaw 195).
+    addFrontLabel(
+      signWall,
+      "KEARSIPAN",
+      0.77,
+      0.10,
+      0.209,
+      0.245,
       0,
       "#ded8ca",
       850,
@@ -391,9 +372,9 @@ export function createAlunAlunCivicFactory({
       signWall,
       "JL. R.A. KARTINI NO. 2A",
       1.08,
-      0.075,
+      0.047,
       0.21,
-      0.2,
+      0.182,
       0,
       "#c7bead",
       720,
@@ -462,6 +443,26 @@ export function createAlunAlunCivicFactory({
     );
     boothDesk.position.y = 0.31;
     guardBooth.add(boothDesk);
+    // Street View shows a narrow metal-bar enclosure beneath the little
+    // coloured shelter, rather than four isolated posts around a desk.
+    [-0.21, 0.21].forEach((eastOffset) => {
+      for (let northOffset = -0.17; northOffset <= 0.18; northOffset += 0.07) {
+        const bar = new THREE.Mesh(
+          new THREE.BoxGeometry(0.012, 0.4, 0.012),
+          boothWireMaterial,
+        );
+        bar.position.set(northOffset, 0.3, eastOffset);
+        guardBooth.add(bar);
+      }
+    });
+    for (let eastOffset = -0.14; eastOffset <= 0.15; eastOffset += 0.07) {
+      const bar = new THREE.Mesh(
+        new THREE.BoxGeometry(0.012, 0.4, 0.012),
+        boothWireMaterial,
+      );
+      bar.position.set(0.23, 0.3, eastOffset);
+      guardBooth.add(bar);
+    }
     mergeDirectMeshesByMaterial(guardBooth);
     library.add(guardBooth);
 
@@ -486,13 +487,13 @@ export function createAlunAlunCivicFactory({
         frontFence.add(rail);
       });
       for (
-        let offset = -width * 0.5 + 0.1;
-        offset <= width * 0.5 - 0.1;
-        offset += 0.16
+        let offset = -width * 0.5 + 0.06;
+        offset <= width * 0.5 - 0.06;
+        offset += 0.065
       ) {
         const picket = new THREE.Mesh(
-          roundedBox(0.03, 0.34, 0.03, 0.007),
-          whiteMaterial,
+          new THREE.BoxGeometry(0.014, 0.34, 0.014),
+          fenceWireMaterial,
         );
         picket.position.set(0.025, 0.29, east + offset);
         frontFence.add(picket);

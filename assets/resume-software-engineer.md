@@ -3,10 +3,10 @@
 Full-Stack Software Engineer - Backend, Cloud, and AI Systems
 
 Phone: +62 831-2212-7772
-Email: giofahreza2000@gmail.com
-Website: https://www.giofahreza.com
-LinkedIn: https://linkedin.com/in/giofahreza
-GitHub: https://github.com/giofahreza
+Email: <giofahreza2000@gmail.com>
+Website: <https://www.giofahreza.com>
+LinkedIn: <https://linkedin.com/in/giofahreza>
+GitHub: <https://github.com/giofahreza>
 
 ## Professional Summary
 
@@ -56,7 +56,7 @@ June 2025 - Present
 ### Golang Instructor
 
 Hacktiv8 (PT. Hacktivate Teknologi Indonesia) - Education Technology
-February 2025 - June 2025
+August 2024 - June 2025
 
 - Planned and delivered live Go training from foundational concepts through hands-on backend development projects.
 - Designed and evaluated exams, coding tests, assignments, and live coding assessments to measure technical progress.
@@ -128,58 +128,58 @@ April 2018 - September 2018
 ## Certifications
 
 - Data to Dollars: Data Monetization for Startup - Google, August 2024
-- Software Engineer Certification - HackerRank, April 2024; Credential ID: 8eb22323ba05; https://www.hackerrank.com/certificates/8eb22323ba05
-- SQL (Advanced) Certification - HackerRank, April 2024; Credential ID: fd6e03b4a211; https://www.hackerrank.com/certificates/fd6e03b4a211
-- REST API (Intermediate) Certification - HackerRank, April 2024; Credential ID: 0a4588515da7; https://www.hackerrank.com/certificates/0a4588515da7
+- Software Engineer Certification - HackerRank, April 2024; Credential ID: 8eb22323ba05; <https://www.hackerrank.com/certificates/8eb22323ba05>
+- SQL (Advanced) Certification - HackerRank, April 2024; Credential ID: fd6e03b4a211; <https://www.hackerrank.com/certificates/fd6e03b4a211>
+- REST API (Intermediate) Certification - HackerRank, April 2024; Credential ID: 0a4588515da7; <https://www.hackerrank.com/certificates/0a4588515da7>
 
 ## Selected IT and Technology Projects
 
 ### IO Gateway - AI Account Routing Platform
 
-GitHub Repository: https://github.com/giofahreza/io-gateway
-Live Website: https://gateway.giofahreza.com/
+GitHub Repository: <https://github.com/giofahreza/io-gateway>
+Live Website: <https://gateway.giofahreza.com/>
 
 - Designed and delivered a centralized Rust platform that consolidates multiple AI providers and accounts behind one API for Codex CLI, Claude Code, and OpenAI-compatible clients.
 - Implemented operational controls for account-aware load balancing, priority routing, quota and failure tracking, failover, scoped access, usage monitoring, and dashboard-based administration.
 
 ### IO Workbench - Local AI Agent Workspace
 
-GitHub Repository: https://github.com/giofahreza/io-workbench
+GitHub Repository: <https://github.com/giofahreza/io-workbench>
 
 - Designed a multi-crate Rust workspace platform with Axum, Tokio, SQLite, REST APIs, and WebSockets to centralize file, shell, process, Git, database, and AI agent operations.
 - Implemented authentication, workspace-boundary controls, supervised process cancellation, persisted sessions, and reconnect replay for Codex, Claude, Cursor, and Gemini workflows.
 
 ### GitVault - Local-First Password Manager
 
-GitHub Repository: https://github.com/giofahreza/gitvault
-Live Website: https://gitvault.giofahreza.com/
+GitHub Repository: <https://github.com/giofahreza/gitvault>
+Live Website: <https://gitvault.giofahreza.com/>
 
 - Developed a cross-platform Flutter and Dart information-security product for encrypted notes, passwords, TOTP codes, and SSH credentials across web, Android, and desktop.
 - Implemented zero-knowledge synchronization using on-device XChaCha20-Poly1305 encryption and user-owned private GitHub repositories that store only ciphertext, supported by biometric and PIN access, device recovery, autofill, and clipboard safeguards.
 
 ### Developer Tools
 
-GitHub Repository: https://github.com/giofahreza/giofahreza.github.io
-Live Application: https://giofahreza.com/tools/
+GitHub Repository: <https://github.com/giofahreza/giofahreza.github.io>
+Live Application: <https://giofahreza.com/tools/>
 
 - Delivered a privacy-preserving suite of 51 browser-based JavaScript utilities for data conversion, encoding, security, code, frontend, and reference workflows, using a static Jekyll and GitHub Pages architecture that keeps input processing on-device.
 
 ### Go Developer Portfolio
 
-GitHub Repository: https://github.com/giofahreza/all-about-go
+GitHub Repository: <https://github.com/giofahreza/all-about-go>
 
 - Built and curated a Go engineering portfolio covering web services, concurrency, microservices, clean architecture, automated testing, and performance optimization.
 
 ### Customer Service AI Assistant
 
-GitHub Repository: https://github.com/giofahreza/cs-ai-indonesia
+GitHub Repository: <https://github.com/giofahreza/cs-ai-indonesia>
 
 - Developed an AI-powered customer service solution for Indonesian businesses using natural language processing, vector databases, embedding models, and Bahasa Indonesia chat interfaces.
 - Designed an edge-deployment model for devices running Armbian.
 
 ### Indonesian Pawnbrokers Association Website
 
-Live Website: https://www.perkumpulan-perusahaan-gadai.com/
+Live Website: <https://www.perkumpulan-perusahaan-gadai.com/>
 
 - Delivered the association website as a centralized information platform for members, stakeholders, and the public.
 - Implemented a searchable member directory, industry and regulatory updates, a resource center, and an accessible user interface.

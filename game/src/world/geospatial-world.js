@@ -53,7 +53,28 @@ export async function loadSitubondoMap() {
   if (!response.ok) {
     throw new Error(`Map data request failed with HTTP ${response.status}`);
   }
-  return response.json();
+  const mapData = await response.json();
+  validateMapMetadata(mapData);
+  return mapData;
+}
+
+// Validate divisors before any geometry or grid construction. In particular,
+// an infinite grid bound cannot advance with cellX += 1 and hangs the page.
+export function validateMapMetadata(mapData) {
+  if (!mapData || typeof mapData !== "object" || Array.isArray(mapData)) {
+    throw new Error("Invalid map data: expected an object");
+  }
+  for (const field of ["coordinatePrecision", "anglePrecision", "radiusMeters"]) {
+    if (!Number.isFinite(mapData[field]) || mapData[field] <= 0) {
+      throw new Error(`Invalid map data: ${field} must be a positive finite number`);
+    }
+  }
+  // The map exporter and survey geometry support decimetre encoding only.
+  // Tiny positive divisors can produce infinite/non-advancing grid bounds
+  // just like zero, even though the divisor itself is finite.
+  if (mapData.coordinatePrecision !== 10) {
+    throw new Error("Invalid map data: coordinatePrecision must be 10 (decimetres)");
+  }
 }
 
 export function geoMetersToLogical(eastMeters, northMeters) {

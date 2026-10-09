@@ -11,7 +11,7 @@
     <title>Situbondo Messenger</title>
   </head>
   <body>
-    <div id="app" class="not-started">
+    <div id="app" class="not-started" data-boot="loading">
       <canvas id="scene" aria-label="Situbondo Messenger game scene"></canvas>
 
       <section class="hud" aria-label="Game status">
@@ -99,7 +99,7 @@
           <span><kbd>Shift</kbd> to run</span>
           <span><kbd>Space</kbd> to stop</span>
         </div>
-        <button id="start" type="button">Mulai Rute</button>
+        <button id="start" type="button" disabled>Memuat peta…</button>
         <small class="map-attribution">Map data © OpenStreetMap contributors · ODbL</small>
       </section>
 
@@ -143,6 +143,11 @@
         </button>
       </div>
     </div>
+    <section id="graphics-notice" class="graphics-notice" hidden role="alert">
+      <strong>Tampilan game terputus</strong>
+      <p>Permainan dijeda sementara grafis dipulihkan. Jika tidak pulih, muat ulang untuk memulai rute baru.</p>
+      <button id="graphics-reload" type="button">Muat ulang</button>
+    </section>
     <script type="module" src="/src/main.js?v=situbondo-v30"></script>
   </body>
 </html>

@@ -17,6 +17,32 @@
   --panel-shadow: 0 10px 30px rgba(31, 61, 57, 0.12), 0 2px 6px rgba(31, 61, 57, 0.1);
 }
 
+.graphics-notice {
+  position: fixed;
+  z-index: 10000;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(90vw, 420px);
+  padding: 24px;
+  border: 1px solid var(--panel-border);
+  border-radius: 16px;
+  background: #fffcef;
+  box-shadow: var(--panel-shadow);
+  text-align: center;
+}
+
+.graphics-notice[hidden] { display: none; }
+.graphics-notice button {
+  padding: 10px 18px;
+  border: 1px solid var(--ink);
+  border-radius: 8px;
+  background: var(--yellow);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -151,7 +177,10 @@ body {
   top: max(16px, env(safe-area-inset-top));
   left: max(18px, env(safe-area-inset-left));
   display: flex;
-  width: 276px;
+  /* Reserve the 230px status panel and a 12px gap above the compact
+     breakpoint too; the full 276px panel otherwise hides the letter count
+     at widths just over 480px. Keep both safe-area insets in the budget. */
+  width: min(276px, calc(100vw - max(18px, env(safe-area-inset-left)) - max(18px, env(safe-area-inset-right)) - 230px - 12px));
   min-height: 58px;
   align-items: center;
   gap: 9px;
@@ -1353,7 +1382,8 @@ kbd {
   }
 
   .message.title-screen h1 {
-    font-size: 50px;
+    /* Keep both unbroken title lines inside the padded 320px layout. */
+    font-size: min(50px, 11vw);
   }
 
   .message.title-screen .start-controls {
@@ -1417,7 +1447,7 @@ kbd {
 
   .message.title-screen h1 {
     margin-bottom: 10px;
-    font-size: 46px;
+    font-size: min(46px, 11vw);
   }
 
   .message.title-screen .start-eyebrow,
@@ -1437,4 +1467,15 @@ kbd {
   .message.title-screen button {
     margin-top: 11px;
   }
+}
+.not-started[data-boot="loading"] .map-proof,
+[data-boot="failed"] .map-proof,
+[data-boot="failed"] .start-controls,
+[data-boot="failed"] .controls {
+  display: none;
+}
+
+#start:disabled {
+  cursor: wait;
+  opacity: 0.65;
 }

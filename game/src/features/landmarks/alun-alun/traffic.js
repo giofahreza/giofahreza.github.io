@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { createSoutheastMonument } from "./southeast-monument.js";
 import {
   mergeDirectMeshesByMaterial,
   roundedBox,
@@ -1665,9 +1666,9 @@ const trueSoutheastFrontageAprons = Object.freeze([
 ]);
 
 // The junction centre is the intersection of the north/south and west/east
-// arm centre lines, using the midpoint of each surveyed throat below. Keep
-// the monument on this geometric crossing rather than on the displaced OSM
-// node or the visual centroid of the irregular asphalt polygon.
+// arm centre lines, using the midpoint of each surveyed throat below. This
+// remains the road-layout reference, not the monument placement: the skewed
+// arms put this crossing too close to the southwest corner return.
 const trueSoutheastJunctionCenter = Object.freeze([
   -15.7095994108,
   20.8645585444,
@@ -1696,7 +1697,11 @@ export const ALUN_ALUN_TRUE_SOUTHEAST_JUNCTION_DEFINITION = Object.freeze({
   roadsideBands: trueSoutheastRoadsideBands,
   frontageAprons: trueSoutheastFrontageAprons,
   monument: Object.freeze({
-    center: trueSoutheastJunctionCenter,
+    // Centre of the open junction core, equidistant from the SW, SE and NE
+    // curb polylines (2.76564 local units). Open throat caps are excluded.
+    // This is a placement correction to the existing game road layout, not
+    // a claim of freshly surveyed real-world coordinates.
+    center: Object.freeze([-16.1197820061, 23.5509327319]),
     yaw: -0.2,
     // Local dimensions compensate for yaw so the projected outer island is
     // approximately 0.80 north by 0.68 east, matching the satellite mosaic.
@@ -1705,7 +1710,7 @@ export const ALUN_ALUN_TRUE_SOUTHEAST_JUNCTION_DEFINITION = Object.freeze({
     collisionWidth: 0.866,
     collisionDepth: 0.734,
     curbBlocks: 16,
-    visualHeight: 0.72,
+    visualHeight: 0.775,
   }),
 });
 
@@ -1877,13 +1882,13 @@ export const ALUN_ALUN_TRAFFIC_ROUTE_DEFINITIONS = Object.freeze({
     [13.2, -20.0],
   ], 3),
   crossNorthbound: defineTrafficRoute([
-    // Open both directions through the broad asphalt east of the central
-    // monument. The slight centreline asymmetry supplements the signed
+    // Pass west of the recentered monument, keeping both directions parallel.
+    // The slight centreline asymmetry supplements the signed
     // left-hand lane offsets so opposing long vehicles remain parallel and
     // clear one another throughout the bend.
-    [-16.0, 22.55],
-    [-15.1, 22.55],
-    [-14.2, 22.05],
+    [-16.0, 21.95],
+    [-15.1, 21.95],
+    [-14.2, 21.45],
     [-13.2, 20.85],
     [-11.6, 19.35],
     [-10.6032, 19.04744],
@@ -1927,9 +1932,9 @@ export const ALUN_ALUN_TRAFFIC_ROUTE_DEFINITIONS = Object.freeze({
     [-10.6032, 19.14744],
     [-11.6, 19.65],
     [-13.2, 21.15],
-    [-14.2, 22.35],
-    [-15.1, 22.85],
-    [-16.0, 22.85],
+    [-14.2, 21.75],
+    [-15.1, 22.25],
+    [-16.0, 22.25],
   ], 2),
 });
 
@@ -2524,83 +2529,17 @@ export function createAlunAlunTrafficFactory({
       "True south-east four-way junction asphalt union";
     const trueSoutheastMonumentDefinition =
       ALUN_ALUN_TRUE_SOUTHEAST_JUNCTION_DEFINITION.monument;
-    const trueSoutheastMonument = new THREE.Group();
-    trueSoutheastMonument.name =
-      "True south-east compact junction monument";
-    trueSoutheastMonument.position.set(
-      trueSoutheastMonumentDefinition.center[0],
-      0,
-      trueSoutheastMonumentDefinition.center[1],
-    );
-    trueSoutheastMonument.rotation.y = trueSoutheastMonumentDefinition.yaw;
-    const trueSoutheastIslandBase = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.5, 0.5, 0.055, 24),
-      southeastMonumentTerracotta,
-    );
-    trueSoutheastIslandBase.position.y = ROAD_SURFACE_Y + 0.04;
-    trueSoutheastIslandBase.scale.set(
-      trueSoutheastMonumentDefinition.islandWidth,
-      1,
-      trueSoutheastMonumentDefinition.islandDepth,
-    );
-    trueSoutheastMonument.add(trueSoutheastIslandBase);
-    for (
-      let index = 0;
-      index < trueSoutheastMonumentDefinition.curbBlocks;
-      index += 1
-    ) {
-      const angle =
-        (index / trueSoutheastMonumentDefinition.curbBlocks) * Math.PI * 2;
-      const curbBlock = new THREE.Mesh(
-        roundedBox(0.12, 0.055, 0.07, 0.009),
-        index % 2 === 0
-          ? southeastMonumentCream
-          : southeastMonumentTerracotta,
-      );
-      curbBlock.position.set(
-        Math.cos(angle) * trueSoutheastMonumentDefinition.islandWidth * 0.52,
-        ROAD_SURFACE_Y + 0.085,
-        Math.sin(angle) * trueSoutheastMonumentDefinition.islandDepth * 0.52,
-      );
-      curbBlock.rotation.y = -angle;
-      trueSoutheastMonument.add(curbBlock);
-    }
-    const trueSoutheastIslandSoil = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.5, 0.5, 0.035, 24),
-      medianSoil,
-    );
-    trueSoutheastIslandSoil.position.y = ROAD_SURFACE_Y + 0.105;
-    trueSoutheastIslandSoil.scale.set(
-      trueSoutheastMonumentDefinition.islandWidth * 0.72,
-      1,
-      trueSoutheastMonumentDefinition.islandDepth * 0.72,
-    );
-    trueSoutheastMonument.add(trueSoutheastIslandSoil);
-    const trueSoutheastPlinth = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.13, 0.16, 0.16, 12),
-      southeastMonumentCream,
-    );
-    trueSoutheastPlinth.position.y = 0.22;
-    trueSoutheastMonument.add(trueSoutheastPlinth);
-    const trueSoutheastColumn = new THREE.Mesh(
-      roundedBox(0.14, 0.36, 0.12, 0.025),
-      southeastMonumentGreen,
-    );
-    trueSoutheastColumn.position.y = 0.46;
-    trueSoutheastMonument.add(trueSoutheastColumn);
-    const trueSoutheastCapital = new THREE.Mesh(
-      roundedBox(0.22, 0.075, 0.18, 0.018),
-      southeastMonumentCream,
-    );
-    trueSoutheastCapital.position.y = 0.665;
-    trueSoutheastMonument.add(trueSoutheastCapital);
-    const trueSoutheastFinial = new THREE.Mesh(
-      new THREE.SphereGeometry(0.055, 10, 7),
-      southeastMonumentGold,
-    );
-    trueSoutheastFinial.position.y =
-      trueSoutheastMonumentDefinition.visualHeight;
-    trueSoutheastMonument.add(trueSoutheastFinial);
+    const trueSoutheastMonument = createSoutheastMonument({
+      definition: trueSoutheastMonumentDefinition,
+      roadSurfaceY: ROAD_SURFACE_Y,
+      materials: {
+        terracotta: southeastMonumentTerracotta,
+        cream: southeastMonumentCream,
+        green: southeastMonumentGreen,
+        gold: southeastMonumentGold,
+        soil: medianSoil,
+      },
+    });
     context.add(trueSoutheastMonument);
     const perimeterAsphaltFill = addRoadSurface(
       ALUN_ALUN_WEST_SOUTH_PARK_ASPHALT_FILL_OUTLINE,
@@ -2989,7 +2928,7 @@ export function createAlunAlunTrafficFactory({
     });
 
     const parkBenchMaterial = toonMaterial({ color: 0x8b7358 });
-    const addParkBench = (north, east, yaw, name) => {
+    const addParkBench = (north, east, yaw, name, blocksPlayer = false) => {
       const bench = new THREE.Group();
       bench.name = name;
       bench.position.set(north, 0.075, east);
@@ -3014,6 +2953,25 @@ export function createAlunAlunTrafficFactory({
         leg.position.set(offset, 0.12, 0);
         bench.add(leg);
       });
+      if (blocksPlayer) {
+        // Derive a tight oriented footprint before rotating the group. South
+        // benches already have separately registered promenade obstacles.
+        bench.rotation.y = 0;
+        bench.updateMatrixWorld(true);
+        const bounds = new THREE.Box3().setFromObject(bench);
+        const center = bounds.getCenter(new THREE.Vector3());
+        const size = bounds.getSize(new THREE.Vector3());
+        const dx = center.x - north;
+        const dz = center.z - east;
+        bench.userData.staticPropObstacles = [{
+          north: north + dx * Math.cos(yaw) + dz * Math.sin(yaw),
+          east: east - dx * Math.sin(yaw) + dz * Math.cos(yaw),
+          width: size.x,
+          depth: size.z,
+          yaw,
+        }];
+        bench.rotation.y = yaw;
+      }
       mergeDirectMeshesByMaterial(bench);
       context.add(bench);
     };
@@ -3029,6 +2987,7 @@ export function createAlunAlunTrafficFactory({
         east,
         westBenchYaw,
         `West park outward-facing bench ${index + 1}`,
+        true,
       ),
     );
     ALUN_ALUN_SOUTH_PARK_BENCH_DEFINITIONS.forEach(

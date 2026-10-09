@@ -1,9 +1,10 @@
 import * as THREE from "three";
 import {
+  createHippedRoofGeometry,
   mergeDirectMeshesByMaterial,
   roundedBox,
 } from "../../rendering/geometry.js";
-import { toonMaterial } from "../../rendering/materials.js";
+import { hideMaterialOutline, toonMaterial } from "../../rendering/materials.js";
 
 export function createMosqueModelFactory({
   collections: {
@@ -12,11 +13,44 @@ export function createMosqueModelFactory({
   helpers: {
     addAlunAlunWalker,
     addLocalPalm,
-    addSitubondoSign,
     createArchPanelGeometry,
     getSitubondoSignMaterial,
   },
 }) {
+  function addClippedMosqueGrille(
+    group,
+    material,
+    { x, y, z, width, height, directions = [-1, 1], spacing = 0.06 },
+  ) {
+    const wireThickness = 0.003;
+    const halfWidth = (width - wireThickness) * 0.5;
+    const halfHeight = (height - wireThickness) * 0.5;
+    const slope = 1.4;
+    const interceptExtent = halfHeight + slope * halfWidth;
+    const strandCount = Math.ceil(interceptExtent / spacing);
+    directions.forEach((direction) => {
+      for (let strand = -strandCount; strand <= strandCount; strand += 1) {
+        const intercept = strand * spacing;
+        const startX = Math.max(-halfWidth, (-halfHeight - intercept) / slope);
+        const endX = Math.min(halfWidth, (halfHeight - intercept) / slope);
+        if (endX <= startX) continue;
+        const startY = direction * (slope * startX + intercept);
+        const endY = direction * (slope * endX + intercept);
+        const wire = new THREE.Mesh(
+          new THREE.BoxGeometry(
+            Math.hypot(endX - startX, endY - startY),
+            wireThickness,
+            0.008,
+          ),
+          material,
+        );
+        wire.position.set(x + (startX + endX) * 0.5, y + (startY + endY) * 0.5, z);
+        wire.rotation.z = Math.atan2(endY - startY, endX - startX);
+        group.add(wire);
+      }
+    });
+  }
+
   function addMosqueMedallion(
     group,
     text,
@@ -223,6 +257,87 @@ export function createMosqueModelFactory({
     return domeRoot;
   }
 
+  // The prayer-hall roof is not a small onion dome. Google satellite imagery
+  // resolves a broad eight-petal crown that fills most of the rear roof, with
+  // a low central cap. Keep it separate from the compact corner-dome helper so
+  // enlarging it does not turn the real shallow silhouette into a tall bulb.
+  function addMosquePetalDome(
+    group,
+    {
+      x,
+      z,
+      baseY,
+      ivoryMaterial,
+      greenMaterial,
+      darkGreenMaterial,
+      goldMaterial,
+    },
+  ) {
+    const domeRoot = new THREE.Group();
+    domeRoot.position.set(x, 0, z);
+
+    const apron = new THREE.Mesh(
+      new THREE.CylinderGeometry(2.38, 2.48, 0.13, 16),
+      darkGreenMaterial,
+    );
+    apron.position.y = baseY - 0.065;
+    domeRoot.add(apron);
+
+    for (let index = 0; index < 8; index += 1) {
+      const angle = (index / 8) * Math.PI * 2;
+      const petal = new THREE.Mesh(
+        new THREE.SphereGeometry(1, 16, 8, 0, Math.PI * 2, 0, Math.PI * 0.5),
+        ivoryMaterial,
+      );
+      petal.position.set(Math.sin(angle) * 0.82, baseY, Math.cos(angle) * 0.82);
+      petal.scale.set(0.68, 0.34, 1.62);
+      petal.rotation.y = angle;
+      domeRoot.add(petal);
+
+      const rib = new THREE.Mesh(
+        new THREE.SphereGeometry(1.012, 12, 7, 0, Math.PI * 2, 0, Math.PI * 0.5),
+        index % 2 === 0 ? greenMaterial : darkGreenMaterial,
+      );
+      rib.position.copy(petal.position);
+      rib.position.y += 0.012;
+      rib.scale.set(0.19, 0.355, 1.48);
+      rib.rotation.y = angle;
+      domeRoot.add(rib);
+    }
+
+    const centerCap = new THREE.Mesh(
+      new THREE.SphereGeometry(1.12, 24, 12, 0, Math.PI * 2, 0, Math.PI * 0.5),
+      darkGreenMaterial,
+    );
+    centerCap.position.y = baseY + 0.23;
+    centerCap.scale.y = 0.62;
+    domeRoot.add(centerCap);
+    const centerCrown = new THREE.Mesh(
+      new THREE.SphereGeometry(0.78, 20, 10, 0, Math.PI * 2, 0, Math.PI * 0.5),
+      ivoryMaterial,
+    );
+    centerCrown.position.y = baseY + 0.47;
+    centerCrown.scale.y = 0.52;
+    domeRoot.add(centerCrown);
+
+    const finial = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.025, 0.038, 0.32, 8),
+      goldMaterial,
+    );
+    finial.position.y = baseY + 1.08;
+    domeRoot.add(finial);
+    const finialBall = new THREE.Mesh(
+      new THREE.SphereGeometry(0.07, 10, 7),
+      goldMaterial,
+    );
+    finialBall.position.y = baseY + 1.27;
+    domeRoot.add(finialBall);
+
+    mergeDirectMeshesByMaterial(domeRoot);
+    group.add(domeRoot);
+    return domeRoot;
+  }
+
   function addMosqueModel(group, primaryMaterial) {
     group.name = "Masjid Agung Al-Abror · Google Maps Street View & 360° survey";
     primaryMaterial.color.setHex(0x4ea879);
@@ -238,8 +353,8 @@ export function createMosqueModelFactory({
     const paverLight = toonMaterial({ color: 0xe2d3c1 });
     const green = toonMaterial({ color: 0x6f9c4d });
     const lime = toonMaterial({ color: 0xaac56b });
-    const redMullion = toonMaterial({ color: 0x713c3a });
     const gold = toonMaterial({ color: 0xc7a34e, emissive: 0x5e4314, emissiveIntensity: 0.12 });
+    const bronzeLattice = hideMaterialOutline(toonMaterial({ color: 0x9f6b2e }));
     const darkOrnament = toonMaterial({ color: 0x25483b });
     const ornamentGreen = toonMaterial({ color: 0x4f7458 });
     const ornamentBrown = toonMaterial({ color: 0x70443b });
@@ -251,15 +366,21 @@ export function createMosqueModelFactory({
       emissive: 0x173e3a,
       emissiveIntensity: 0.28,
     });
+    const upperGlass = toonMaterial({
+      color: 0x637573,
+      emissive: 0x243f3d,
+      emissiveIntensity: 0.18,
+    });
     const domeIvory = toonMaterial({ color: 0xe8e4d4 });
-    const minaretLime = toonMaterial({ color: 0xa9c77a });
-    const minaretGreen = toonMaterial({ color: 0x57954d });
+    const minaretLime = toonMaterial({ color: 0xb9d678 });
+    const minaretGreen = toonMaterial({ color: 0x459c49 });
     const minaretBand = toonMaterial({ color: 0xd8dfbc });
-    const annexAqua = toonMaterial({ color: 0x77b4a6 });
-    const fenceGreen = toonMaterial({ color: 0x327e4b });
+    const annexAqua = toonMaterial({ color: 0x69bdb4 });
+    const fenceGreen = hideMaterialOutline(toonMaterial({ color: 0x327e4b }));
     const pillarStone = toonMaterial({ color: 0x626761 });
     const black = toonMaterial({ color: 0x202827 });
-    const nameWall = toonMaterial({ color: 0x4a403c });
+    const nameWall = toonMaterial({ color: 0x302f2d });
+    const canopyMetal = toonMaterial({ color: 0x352b25 });
     const metal = toonMaterial({ color: 0x666d69 });
     const fenceAccent = toonMaterial({ color: 0x424b49 });
     const greenGlow = toonMaterial({
@@ -315,23 +436,38 @@ export function createMosqueModelFactory({
     );
     architecture.add(approach);
 
-    const baseCourse = new THREE.Mesh(roundedBox(6.84, 0.24, 7.84, 0.055), stone);
+    // The frontage follows KH Wahid Hasyim, while the mapped prayer-hall
+    // footprint is skewed 23.9 degrees behind it. Capture only the hall and
+    // rotate it later; the name wall, fence, annex, and minaret stay aligned to
+    // the surveyed street edge.
+    const hallStartIndex = architecture.children.length;
+    const hallToFrontageYaw = -0.4174;
+    const hallDepth = 8.24;
+    const sideDoorXs = [-2.05, -1.42, 1.42, 2.05];
+    const hallBox = (x, z, width, depth, label) => ({
+      shape: "box",
+      x: Math.cos(hallToFrontageYaw) * x + Math.sin(hallToFrontageYaw) * z,
+      z: -Math.sin(hallToFrontageYaw) * x + Math.cos(hallToFrontageYaw) * z,
+      width, depth, yaw: hallToFrontageYaw, label,
+    });
+
+    const baseCourse = new THREE.Mesh(roundedBox(6.84, 0.24, 8.38, 0.055), stone);
     baseCourse.position.set(0, 0.22, -0.14);
     architecture.add(baseCourse);
     // The public east elevation is a full two-storey frontage.  The former
     // low hall made every bay outside the centre tower read as one storey.
-    const body = new THREE.Mesh(roundedBox(6.72, 2.16, 7.72, 0.06), cream);
+    const body = new THREE.Mesh(roundedBox(6.72, 2.16, hallDepth, 0.06), cream);
     body.position.set(0, 1.2, -0.14);
     architecture.add(body);
-    const roofSlab = new THREE.Mesh(roundedBox(6.88, 0.12, 7.88, 0.035), pale);
+    const roofSlab = new THREE.Mesh(roundedBox(6.88, 0.12, 8.4, 0.035), pale);
     roofSlab.position.set(0, 2.33, -0.14);
     architecture.add(roofSlab);
 
     [
-      [0, 2.49, 3.78, 6.84, 0.26, 0.16],
-      [0, 2.49, -4.06, 6.84, 0.26, 0.16],
-      [-3.36, 2.49, -0.14, 0.16, 0.26, 7.7],
-      [3.36, 2.49, -0.14, 0.16, 0.26, 7.7],
+      [0, 2.49, 3.98, 6.84, 0.26, 0.16],
+      [0, 2.49, -4.26, 6.84, 0.26, 0.16],
+      [-3.36, 2.49, -0.14, 0.16, 0.26, 8.22],
+      [3.36, 2.49, -0.14, 0.16, 0.26, 8.22],
     ].forEach(([x, y, z, width, height, depth]) => {
       const parapet = new THREE.Mesh(roundedBox(width, height, depth, 0.025), pale);
       parapet.position.set(x, y, z);
@@ -358,10 +494,12 @@ export function createMosqueModelFactory({
       calligraphyPanel.position.set(x, 2.38, 4.105);
       architecture.add(calligraphyPanel);
       const calligraphy = new THREE.Mesh(
-        new THREE.PlaneGeometry(0.64, 0.14),
-        getSitubondoSignMaterial("الله", "#d8c36f", 900, {
+        new THREE.PlaneGeometry(0.82, 0.15),
+        getSitubondoSignMaterial("لا إله إلا الله", "#e5d5a3", 800, {
           strokeColor: "rgba(53,45,35,.5)",
-          strokeScale: 0.012,
+          strokeScale: 0.008,
+          canvasWidth: 2048,
+          maxFontSize: 260,
         }),
       );
       calligraphy.position.set(x, 2.38, 4.14);
@@ -434,7 +572,7 @@ export function createMosqueModelFactory({
     architecture.add(centerPanel);
     const centerCalligraphy = new THREE.Mesh(
       new THREE.PlaneGeometry(0.62, 0.16),
-      getSitubondoSignMaterial("محمد", "#e0ca76", 900, {
+        getSitubondoSignMaterial("الله", "#e6d6a2", 900, {
         strokeColor: "rgba(55,47,35,.55)",
         strokeScale: 0.01,
       }),
@@ -455,66 +593,151 @@ export function createMosqueModelFactory({
       architecture.add(lintelTile);
     }
 
-    const outerArch = new THREE.Mesh(createArchPanelGeometry(1.28, 2.32), mosaicAqua);
+    const outerArch = new THREE.Mesh(createArchPanelGeometry(1.34, 2.36), mosaicAqua);
     outerArch.position.set(0, 0.43, 4.19);
     architecture.add(outerArch);
-    const ornamentArch = new THREE.Mesh(createArchPanelGeometry(1.17, 2.18), trimOchre);
-    ornamentArch.position.set(0, 0.5, 4.205);
-    architecture.add(ornamentArch);
+    const spandrelArch = new THREE.Mesh(
+      createArchPanelGeometry(1.23, 2.25),
+      ornamentBrown,
+    );
+    spandrelArch.position.set(0, 0.49, 4.205);
+    architecture.add(spandrelArch);
+    const mintArch = new THREE.Mesh(createArchPanelGeometry(1.09, 2.1), lime);
+    mintArch.position.set(0, 0.56, 4.22);
+    architecture.add(mintArch);
     const innerArch = new THREE.Mesh(createArchPanelGeometry(0.96, 1.98), pale);
-    innerArch.position.set(0, 0.61, 4.22);
+    innerArch.position.set(0, 0.63, 4.235);
     architecture.add(innerArch);
-    const archGlass = new THREE.Mesh(createArchPanelGeometry(0.79, 1.83), darkGlass);
-    archGlass.position.set(0, 0.68, 4.235);
+    const archGlass = new THREE.Mesh(createArchPanelGeometry(0.84, 1.86), upperGlass);
+    archGlass.position.set(0, 0.69, 4.25);
     architecture.add(archGlass);
-    [-0.19, 0, 0.19].forEach((x) => {
+    [-0.22, 0.22].forEach((x) => {
       const archMullion = new THREE.Mesh(
-        roundedBox(0.032, 1.68, 0.025, 0.008),
-        redMullion,
+        roundedBox(0.032, 1.52, 0.025, 0.008),
+        pale,
       );
-      archMullion.position.set(x, 1.52, 4.253);
+      archMullion.position.set(x, 1.47, 4.268);
       architecture.add(archMullion);
     });
-    [
-      [1.05, 0.61],
-      [1.38, 0.63],
-      [1.71, 0.55],
-    ].forEach(([y, width]) => {
-      const archCross = new THREE.Mesh(
-        roundedBox(width, 0.035, 0.025, 0.008),
-        redMullion,
-      );
-      archCross.position.set(0, y, 4.254);
-      architecture.add(archCross);
+    const archCross = new THREE.Mesh(
+      roundedBox(0.72, 0.035, 0.025, 0.008),
+      pale,
+    );
+    archCross.position.set(0, 1.78, 4.269);
+    architecture.add(archCross);
+    const archLatticeBacking = new THREE.Mesh(
+      roundedBox(0.16, 0.85, 0.024, 0.006),
+      ornamentBrown,
+    );
+    archLatticeBacking.position.set(0, 1.26, 4.282);
+    architecture.add(archLatticeBacking);
+    // The amber inserts carry fine diamond mesh in the 270°/245° panoramas,
+    // not a sparse rectangular ladder. Keep the strands inside each insert.
+    addClippedMosqueGrille(architecture, bronzeLattice, {
+      x: 0,
+      y: 1.26,
+      z: 4.299,
+      width: 0.14,
+      height: 0.78,
+      spacing: 0.026,
     });
     const centralDoor = new THREE.Mesh(roundedBox(0.7, 0.64, 0.06, 0.018), black);
     centralDoor.position.set(0, 0.49, 4.27);
     architecture.add(centralDoor);
+    const centralDoorObstacles = [
+      hallBox(0, 4.27, 0.7, 0.06, "closed central door backing"),
+    ];
+    // Below the broad arch, the 245°/270° Google 360 views show a bank of
+    // slender glazed entrance leaves with brass heads and stiles, not an
+    // uninterrupted black opening. Keep these inside the existing reveal.
+    const entranceLeafWidth = 0.124;
+    for (let leaf = 0; leaf < 5; leaf += 1) {
+      const leafX = (leaf - 2) * entranceLeafWidth;
+      const doorGlass = new THREE.Mesh(
+        roundedBox(entranceLeafWidth - 0.021, 0.51, 0.012, 0.004),
+        darkGlass,
+      );
+      doorGlass.position.set(leafX, 0.475, 4.307);
+      architecture.add(doorGlass);
+      centralDoorObstacles.push(hallBox(
+        leafX, 4.307, entranceLeafWidth - 0.021, 0.012, "closed central door glass",
+      ));
+      const doorHead = new THREE.Mesh(
+        roundedBox(entranceLeafWidth - 0.014, 0.022, 0.014, 0.004),
+        trimOchre,
+      );
+      doorHead.position.set(leafX, 0.742, 4.312);
+      architecture.add(doorHead);
+    }
+    for (let stileIndex = 0; stileIndex <= 5; stileIndex += 1) {
+      const doorStile = new THREE.Mesh(
+        roundedBox(0.012, 0.54, 0.014, 0.004),
+        trimOchre,
+      );
+      doorStile.position.set(
+        (stileIndex - 2.5) * entranceLeafWidth,
+        0.48,
+        4.315,
+      );
+      architecture.add(doorStile);
+      centralDoorObstacles.push(hallBox(
+        (stileIndex - 2.5) * entranceLeafWidth, 4.315, 0.012, 0.014,
+        "closed central door stile",
+      ));
+    }
     const archRoundel = new THREE.Mesh(
-      new THREE.TorusGeometry(0.16, 0.023, 8, 28),
-      trimOchre,
+      new THREE.TorusGeometry(0.14, 0.022, 8, 28),
+      pale,
     );
-    archRoundel.position.set(0, 1.94, 4.27);
+    archRoundel.position.set(0, 1.91, 4.285);
     architecture.add(archRoundel);
 
-    [-1.82, -1.1, 1.1, 1.82].forEach((x) => {
-      const frame = new THREE.Mesh(createArchPanelGeometry(0.66, 1.42), lime);
-      frame.position.set(x, 0.88, 4.1);
+    sideDoorXs.forEach((x) => {
+      const frame = new THREE.Mesh(
+        roundedBox(0.64, 1.3, 0.055, 0.018),
+        darkOrnament,
+      );
+      frame.position.set(x, 1.5, 4.1);
       architecture.add(frame);
-      const paleFrame = new THREE.Mesh(createArchPanelGeometry(0.57, 1.33), pale);
-      paleFrame.position.set(x, 0.925, 4.125);
+      const paleFrame = new THREE.Mesh(
+        roundedBox(0.54, 1.18, 0.045, 0.014),
+        pale,
+      );
+      paleFrame.position.set(x, 1.5, 4.13);
       architecture.add(paleFrame);
-      const window = new THREE.Mesh(createArchPanelGeometry(0.46, 1.21), darkGlass);
-      window.position.set(x, 0.985, 4.15);
+      const window = new THREE.Mesh(
+        roundedBox(0.44, 1.08, 0.034, 0.011),
+        upperGlass,
+      );
+      window.position.set(x, 1.5, 4.155);
       architecture.add(window);
-      const windowLine = new THREE.Mesh(roundedBox(0.03, 1.05, 0.018, 0.006), redMullion);
-      windowLine.position.set(x, 1.515, 4.168);
-      architecture.add(windowLine);
+      [-0.135, 0.135].forEach((offset) => {
+        const windowLine = new THREE.Mesh(
+          roundedBox(0.026, 1.0, 0.018, 0.006),
+          pale,
+        );
+        windowLine.position.set(x + offset, 1.5, 4.174);
+        architecture.add(windowLine);
+      });
+      const latticeBacking = new THREE.Mesh(
+        roundedBox(0.14, 0.65, 0.02, 0.005),
+        ornamentBrown,
+      );
+      latticeBacking.position.set(x, 1.31, 4.177);
+      architecture.add(latticeBacking);
+      addClippedMosqueGrille(architecture, bronzeLattice, {
+        x,
+        y: 1.31,
+        z: 4.19,
+        width: 0.12,
+        height: 0.63,
+        spacing: 0.026,
+      });
       const windowRoundel = new THREE.Mesh(
         new THREE.TorusGeometry(0.105, 0.018, 7, 24),
         pale,
       );
-      windowRoundel.position.set(x, 1.965, 4.175);
+      windowRoundel.position.set(x, 1.67, 4.188);
       architecture.add(windowRoundel);
       const doorTrim = new THREE.Mesh(roundedBox(0.58, 0.72, 0.05, 0.018), lime);
       doorTrim.position.set(x, 0.43, 4.13);
@@ -523,25 +746,34 @@ export function createMosqueModelFactory({
       door.position.set(x, 0.405, 4.17);
       architecture.add(door);
       for (let tileIndex = 0; tileIndex < 3; tileIndex += 1) {
-        const tile = new THREE.Mesh(roundedBox(0.12, 0.12, 0.025, 0.008), gold);
-        tile.position.set(x - 0.16 + tileIndex * 0.16, 0.8, 4.185);
+        const tile = new THREE.Mesh(
+          roundedBox(0.12, 0.12, 0.025, 0.008),
+          tileIndex === 1 ? ornamentGreen : trimOchre,
+        );
+        tile.position.set(x - 0.16 + tileIndex * 0.16, 0.88, 4.185);
+        if (tileIndex !== 1) tile.rotation.z = Math.PI * 0.25;
         architecture.add(tile);
       }
-      addMosqueMedallion(architecture, "محمد", x, 1.62, 4.18, 0.072, darkOrnament);
     });
 
     // Slender outer lancets bookend the paired lime-framed windows in the real
     // east facade. Keeping them separate also restores the wide peach wall fields.
-    [-2.75, 2.75].forEach((x) => {
+    [-2.75, -0.92, 0.92, 2.75].forEach((x) => {
       const slitFrame = new THREE.Mesh(
         roundedBox(0.25, 1.64, 0.06, 0.018),
         sandstone,
       );
       slitFrame.position.set(x, 1.43, 4.1);
       architecture.add(slitFrame);
+      const slitReveal = new THREE.Mesh(
+        roundedBox(0.145, 1.47, 0.032, 0.008),
+        pale,
+      );
+      slitReveal.position.set(x, 1.43, 4.128);
+      architecture.add(slitReveal);
       const slit = new THREE.Mesh(
         roundedBox(0.105, 1.43, 0.042, 0.012),
-        darkGlass,
+        upperGlass,
       );
       slit.position.set(x, 1.43, 4.14);
       architecture.add(slit);
@@ -556,69 +788,117 @@ export function createMosqueModelFactory({
       architecture.add(trim);
     });
 
-    [-1.55, 1.55].forEach((x) => {
-      const frieze = new THREE.Mesh(roundedBox(1.36, 0.3, 0.08, 0.025), ornamentGreen);
-      frieze.position.set(x, 2.36, 4.1);
-      architecture.add(frieze);
-      [2.205, 2.515].forEach((y) => {
-        const friezeTrim = new THREE.Mesh(
-          roundedBox(1.44, 0.045, 0.035, 0.012),
-          trimOchre,
-        );
-        friezeTrim.position.set(x, y, 4.145);
-        architecture.add(friezeTrim);
-      });
-      for (let panelIndex = -2; panelIndex <= 2; panelIndex += 1) {
-        const panel = new THREE.Mesh(
-          roundedBox(0.18, 0.17, 0.025, 0.008),
-          panelIndex % 2 === 0 ? ornamentBrown : darkOrnament,
-        );
-        panel.position.set(x + panelIndex * 0.245, 2.36, 4.155);
-        architecture.add(panel);
-      }
-    });
-    [-1.55, 1.55].forEach((x, index) => {
+    [-1, 1].forEach((side, index) => {
+      const panelX = side * 1.04;
+      const arabesqueFrame = new THREE.Mesh(
+        roundedBox(0.84, 0.31, 0.08, 0.022),
+        trimOchre,
+      );
+      arabesqueFrame.position.set(panelX, 2.36, 4.1);
+      architecture.add(arabesqueFrame);
+      const arabesquePanel = new THREE.Mesh(
+        roundedBox(0.76, 0.23, 0.055, 0.018),
+        ornamentBrown,
+      );
+      arabesquePanel.position.set(panelX, 2.36, 4.145);
+      architecture.add(arabesquePanel);
       addMosqueMedallion(
         architecture,
         index % 2 === 0 ? "الله" : "محمد",
-        x,
+        panelX,
         2.36,
-        4.16,
-        0.145,
+        4.185,
+        0.11,
         darkOrnament,
-        "#d8c36f",
+        "#e7d9b0",
       );
-      [-0.54, 0.54].forEach((offset) => {
-        const ornament = new THREE.Mesh(new THREE.PlaneGeometry(0.14, 0.14), trimOchre);
-        ornament.position.set(x + offset, 2.36, 4.185);
+      [-0.25, 0.25].forEach((offset) => {
+        const ornament = new THREE.Mesh(
+          new THREE.PlaneGeometry(0.11, 0.11),
+          pale,
+        );
+        ornament.position.set(panelX + offset, 2.36, 4.19);
         ornament.rotation.z = Math.PI * 0.25;
         architecture.add(ornament);
       });
+
+      const floralBandX = side * 1.87;
+      const floralBand = new THREE.Mesh(
+        roundedBox(0.8, 0.27, 0.07, 0.02),
+        darkOrnament,
+      );
+      floralBand.position.set(floralBandX, 2.35, 4.105);
+      architecture.add(floralBand);
+      for (let panelIndex = -2; panelIndex <= 2; panelIndex += 1) {
+        const floralTile = new THREE.Mesh(
+          roundedBox(0.1, 0.16, 0.025, 0.006),
+          panelIndex % 2 === 0 ? trimOchre : pale,
+        );
+        floralTile.position.set(
+          floralBandX + panelIndex * 0.145,
+          2.35,
+          4.153,
+        );
+        architecture.add(floralTile);
+      }
     });
 
-    const canopy = new THREE.Mesh(roundedBox(5.9, 0.055, 0.45, 0.015), ornamentBrown);
-    canopy.position.set(0, 0.88, 4.3);
+    // The hall is skewed behind the road-aligned property boundary. Taper its
+    // shallow canopy at that boundary rather than moving the surveyed hall or
+    // allowing its northern corner to project over the public pedestrian tread.
+    const canopyPropertyLimit = frontagePropertyEdgeZ - 0.012;
+    const canopyLocalFrontLimit = (x) =>
+      (canopyPropertyLimit + Math.sin(hallToFrontageYaw) * x) /
+      Math.cos(hallToFrontageYaw);
+    const clipCanopyToProperty = (mesh) => {
+      const position = mesh.geometry.getAttribute("position");
+      for (let index = 0; index < position.count; index += 1) {
+        const x = position.getX(index) + mesh.position.x;
+        position.setZ(index, Math.min(
+          position.getZ(index),
+          canopyLocalFrontLimit(x) - mesh.position.z,
+        ));
+      }
+      position.needsUpdate = true;
+      mesh.geometry.computeVertexNormals();
+    };
+    const canopy = new THREE.Mesh(
+      roundedBox(6.74, 0.055, 0.5, 0.012),
+      canopyMetal,
+    );
+    canopy.position.set(0, 0.84, 4.3);
+    clipCanopyToProperty(canopy);
     architecture.add(canopy);
-    const canopyFascia = new THREE.Mesh(roundedBox(5.96, 0.02, 0.47, 0.008), gold);
-    canopyFascia.position.set(0, 0.902, 4.3);
-    architecture.add(canopyFascia);
-    [-2.62, -1.82, -1.1, 0, 1.1, 1.82, 2.62].forEach((x) => {
-      const post = new THREE.Mesh(
-        roundedBox(0.075, 0.76, 0.075, 0.012),
-        ornamentBrown,
+    for (let index = 0; index < 21; index += 1) {
+      const corrugation = new THREE.Mesh(
+        roundedBox(0.016, 0.018, 0.48, 0.004),
+        darkOrnament,
       );
-      post.position.set(x, 0.46, 4.44);
+      corrugation.position.set(-3.18 + index * 0.318, 0.875, 4.3);
+      clipCanopyToProperty(corrugation);
+      architecture.add(corrugation);
+    }
+    const canopyPostObstacles = [];
+    Array.from({ length: 13 }, (_, index) => -3.12 + index * 0.52).forEach((x) => {
+      // Include the cap's half-width/depth in the clearance calculation.
+      const postZ = Math.min(4.46, canopyLocalFrontLimit(x + 0.0325) - 0.0325);
+      const post = new THREE.Mesh(
+        roundedBox(0.045, 0.74, 0.045, 0.009),
+        canopyMetal,
+      );
+      post.position.set(x, 0.45, postZ);
       architecture.add(post);
+      canopyPostObstacles.push(hallBox(x, postZ, 0.045, 0.045, "canopy post"));
       const postCap = new THREE.Mesh(
-        roundedBox(0.11, 0.055, 0.11, 0.01),
+        roundedBox(0.065, 0.035, 0.065, 0.008),
         trimOchre,
       );
-      postCap.position.set(x, 0.835, 4.44);
+      postCap.position.set(x, 0.81, postZ);
       architecture.add(postCap);
     });
     for (let index = 0; index < 7; index += 1) {
       const light = new THREE.Mesh(new THREE.SphereGeometry(0.035, 8, 6), warmGlow);
-      light.position.set(-2.55 + index * 0.85, 0.85, 4.5);
+      light.position.set(-2.55 + index * 0.85, 0.82, 4.5);
       architecture.add(light);
     }
 
@@ -634,27 +914,21 @@ export function createMosqueModelFactory({
     }
     [-2.4, -1.2, 0, 1.2, 2.4].forEach((x) => {
       const frame = new THREE.Mesh(roundedBox(0.58, 0.8, 0.055, 0.022), green);
-      frame.position.set(x, 0.97, -4.04);
+      frame.position.set(x, 0.97, -4.3);
       architecture.add(frame);
       const window = new THREE.Mesh(roundedBox(0.4, 0.64, 0.035, 0.016), darkGlass);
-      window.position.set(x, 0.98, -4.085);
+      window.position.set(x, 0.98, -4.345);
       architecture.add(window);
     });
 
-    addMosqueDome(architecture, {
-      x: 0,
-      z: -1.34,
-      baseY: 2.29,
-      radius: 0.72,
-      domeMaterial: domeIvory,
-      paleMaterial: pale,
-      accentMaterial: green,
+    addMosquePetalDome(architecture, {
+      x: -0.88,
+      z: -1.58,
+      baseY: 2.38,
+      ivoryMaterial: domeIvory,
+      greenMaterial: green,
+      darkGreenMaterial: darkOrnament,
       goldMaterial: gold,
-      scaleY: 1.42,
-      patternMaterial: green,
-      secondaryPatternMaterial: pale,
-      patternScale: 1.0,
-      faceted: true,
     });
     [-2.62, 2.62].forEach((x) => {
       addMosqueDome(architecture, {
@@ -713,233 +987,398 @@ export function createMosqueModelFactory({
       architecture.add(label);
     });
 
-    // Single-storey west annex/guard building visible in every public east
+    const hallRoot = new THREE.Group();
+    hallRoot.name = "Al-Abror prayer hall · OSM footprint bearing";
+    architecture.children
+      .slice(hallStartIndex)
+      .forEach((child) => hallRoot.add(child));
+    hallRoot.rotation.y = hallToFrontageYaw;
+    mergeDirectMeshesByMaterial(hallRoot);
+    architecture.add(hallRoot);
+
+    // Single-storey south-side guard booth visible in every public east
     // panorama, immediately inside the compound beside the name wall.
     const annexFoundation = new THREE.Mesh(
-      roundedBox(1.95, 0.13, 1.28, 0.035),
+      roundedBox(2.04, 0.13, 1.36, 0.035),
       stone,
     );
     annexFoundation.position.set(-4.02, 0.065, 3.48);
     architecture.add(annexFoundation);
     const annexBody = new THREE.Mesh(
-      roundedBox(1.78, 0.72, 1.12, 0.04),
+      roundedBox(1.86, 0.74, 1.16, 0.04),
       pale,
     );
-    annexBody.position.set(-4.02, 0.49, 3.48);
+    annexBody.position.set(-4.02, 0.5, 3.48);
     architecture.add(annexBody);
     const annexRoof = new THREE.Mesh(
-      roundedBox(1.98, 0.11, 1.32, 0.035),
-      annexAqua,
+      createHippedRoofGeometry(2.12, 1.44, 0.24),
+      // Keep the non-UV hipped roof out of the rounded-fascia merge bucket.
+      annexAqua.clone(),
     );
-    annexRoof.position.set(-4.02, 0.9, 3.48);
+    annexRoof.position.set(-4.02, 0.87, 3.48);
     architecture.add(annexRoof);
     const annexFascia = new THREE.Mesh(
-      roundedBox(2.02, 0.14, 0.08, 0.015),
+      roundedBox(2.14, 0.08, 0.07, 0.012),
       annexAqua,
     );
-    annexFascia.position.set(-4.02, 0.84, 4.08);
+    annexFascia.position.set(-4.02, 0.87, 4.19);
     architecture.add(annexFascia);
-    [-4.46, -3.88].forEach((x, index) => {
-      const annexOpening = new THREE.Mesh(
-        roundedBox(index === 0 ? 0.38 : 0.48, 0.5, 0.045, 0.014),
-        darkGlass,
+    const annexGlazing = new THREE.Mesh(
+      roundedBox(1.66, 0.5, 0.045, 0.012),
+      darkOrnament,
+    );
+    annexGlazing.position.set(-4.02, 0.38, 4.075);
+    architecture.add(annexGlazing);
+    [-4.54, -4.02, -3.5].forEach((x, index) => {
+      const annexPane = new THREE.Mesh(
+        roundedBox(0.44, 0.42, 0.025, 0.008),
+        index === 1 ? upperGlass : darkGlass,
       );
-      annexOpening.position.set(x, 0.43, 4.065);
-      architecture.add(annexOpening);
-      const annexLintel = new THREE.Mesh(
-        roundedBox(index === 0 ? 0.46 : 0.56, 0.045, 0.055, 0.01),
+      annexPane.position.set(x, 0.38, 4.105);
+      architecture.add(annexPane);
+      const annexMullion = new THREE.Mesh(
+        roundedBox(0.035, 0.48, 0.025, 0.006),
+        metal,
+      );
+      annexMullion.position.set(x - 0.25, 0.38, 4.116);
+      architecture.add(annexMullion);
+    });
+    [-4.48, -3.56].forEach((x) => {
+      const vent = new THREE.Mesh(
+        roundedBox(0.42, 0.09, 0.03, 0.006),
         ornamentBrown,
       );
-      annexLintel.position.set(x, 0.72, 4.07);
-      architecture.add(annexLintel);
+      vent.position.set(x, 0.73, 4.095);
+      architecture.add(vent);
+      for (let index = -2; index <= 2; index += 1) {
+        const ventSlot = new THREE.Mesh(
+          roundedBox(0.045, 0.035, 0.012, 0.003),
+          black,
+        );
+        ventSlot.position.set(x + index * 0.07, 0.73, 4.116);
+        architecture.add(ventSlot);
+      }
     });
+    const annexPlaque = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.34, 0.085),
+      getSitubondoSignMaterial("POS JAGA", "#365842", 800, {
+        strokeScale: 0,
+        canvasWidth: 1536,
+        maxFontSize: 230,
+      }),
+    );
+    annexPlaque.position.set(-4.02, 0.73, 4.122);
+    annexPlaque.renderOrder = 7;
+    architecture.add(annexPlaque);
 
     const minaret = new THREE.Group();
     minaret.position.set(3.72, 0, 2.34);
-    const minaretBase = new THREE.Mesh(roundedBox(1.16, 0.18, 1.08, 0.04), stone);
+    const minaretBase = new THREE.Mesh(roundedBox(1.02, 0.18, 0.96, 0.04), stone);
     minaretBase.position.y = 0.09;
     minaret.add(minaretBase);
     const minaretShaft = new THREE.Mesh(
-      roundedBox(1.08, 5.15, 1.0, 0.045),
+      roundedBox(0.82, 5.02, 0.78, 0.035),
       minaretLime,
     );
-    minaretShaft.position.y = 2.755;
+    minaretShaft.position.y = 2.69;
     minaret.add(minaretShaft);
-    [-0.48, 0.48].forEach((offset) => {
-      [-0.44, 0.44].forEach((depth) => {
+    [-0.37, 0.37].forEach((offset) => {
+      [-0.35, 0.35].forEach((depth) => {
         const corner = new THREE.Mesh(
-          roundedBox(0.12, 5.05, 0.12, 0.018),
+          roundedBox(0.085, 4.94, 0.085, 0.016),
           minaretGreen,
         );
-        corner.position.set(offset, 2.73, depth);
+        corner.position.set(offset, 2.68, depth);
         minaret.add(corner);
       });
     });
-    [1.2, 2.35, 3.5, 4.65].forEach((y) => {
-      const band = new THREE.Mesh(
-        roundedBox(1.14, 0.1, 1.06, 0.022),
-        minaretBand,
-      );
-      band.position.y = y;
-      minaret.add(band);
-    });
-    [1.15, 2.3, 3.45, 4.6].forEach((y) => {
+    [1.18, 2.43, 3.68].forEach((y) => {
       [-1, 1].forEach((side) => {
         const frontWindowFrame = new THREE.Mesh(
-          roundedBox(0.32, 0.82, 0.035, 0.014),
+          roundedBox(0.27, 0.78, 0.035, 0.012),
           minaretGreen,
         );
-        frontWindowFrame.position.set(0, y, side * 0.51);
+        frontWindowFrame.position.set(0, y, side * 0.395);
         minaret.add(frontWindowFrame);
         const frontWindow = new THREE.Mesh(
-          roundedBox(0.22, 0.7, 0.035, 0.014),
-          darkGlass,
+          roundedBox(0.17, 0.68, 0.025, 0.01),
+          upperGlass,
         );
-        frontWindow.position.set(0, y, side * 0.535);
+        frontWindow.position.set(0, y, side * 0.42);
         minaret.add(frontWindow);
         const sideWindowFrame = new THREE.Mesh(
-          roundedBox(0.035, 0.82, 0.32, 0.014),
+          roundedBox(0.035, 0.78, 0.27, 0.012),
           minaretGreen,
         );
-        sideWindowFrame.position.set(side * 0.55, y, 0);
+        sideWindowFrame.position.set(side * 0.415, y, 0);
         minaret.add(sideWindowFrame);
         const sideWindow = new THREE.Mesh(
-          roundedBox(0.035, 0.7, 0.22, 0.014),
-          darkGlass,
+          roundedBox(0.025, 0.68, 0.17, 0.01),
+          upperGlass,
         );
-        sideWindow.position.set(side * 0.575, y, 0);
+        sideWindow.position.set(side * 0.44, y, 0);
         minaret.add(sideWindow);
       });
     });
-    const minaretCap = new THREE.Mesh(roundedBox(1.2, 0.16, 1.12, 0.03), minaretBand);
-    minaretCap.position.y = 5.39;
-    minaret.add(minaretCap);
-    const minaretBalcony = new THREE.Mesh(
-      roundedBox(1.42, 0.14, 1.34, 0.035),
+    [-1, 1].forEach((side) => {
+      const frontUpperWindow = new THREE.Mesh(
+        roundedBox(0.19, 0.38, 0.025, 0.009),
+        upperGlass,
+      );
+      frontUpperWindow.position.set(0, 4.67, side * 0.415);
+      minaret.add(frontUpperWindow);
+      const sideUpperWindow = new THREE.Mesh(
+        roundedBox(0.025, 0.38, 0.19, 0.009),
+        upperGlass,
+      );
+      sideUpperWindow.position.set(side * 0.435, 4.67, 0);
+      minaret.add(sideUpperWindow);
+    });
+    const minaretCap = new THREE.Mesh(
+      roundedBox(0.98, 0.13, 0.92, 0.025),
       minaretGreen,
     );
-    minaretBalcony.position.y = 5.52;
-    minaret.add(minaretBalcony);
-    const upperStage = new THREE.Mesh(
-      roundedBox(0.82, 0.92, 0.76, 0.035),
-      minaretLime,
-    );
-    upperStage.position.y = 6.02;
-    minaret.add(upperStage);
-    [-1, 1].forEach((side) => {
-      const upperFrontWindow = new THREE.Mesh(
-        roundedBox(0.2, 0.58, 0.035, 0.012),
-        darkGlass,
-      );
-      upperFrontWindow.position.set(0, 6.02, side * 0.395);
-      minaret.add(upperFrontWindow);
-      const upperSideWindow = new THREE.Mesh(
-        roundedBox(0.035, 0.58, 0.2, 0.012),
-        darkGlass,
-      );
-      upperSideWindow.position.set(side * 0.425, 6.02, 0);
-      minaret.add(upperSideWindow);
-    });
-    const upperCornice = new THREE.Mesh(
-      roundedBox(1.04, 0.14, 0.98, 0.03),
+    minaretCap.position.y = 5.2;
+    minaret.add(minaretCap);
+    const minaretBalcony = new THREE.Mesh(
+      roundedBox(1.28, 0.13, 1.2, 0.03),
       minaretBand,
     );
-    upperCornice.position.y = 6.54;
+    minaretBalcony.position.y = 5.32;
+    minaret.add(minaretBalcony);
+    [-1, 1].forEach((side) => {
+      [5.42, 5.55].forEach((y) => {
+        const balconyFrontRail = new THREE.Mesh(
+          roundedBox(1.18, 0.032, 0.032, 0.008),
+          metal,
+        );
+        balconyFrontRail.position.set(0, y, side * 0.57);
+        minaret.add(balconyFrontRail);
+        const balconySideRail = new THREE.Mesh(
+          roundedBox(0.032, 0.032, 1.08, 0.008),
+          metal,
+        );
+        balconySideRail.position.set(side * 0.61, y, 0);
+        minaret.add(balconySideRail);
+      });
+      [-0.48, 0, 0.48].forEach((x) => {
+        const balconyFrontPost = new THREE.Mesh(
+          roundedBox(0.025, 0.18, 0.025, 0.006),
+          metal,
+        );
+        balconyFrontPost.position.set(x, 5.48, side * 0.57);
+        minaret.add(balconyFrontPost);
+      });
+      [-0.43, 0, 0.43].forEach((z) => {
+        const balconySidePost = new THREE.Mesh(
+          roundedBox(0.025, 0.18, 0.025, 0.006),
+          metal,
+        );
+        balconySidePost.position.set(side * 0.61, 5.48, z);
+        minaret.add(balconySidePost);
+      });
+    });
+    const upperStage = new THREE.Mesh(
+      roundedBox(0.76, 0.86, 0.7, 0.03),
+      minaretLime,
+    );
+    upperStage.position.y = 5.95;
+    minaret.add(upperStage);
+    [-0.33, 0.33].forEach((offset) => {
+      [-0.3, 0.3].forEach((depth) => {
+        const lanternCorner = new THREE.Mesh(
+          roundedBox(0.075, 0.82, 0.075, 0.014),
+          minaretGreen,
+        );
+        lanternCorner.position.set(offset, 5.95, depth);
+        minaret.add(lanternCorner);
+      });
+    });
+    [-1, 1].forEach((side) => {
+      const frontOpening = new THREE.Mesh(
+        createArchPanelGeometry(0.34, 0.56),
+        darkGlass,
+      );
+      frontOpening.position.set(0, 5.63, side * 0.356);
+      if (side < 0) frontOpening.rotation.y = Math.PI;
+      minaret.add(frontOpening);
+      const sideOpening = new THREE.Mesh(
+        createArchPanelGeometry(0.32, 0.56),
+        darkGlass,
+      );
+      sideOpening.position.set(side * 0.386, 5.63, 0);
+      sideOpening.rotation.y = side * Math.PI * 0.5;
+      minaret.add(sideOpening);
+    });
+    const upperCornice = new THREE.Mesh(
+      roundedBox(1.02, 0.14, 0.96, 0.028),
+      minaretBand,
+    );
+    upperCornice.position.y = 6.43;
     minaret.add(upperCornice);
+    addMosqueDome(minaret, {
+      x: 0,
+      z: 0,
+      baseY: 6.52,
+      radius: 0.49,
+      domeMaterial: domeIvory,
+      paleMaterial: pale,
+      accentMaterial: minaretGreen,
+      goldMaterial: gold,
+      scaleY: 0.92,
+      patternMaterial: minaretGreen,
+      secondaryPatternMaterial: minaretLime,
+      patternScale: 0.82,
+      drumMaterial: darkOrnament,
+      drumAccentMaterial: minaretGreen,
+      faceted: true,
+    });
     mergeDirectMeshesByMaterial(minaret);
     architecture.add(minaret);
 
+    const continuousNameWall = new THREE.Mesh(
+      roundedBox(3.5, 0.76, 0.13, 0.025),
+      nameWall,
+    );
+    continuousNameWall.position.set(-1.82, 0.43, 5.18);
+    architecture.add(continuousNameWall);
+    [-3.32, -2.82, -2.32, -1.82, -1.32, -0.82, -0.32].forEach((x) => {
+      const wallJoint = new THREE.Mesh(
+        roundedBox(0.012, 0.7, 0.012, 0.003),
+        fenceAccent,
+      );
+      wallJoint.position.set(x, 0.43, 5.252);
+      architecture.add(wallJoint);
+    });
+    [0.18, 0.43, 0.68].forEach((y) => {
+      const wallJoint = new THREE.Mesh(
+        roundedBox(3.38, 0.012, 0.012, 0.003),
+        fenceAccent,
+      );
+      wallJoint.position.set(-1.82, y, 5.252);
+      architecture.add(wallJoint);
+    });
     const leftNamePost = new THREE.Mesh(
-      roundedBox(0.3, 0.95, 0.3, 0.025),
+      roundedBox(0.27, 0.86, 0.27, 0.025),
       pillarStone,
     );
-    leftNamePost.position.set(-3.62, 0.5, 5.18);
+    leftNamePost.position.set(-3.62, 0.46, 5.175);
     architecture.add(leftNamePost);
     const rightNamePost = leftNamePost.clone();
     rightNamePost.position.x = -0.02;
     architecture.add(rightNamePost);
-    addSitubondoSign(
-      architecture,
-      "MASJID AGUNG AL-ABROR",
-      3.4,
-      0.32,
-      new THREE.Vector3(-1.82, 0.49, 5.25),
-      {
-        background: 0x4a403c,
-        color: "#d2b26b",
-        border: 0x4a403c,
-        materialOptions: { canvasWidth: 3072, maxFontSize: 230 },
-      },
+    const mosqueName = new THREE.Mesh(
+      new THREE.PlaneGeometry(3.25, 0.28),
+      getSitubondoSignMaterial("MASJID AGUNG AL-ABROR", "#d4b15c", 900, {
+        strokeColor: "rgba(55,42,25,.55)",
+        strokeScale: 0.012,
+        canvasWidth: 4096,
+        maxFontSize: 270,
+      }),
     );
-    addSitubondoSign(
-      architecture,
-      "KABUPATEN SITUBONDO",
-      3.0,
-      0.2,
-      new THREE.Vector3(-1.82, 0.22, 5.27),
-      {
-        background: 0x4a403c,
-        color: "#c5aa70",
-        border: 0x4a403c,
-        materialOptions: { canvasWidth: 3072, maxFontSize: 220 },
-      },
+    mosqueName.position.set(-1.82, 0.52, 5.26);
+    mosqueName.renderOrder = 7;
+    architecture.add(mosqueName);
+    const regencyName = new THREE.Mesh(
+      new THREE.PlaneGeometry(2.82, 0.17),
+      getSitubondoSignMaterial("KABUPATEN SITUBONDO", "#caae65", 900, {
+        strokeColor: "rgba(55,42,25,.55)",
+        strokeScale: 0.012,
+        canvasWidth: 4096,
+        maxFontSize: 250,
+      }),
     );
+    regencyName.position.set(-1.82, 0.27, 5.265);
+    regencyName.renderOrder = 7;
+    architecture.add(regencyName);
     [0.62, 3.62].forEach((x) => {
       const gatePost = new THREE.Mesh(
-        roundedBox(0.29, 0.98, 0.29, 0.025),
+        roundedBox(0.27, 0.88, 0.27, 0.025),
         pillarStone,
       );
-      gatePost.position.set(x, 0.51, 5.18);
+      gatePost.position.set(x, 0.47, 5.175);
       architecture.add(gatePost);
     });
     [-3.62, -0.02, 0.62, 3.62].forEach((x) => {
-      const postInset = new THREE.Mesh(roundedBox(0.075, 0.68, 0.025, 0.008), metal);
-      postInset.position.set(x, 0.54, 5.305);
+      const postInset = new THREE.Mesh(roundedBox(0.07, 0.58, 0.025, 0.008), metal);
+      postInset.position.set(x, 0.48, 5.292);
       architecture.add(postInset);
     });
-    [0.28, 0.62].forEach((y) => {
+
+    // The forecourt is walkable: leave the pedestrian leaf open inward, not
+    // a visibly closed grille that the player can walk straight through.
+    const pedestrianGate = new THREE.Group();
+    pedestrianGate.name = "mosque-pedestrian-gate-open";
+    pedestrianGate.position.set(0.06, 0, 5.2);
+    pedestrianGate.rotation.y = Math.PI / 2;
+    architecture.add(pedestrianGate);
+    [0.16, 0.68].forEach((y) => {
+      const gateRail = new THREE.Mesh(
+        roundedBox(0.48, 0.035, 0.045, 0.007),
+        gold,
+      );
+      gateRail.position.set(0.24, y, 0);
+      pedestrianGate.add(gateRail);
+    });
+    [-0.22, 0.22].forEach((xOffset) => {
+      const gateStile = new THREE.Mesh(
+        roundedBox(0.035, 0.56, 0.045, 0.007),
+        gold,
+      );
+      gateStile.position.set(0.24 + xOffset, 0.42, 0);
+      pedestrianGate.add(gateStile);
+    });
+    addClippedMosqueGrille(pedestrianGate, fenceGreen, {
+      x: 0.24,
+      y: 0.42,
+      z: 0,
+      width: 0.42,
+      height: 0.5,
+    });
+    mergeDirectMeshesByMaterial(pedestrianGate);
+
+    [0.18, 0.76].forEach((y) => {
       const rail = new THREE.Mesh(
-        roundedBox(2.88, 0.05, 0.06, 0.012),
-        fenceGreen,
+        roundedBox(2.8, 0.045, 0.055, 0.01),
+        gold,
       );
       rail.position.set(2.12, y, 5.18);
       architecture.add(rail);
     });
     const fenceStart = 0.72;
     const fenceEnd = 3.52;
-    const fencePanelCount = 12;
+    const fencePanelCount = 6;
     const fencePanelWidth = (fenceEnd - fenceStart) / fencePanelCount;
-    const fenceBraceHeight = 0.26;
-    const fenceBraceLength = Math.hypot(fencePanelWidth, fenceBraceHeight);
-    const fenceBraceAngle = Math.atan2(fenceBraceHeight, fencePanelWidth);
     for (let index = 0; index <= fencePanelCount; index += 1) {
       const bar = new THREE.Mesh(
-        roundedBox(0.032, 0.46, 0.038, 0.009),
-        fenceGreen,
+        roundedBox(0.035, 0.58, 0.038, 0.009),
+        gold,
       );
-      bar.position.set(fenceStart + index * fencePanelWidth, 0.45, 5.2);
+      bar.position.set(fenceStart + index * fencePanelWidth, 0.47, 5.2);
       architecture.add(bar);
     }
     for (let index = 0; index < fencePanelCount; index += 1) {
       const panelCenter = fenceStart + (index + 0.5) * fencePanelWidth;
-      [-1, 1].forEach((direction) => {
-        const brace = new THREE.Mesh(
-          roundedBox(fenceBraceLength, 0.014, 0.02, 0.006),
-          fenceGreen,
-        );
-        brace.position.set(panelCenter, 0.45, 5.215);
-        brace.rotation.z = direction * fenceBraceAngle;
-        architecture.add(brace);
+      addClippedMosqueGrille(architecture, fenceGreen, {
+        x: panelCenter,
+        y: 0.47,
+        z: 5.2,
+        width: fencePanelWidth - 0.02,
+        height: 0.55,
       });
-      if (index % 2 === 0) {
-        const diamond = new THREE.Mesh(
-          roundedBox(0.09, 0.09, 0.025, 0.006),
-          gold,
-        );
-        diamond.position.set(panelCenter, 0.45, 5.245);
-        diamond.rotation.z = Math.PI * 0.25;
-        architecture.add(diamond);
-      }
+      const flower = new THREE.Mesh(
+        roundedBox(0.1, 0.1, 0.025, 0.006),
+        gold,
+      );
+      flower.position.set(panelCenter, 0.47, 5.248);
+      flower.rotation.z = Math.PI * 0.25;
+      architecture.add(flower);
+      const flowerCenter = new THREE.Mesh(
+        new THREE.CircleGeometry(0.035, 12),
+        ornamentBrown,
+      );
+      flowerCenter.position.set(panelCenter, 0.47, 5.265);
+      architecture.add(flowerCenter);
     }
 
     const leftPalm = addLocalPalm(architecture, -2.5, 4.42, 1.05);
@@ -958,16 +1397,29 @@ export function createMosqueModelFactory({
         // the Alun-Alun landmark. The former local box extended 2.5 metres
         // into the reconstructed asphalt and produced a hidden height seam.
         { x: 0, z: forecourtCenterZ, width: 7.8, depth: forecourtDepth, height: 0.08, label: "front forecourt" },
-        { x: 0.28, z: 4.08, width: 1.32, depth: 0.26, height: 0.105, label: "entrance stair 1" },
-        { x: 0.28, z: 3.88, width: 1.22, depth: 0.24, height: 0.145, label: "entrance stair 2" },
-        { x: 0.28, z: 3.7, width: 1.12, depth: 0.2, height: 0.18, label: "entrance landing" },
+        // Match the existing stone slab beneath the skewed hall. Omitting it
+        // made the inner forecourt edge behave like a drop to bare ground.
+        { x: 0, z: -0.14, width: 7.5, depth: 8.7, height: 0.12, label: "site slab" },
       ],
       obstacles: [
-        { shape: "box", x: 0, z: -0.225, width: 6.76, depth: 7.55, label: "prayer hall" },
-        { shape: "box", x: -4.02, z: 3.48, width: 1.82, depth: 1.16, label: "west annex" },
+        { shape: "box", x: 0.057, z: -0.128, width: 6.76, depth: hallDepth, yaw: hallToFrontageYaw, label: "prayer hall" },
+        // Closed door leaves and frames protrude beyond the main hall box.
+        // Match their individual footprints, not a full-width phantom wall.
+        ...sideDoorXs.flatMap((x) => [
+          hallBox(x, 4.13, 0.58, 0.05, "closed side door frame"),
+          hallBox(x, 4.17, 0.47, 0.04, "closed side door"),
+        ]),
+        ...canopyPostObstacles,
+        ...centralDoorObstacles,
+        { shape: "box", x: -4.02, z: 3.48, width: 1.82, depth: 1.16, label: "south-side guard booth" },
         { shape: "box", x: 3.72, z: 2.34, width: 1.1, depth: 1.02, label: "minaret" },
         { shape: "box", x: -1.82, z: 5.2, width: 3.64, depth: 0.22, label: "name wall" },
         { shape: "box", x: 2.12, z: 5.18, width: 3.08, depth: 0.18, label: "front fence" },
+        { shape: "box", x: 0.06, z: 4.96, width: 0.045, depth: 0.48, label: "pedestrian gate leaf" },
+        ...[-0.02, 0.62].map((x) => ({
+          shape: "box", x, z: 5.175, width: 0.27, depth: 0.27,
+          label: "pedestrian gate post",
+        })),
         { shape: "circle", x: -2.5, z: 4.42, radius: 0.13, label: "front palm" },
         { shape: "circle", x: 2.82, z: 4.4, radius: 0.13, label: "front palm" },
       ],

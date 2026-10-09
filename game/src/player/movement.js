@@ -69,11 +69,14 @@ export function createMovementController({
       stop.deliveryPhi ?? stop.phi,
       1,
     );
-    const origin = sphericalPosition(rider.theta, rider.phi, 1);
-    const tangentToTarget = tempVector3.copy(targetPosition).sub(origin);
-    tangentToTarget.addScaledVector(normal, -tangentToTarget.dot(normal));
-  
-    if (tangentToTarget.lengthSq() < 0.0001) return rider.heading;
+    // Compare distances in world units. Unit-sphere vectors for nearby
+    // deliveries are tiny on the metric world and must not be mistaken for
+    // coincident points (which would make the HUD follow the rider instead).
+    const tangentToTarget = surfaceOffsetFromNormal(
+      targetPosition, normal, tempVector3,
+    );
+
+    if (tangentToTarget.lengthSq() < 1e-12) return rider.heading;
   
     tangentToTarget.normalize();
     return Math.atan2(tangentToTarget.dot(north), tangentToTarget.dot(east));
@@ -339,18 +342,19 @@ export function createMovementController({
   
         const minAngle = broadPhaseAngle;
   
-        const pushDirection = tempVector5
-          .copy(surfacePoint)
-          .addScaledVector(obstacle.normal, -surfacePoint.dot(obstacle.normal));
-  
-        if (pushDirection.lengthSq() < 0.000001) {
-          pushDirection
-            .copy(surfacePoint)
-            .sub(previousPoint)
-            .addScaledVector(obstacle.normal, -pushDirection.dot(obstacle.normal));
+        // Work in world-unit offsets, not tiny unit-sphere projections. With
+        // the metric world's large radius the old tolerance treated valid
+        // directions as zero and snapped every contact to the east side.
+        const pushDirection = surfaceOffsetFromNormal(
+          surfacePoint, obstacle.normal, tempVector5,
+        );
+
+        if (pushDirection.lengthSq() < 1e-12) {
+          // For an exact-center contact, retreat toward the previous side.
+          surfaceOffsetFromNormal(previousPoint, obstacle.normal, pushDirection);
         }
   
-        if (pushDirection.lengthSq() < 0.000001) {
+        if (pushDirection.lengthSq() < 1e-12) {
           pushDirection.copy(surfaceFrame(obstacle.theta, obstacle.phi).east);
         }
   

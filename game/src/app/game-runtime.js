@@ -265,9 +265,43 @@ export function createGameRuntime({
   const clock = new THREE.Clock();
   let animationFrameId = null;
   let pausedRenderPending = true;
+  let graphicsLost = false;
+  let focusBeforeGraphicsLoss = null;
+  const graphicsNotice = document.querySelector("#graphics-notice");
+  const graphicsReload = document.querySelector("#graphics-reload");
+  graphicsReload.addEventListener("click", () => window.location.reload());
+
+  renderer.domElement.addEventListener("webglcontextlost", (event) => {
+    event.preventDefault();
+    if (graphicsLost) return;
+    graphicsLost = true;
+    focusBeforeGraphicsLoss = document.activeElement;
+    resetAnalog();
+    if (animationFrameId !== null) cancelAnimationFrame(animationFrameId);
+    animationFrameId = null;
+    app.inert = true;
+    graphicsNotice.hidden = false;
+    graphicsReload.focus({ preventScroll: true });
+  });
+  renderer.domElement.addEventListener("webglcontextrestored", () => {
+    if (!graphicsLost) return;
+    // Discard time spent without a usable picture; neither movement nor the
+    // delivery deadline should advance while graphics are unavailable.
+    const unavailableTime = clock.getDelta();
+    clock.elapsedTime -= unavailableTime;
+    resetAnalog();
+    graphicsLost = false;
+    app.inert = false;
+    graphicsNotice.hidden = true;
+    if (focusBeforeGraphicsLoss?.isConnected) {
+      focusBeforeGraphicsLoss.focus({ preventScroll: true });
+    }
+    pausedRenderPending = true;
+    requestGameFrame();
+  });
 
   function requestGameFrame() {
-    if (animationFrameId !== null) return;
+    if (graphicsLost || animationFrameId !== null) return;
     animationFrameId = requestAnimationFrame(animate);
   }
 
@@ -306,6 +340,7 @@ export function createGameRuntime({
 
   function animate() {
     animationFrameId = null;
+    if (graphicsLost) return;
     if (!gameState.started && !pausedRenderPending) return;
     pausedRenderPending = false;
 

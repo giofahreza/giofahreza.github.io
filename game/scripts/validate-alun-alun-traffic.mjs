@@ -5564,10 +5564,12 @@ function validateTrueSoutheastJunction() {
     !Array.isArray(definition.center) ||
     definition.center.length !== 2 ||
     !definition.center.every(isFiniteNumber) ||
-    !samePoint(definition.center, definition.monument?.center)
+    !Array.isArray(definition.monument?.center) ||
+    definition.monument.center.length !== 2 ||
+    !definition.monument.center.every(isFiniteNumber)
   ) {
     throw new Error(
-      "true south-east monument and junction centres must remain identical",
+      "true south-east road and monument centres must be finite coordinates",
     );
   }
   if (
@@ -6055,6 +6057,15 @@ function validateTrueSoutheastJunction() {
   });
 
   const monument = definition.monument;
+  const coreGaps = ["southwest", "southeast", "northeast"].map((name) => {
+    const path = definition.cornerReturns[name].path;
+    return Math.min(...path.slice(1).map((point, index) =>
+      pointSegmentDistance(monument.center, path[index], point)));
+  });
+  if (Math.min(...coreGaps) < 2.7 ||
+      Math.max(...coreGaps) - Math.min(...coreGaps) > 0.002) {
+    throw new Error("southeast monument must balance clearance to all three core curb returns");
+  }
   if (
     ![
       monument.yaw,
@@ -6116,6 +6127,7 @@ function validateTrueSoutheastJunction() {
   ]);
   if (
     !pointInsidePolygon(monument.center, definition.asphaltOutline) ||
+    monumentPolygon.some((point) => !pointInsidePolygon(point, definition.asphaltOutline)) ||
     pointObstacleSignedGap(
       monument.center[0],
       monument.center[1],
@@ -6299,7 +6311,7 @@ function validateTrueSoutheastJunction() {
   }
   if (!samePoint(definition.center, turnControl, 1e-9)) {
     throw new Error(
-      "true south-east monument must sit at the exact four-arm centre-line intersection",
+      "true south-east road-layout reference must retain the four-arm centre-line intersection",
     );
   }
   const pointFromCenterToward = (endpoint, distance) => {
@@ -6313,17 +6325,17 @@ function validateTrueSoutheastJunction() {
       turnControl[1] + (direction[1] / length) * distance,
     ];
   };
-  // Preserve the approach and exit tangents while opening both turns around
-  // the central monument. Separate cubic controls model a real circulation
-  // path; repeating the centre-line intersection as both controls would send
-  // the swept vehicle envelope through the island.
+  // Synthetic clearance probes must circulate around the relocated island:
+  // south/east turns pass to its south, north/east turns to its north.
+  // These controls are not runtime routes. Every sampled vehicle still has
+  // to pass the unchanged asphalt, pedestrian and island clearance checks.
   const southEastTurnControls = [
-    pointFromCenterToward(armCenters.south, 1.2),
-    pointFromCenterToward(armCenters.east, 1.2),
+    [-16, 22.3],
+    [-18, 20],
   ];
   const northEastTurnControls = [
     pointFromCenterToward(armCenters.north, 0.1),
-    pointFromCenterToward(armCenters.east, 0.7),
+    [-13, 23],
   ];
   const cubicPoint = (
     start,
@@ -6460,6 +6472,9 @@ function validateTrueSoutheastJunction() {
         minimumMonumentClearance,
         envelopeGap(sample, monumentEnvelope),
       );
+      if (envelopeGap(sample, monumentEnvelope) < REQUIRED_CLEARANCE) {
+        throw new Error(`${label} turn hits monument at ${center.join(",")} (t=${amount})`);
+      }
       sweptSamples += 1;
     }
   });

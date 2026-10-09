@@ -215,18 +215,21 @@ export function createAlunAlunEastSchoolsFactory({
     }
 
     const frontCanopy = new THREE.Mesh(
-      roundedBox(0.52, 0.055, 2.55, 0.018),
+      roundedBox(0.52, 0.055, 1.58, 0.018),
       awningMaterial,
     );
-    frontCanopy.position.set(2.13, 0.675, -0.35);
+    // The Google 360 corner awning follows the dining-room frontage, not
+    // the road behind its side wall. Keep its return and support inside the
+    // property side of the surveyed southeast pedestrian band.
+    frontCanopy.position.set(2.13, 0.675, 0.14);
     restaurant.add(frontCanopy);
     const frontValance = new THREE.Mesh(
-      roundedBox(0.04, 0.105, 2.57, 0.01),
+      roundedBox(0.04, 0.105, 1.6, 0.01),
       awningMaterial,
     );
-    frontValance.position.set(2.39, 0.62, -0.35);
+    frontValance.position.set(2.39, 0.62, 0.14);
     restaurant.add(frontValance);
-    for (let east = -1.5; east <= 0.82; east += 0.28) {
+    for (let east = -0.58; east <= 0.82; east += 0.28) {
       const stripe = new THREE.Mesh(
         roundedBox(0.023, 0.108, 0.12, 0.005),
         awningStripeMaterial,
@@ -238,7 +241,7 @@ export function createAlunAlunEastSchoolsFactory({
     [
       [-2.04, 1.16],
       [2.05, 1.16],
-      [2.4, -1.5],
+      [2.4, -0.58],
     ].forEach(([north, east]) => {
       const canopyPost = new THREE.Mesh(
         new THREE.CylinderGeometry(0.018, 0.026, 0.65, 7),
@@ -248,32 +251,36 @@ export function createAlunAlunEastSchoolsFactory({
       restaurant.add(canopyPost);
     });
 
-    for (let north = -1.72; north <= 1.72; north += 0.34) {
-      const diamond = new THREE.Mesh(
-        new THREE.PlaneGeometry(0.16, 0.16),
-        reliefMaterial,
-      );
-      diamond.position.set(north, 0.83, 0.721);
-      diamond.rotation.z = Math.PI * 0.25;
-      restaurant.add(diamond);
-    }
-    for (let north = -1.72; north <= 1.72; north += 0.34) {
-      const reliefRing = new THREE.Mesh(
-        new THREE.TorusGeometry(0.055, 0.012, 4, 12),
-        reliefMaterial,
-      );
-      reliefRing.position.set(north, 0.7, 0.724);
-      restaurant.add(reliefRing);
-    }
-    for (let east = -0.5; east <= 0.5; east += 0.28) {
-      const diamond = new THREE.Mesh(
-        new THREE.PlaneGeometry(0.15, 0.15),
-        reliefMaterial,
-      );
-      diamond.position.set(1.946, 0.82, east);
-      diamond.rotation.y = Math.PI * 0.5;
-      diamond.rotation.z = Math.PI * 0.25;
-      restaurant.add(diamond);
+    // L139DDJA3qEuqHCUkm1Szg, 175–198°: the parapet is a regular
+    // grid of square, four-facet relief tiles, not diamond/ring ornaments.
+    const reliefTileGeometry = new THREE.BufferGeometry();
+    const halfTile = 0.078;
+    const tileCorners = [
+      [-halfTile, -halfTile], [halfTile, -halfTile],
+      [halfTile, halfTile], [-halfTile, halfTile],
+    ];
+    const tileVertices = [];
+    tileCorners.forEach(([x, y], index) => {
+      const next = tileCorners[(index + 1) % tileCorners.length];
+      tileVertices.push(x, y, 0, next[0], next[1], 0, 0, 0, 0.012);
+    });
+    reliefTileGeometry.setAttribute(
+      "position",
+      new THREE.Float32BufferAttribute(tileVertices, 3),
+    );
+    reliefTileGeometry.computeVertexNormals();
+    for (const height of [0.738, 0.912]) {
+      for (let column = 0; column < 22; column += 1) {
+        const tile = new THREE.Mesh(reliefTileGeometry, reliefMaterial);
+        tile.position.set(-1.817 + column * 0.174, height, 0.717);
+        restaurant.add(tile);
+      }
+      for (let column = 0; column < 8; column += 1) {
+        const tile = new THREE.Mesh(reliefTileGeometry, reliefMaterial);
+        tile.position.set(1.942, height, -0.609 + column * 0.174);
+        tile.rotation.y = Math.PI * 0.5;
+        restaurant.add(tile);
+      }
     }
 
     const mainSign = new THREE.Mesh(
@@ -456,7 +463,6 @@ export function createAlunAlunEastSchoolsFactory({
 
     const tealMaterial = toonMaterial({ color: 0x187a73 });
     const darkTealMaterial = toonMaterial({ color: 0x153f3d });
-    const limeMaterial = toonMaterial({ color: 0x70c93c });
     const limeTrimMaterial = toonMaterial({ color: 0x3f9b48 });
     const orangeMaterial = toonMaterial({ color: 0xe76342 });
     const paleMaterial = toonMaterial({ color: 0xf0ead9 });
@@ -469,6 +475,8 @@ export function createAlunAlunEastSchoolsFactory({
     const stoneLightMaterial = toonMaterial({ color: 0x72797a });
     const goldMaterial = toonMaterial({ color: 0xc8ad55 });
     const greenFenceMaterial = toonMaterial({ color: 0x27705b });
+    // Thin chain-link is a surface detail, not a bold cel-outline feature.
+    greenFenceMaterial.userData.outlineParameters = { visible: false };
     const redRoofMaterial = toonMaterial({ color: 0x98483a });
     const redGableRoofMaterial = toonMaterial({ color: 0x98483a });
     const roofCourseMaterial = toonMaterial({ color: 0x723832 });
@@ -484,10 +492,10 @@ export function createAlunAlunEastSchoolsFactory({
     school.add(courtyard);
 
     const frontBody = new THREE.Mesh(
-      roundedBox(5.15, 1.58, 3.2, 0.045),
+      roundedBox(5.15, 2.15, 3.2, 0.045),
       tealMaterial,
     );
-    frontBody.position.set(0.45, 0.79, -1.55);
+    frontBody.position.set(0.45, 1.075, -1.55);
     school.add(frontBody);
     const southBlock = new THREE.Mesh(
       roundedBox(1.36, 1.98, 3.55, 0.045),
@@ -496,10 +504,10 @@ export function createAlunAlunEastSchoolsFactory({
     southBlock.position.set(-2.45, 0.99, -2.55);
     school.add(southBlock);
     const upperFront = new THREE.Mesh(
-      roundedBox(4.95, 0.58, 0.08, 0.016),
+      roundedBox(4.95, 1.13, 0.08, 0.016),
       darkTealMaterial,
     );
-    upperFront.position.set(0.48, 1.31, 0.075);
+    upperFront.position.set(0.48, 1.575, 0.075);
     school.add(upperFront);
     const floorBand = new THREE.Mesh(
       roundedBox(5.28, 0.09, 3.32, 0.018),
@@ -563,10 +571,10 @@ export function createAlunAlunEastSchoolsFactory({
     });
     [0.1, 1.2, 2.3].forEach((north) => {
       const upperColumn = new THREE.Mesh(
-        roundedBox(0.12, 0.58, 0.14, 0.016),
+        roundedBox(0.12, 1.13, 0.14, 0.016),
         orangeMaterial,
       );
-      upperColumn.position.set(north, 1.32, 0.14);
+      upperColumn.position.set(north, 1.575, 0.14);
       school.add(upperColumn);
     });
 
@@ -590,9 +598,9 @@ export function createAlunAlunEastSchoolsFactory({
       balconyRail.position.set(1.22, height, 0.44);
       school.add(balconyRail);
     });
-    for (let north = -0.38; north <= 2.82; north += 0.32) {
+    for (let north = -0.38; north <= 2.82; north += 0.1) {
       const balconyPicket = new THREE.Mesh(
-        roundedBox(0.03, 0.28, 0.03, 0.007),
+        roundedBox(0.012, 0.28, 0.018, 0.003),
         stoneLightMaterial,
       );
       balconyPicket.position.set(north, 1.56, 0.44);
@@ -644,12 +652,12 @@ export function createAlunAlunEastSchoolsFactory({
 
     const createMarqueeShape = (scale = 1) => {
       const shape = new THREE.Shape();
-      shape.moveTo(-1.4 * scale, -0.38 * scale);
-      shape.lineTo(1.4 * scale, -0.38 * scale);
-      shape.lineTo(1.4 * scale, 0.29 * scale);
-      shape.lineTo(1.02 * scale, 0.46 * scale);
-      shape.lineTo(-1.02 * scale, 0.46 * scale);
-      shape.lineTo(-1.4 * scale, 0.29 * scale);
+      shape.moveTo(-1.4 * scale, -0.25 * scale);
+      shape.lineTo(1.4 * scale, -0.25 * scale);
+      // NZ0JkC8RxyW3E0Zbjv-6Vw at 245/270 degrees: rectangular
+      // projecting signboard; its apparent sloping top is perspective.
+      shape.lineTo(1.4 * scale, 0.25 * scale);
+      shape.lineTo(-1.4 * scale, 0.25 * scale);
       shape.closePath();
       return shape;
     };
@@ -660,7 +668,7 @@ export function createAlunAlunEastSchoolsFactory({
       }),
       paleMaterial,
     );
-    marqueeBorder.position.set(-0.3, 1.57, 0.39);
+    marqueeBorder.position.set(-0.3, 1.4, 0.39);
     school.add(marqueeBorder);
     const marqueeFace = new THREE.Mesh(
       new THREE.ExtrudeGeometry(createMarqueeShape(), {
@@ -669,50 +677,50 @@ export function createAlunAlunEastSchoolsFactory({
       }),
       tealMaterial,
     );
-    marqueeFace.position.set(-0.3, 1.57, 0.48);
+    marqueeFace.position.set(-0.3, 1.4, 0.48);
     school.add(marqueeFace);
     const crestOuter = new THREE.Mesh(
-      new THREE.CircleGeometry(0.19, 18),
+      new THREE.CircleGeometry(0.105, 18),
       limeTrimMaterial,
     );
-    crestOuter.position.set(-0.3, 1.83, 0.57);
+    crestOuter.position.set(-0.3, 1.53, 0.57);
     school.add(crestOuter);
     const crestMiddle = new THREE.Mesh(
-      new THREE.CircleGeometry(0.145, 18),
+      new THREE.CircleGeometry(0.081, 18),
       goldMaterial,
     );
-    crestMiddle.position.set(-0.3, 1.83, 0.575);
+    crestMiddle.position.set(-0.3, 1.53, 0.575);
     school.add(crestMiddle);
     const crestInner = new THREE.Mesh(
-      new THREE.CircleGeometry(0.095, 16),
+      new THREE.CircleGeometry(0.053, 16),
       paleMaterial,
     );
-    crestInner.position.set(-0.3, 1.83, 0.58);
+    crestInner.position.set(-0.3, 1.53, 0.58);
     school.add(crestInner);
     const titleLabel = new THREE.Mesh(
-      new THREE.PlaneGeometry(2.28, 0.25),
+      new THREE.PlaneGeometry(2.28, 0.16),
       getSitubondoSignMaterial("SD ISLAM AL-ABROR", "#eadb9f", 880),
     );
-    titleLabel.position.set(-0.3, 1.55, 0.585);
+    titleLabel.position.set(-0.3, 1.355, 0.585);
     school.add(titleLabel);
     const cityLabel = new THREE.Mesh(
-      new THREE.PlaneGeometry(1.34, 0.25),
+      new THREE.PlaneGeometry(1.34, 0.16),
       getSitubondoSignMaterial("SITUBONDO", "#ef684d", 900),
     );
-    cityLabel.position.set(-0.3, 1.31, 0.588);
+    cityLabel.position.set(-0.3, 1.215, 0.588);
     school.add(cityLabel);
 
     const mainRoof = new THREE.Mesh(
       createHippedRoofGeometry(5.58, 3.62, 0.54, 0.96),
       redRoofMaterial,
     );
-    mainRoof.position.set(0.45, 1.58, -1.55);
+    mainRoof.position.set(0.45, 2.15, -1.55);
     school.add(mainRoof);
     const mainEave = new THREE.Mesh(
       roundedBox(5.72, 0.07, 3.76, 0.014),
       roofCourseMaterial,
     );
-    mainEave.position.set(0.45, 1.59, -1.55);
+    mainEave.position.set(0.45, 2.16, -1.55);
     school.add(mainEave);
     const mainRoofSlope = Math.atan2(0.54, 1.81);
     for (let rowIndex = 1; rowIndex <= 7; rowIndex += 1) {
@@ -725,7 +733,7 @@ export function createAlunAlunEastSchoolsFactory({
         );
         roofCourse.position.set(
           0.45,
-          1.59 + progress * 0.54,
+          2.16 + progress * 0.54,
           -1.55 + side * 1.81 * (1 - progress),
         );
         roofCourse.rotation.x = side * mainRoofSlope;
@@ -736,47 +744,103 @@ export function createAlunAlunEastSchoolsFactory({
       roundedBox(3.72, 0.04, 0.055, 0.008),
       roofCourseMaterial,
     );
-    mainRidge.position.set(0.45, 2.14, -1.55);
+    mainRidge.position.set(0.45, 2.71, -1.55);
     school.add(mainRidge);
 
-    const limeTower = new THREE.Mesh(
-      roundedBox(0.92, 2.02, 1.38, 0.035),
-      limeMaterial,
-    );
-    limeTower.position.set(-2.42, 1.01, -0.72);
-    school.add(limeTower);
-    const limeTowerStrip = new THREE.Mesh(
-      roundedBox(0.12, 1.9, 1.42, 0.018),
-      limeTrimMaterial,
-    );
-    limeTowerStrip.position.set(-2.83, 1.02, -0.72);
-    school.add(limeTowerStrip);
-    const towerWindow = new THREE.Mesh(
-      roundedBox(0.32, 0.78, 0.055, 0.012),
+    // The tall lime structure to the left in the same panorama is the
+    // mosque minaret, already modeled in mosque.js, not a school stair tower.
+    // The entrance instead has a projecting glazed upper room. Proportions
+    // below are image-relative to the marquee, not claimed surveyed heights.
+    const entranceGlass = new THREE.Mesh(
+      roundedBox(2.66, 0.79, 1.42, 0.012),
       glassMaterial,
     );
-    towerWindow.position.set(-2.42, 1.15, -0.005);
-    school.add(towerWindow);
-    const towerCap = new THREE.Mesh(
-      roundedBox(1.12, 0.13, 1.55, 0.018),
-      paleMaterial,
-    );
-    towerCap.position.set(-2.42, 2.03, -0.72);
-    school.add(towerCap);
-    const towerCrown = new THREE.Mesh(
-      roundedBox(1.0, 0.34, 1.4, 0.018),
-      paleMaterial,
-    );
-    towerCrown.position.set(-2.42, 2.24, -0.72);
-    school.add(towerCrown);
-    [-2.65, -2.19].forEach((north) => {
-      const crownDiamond = new THREE.Mesh(
-        new THREE.PlaneGeometry(0.3, 0.3),
-        limeTrimMaterial,
+    entranceGlass.position.set(-0.3, 2.03, -0.23);
+    school.add(entranceGlass);
+    [-1.63, 1.03].forEach((north) => {
+      const corner = new THREE.Mesh(
+        new THREE.BoxGeometry(0.13, 0.87, 0.15),
+        orangeMaterial,
       );
-      crownDiamond.position.set(north, 2.24, 0.005);
-      crownDiamond.rotation.z = Math.PI * 0.25;
-      school.add(crownDiamond);
+      corner.position.set(north, 2.045, 0.45);
+      school.add(corner);
+    });
+    [-0.965, -0.3, 0.365].forEach((north) => {
+      const mullion = new THREE.Mesh(
+        new THREE.BoxGeometry(0.022, 0.79, 0.025),
+        darkMaterial,
+      );
+      mullion.position.set(north, 2.03, 0.494);
+      school.add(mullion);
+    });
+    [1.88, 2.15].forEach((height) => {
+      const frontRail = new THREE.Mesh(
+        new THREE.BoxGeometry(2.66, 0.021, 0.025),
+        darkMaterial,
+      );
+      frontRail.position.set(-0.3, height, 0.494);
+      school.add(frontRail);
+      [-1.64, 1.04].forEach((north) => {
+        const sideRail = new THREE.Mesh(
+          new THREE.BoxGeometry(0.024, 0.021, 1.42),
+          darkMaterial,
+        );
+        sideRail.position.set(north, height, -0.23);
+        school.add(sideRail);
+      });
+    });
+    [-1.64, 1.04].forEach((north) => {
+      [-0.47, 0].forEach((east) => {
+        const sideMullion = new THREE.Mesh(
+          new THREE.BoxGeometry(0.024, 0.79, 0.022),
+          darkMaterial,
+        );
+        sideMullion.position.set(north, 2.03, east);
+        school.add(sideMullion);
+      });
+    });
+    const entranceRoof = new THREE.Mesh(
+      createGableRoofGeometry(3.12, 1.97, 0.58),
+      // Keep UV-bearing gable geometry separate from the UV-less hip roof
+      // during material batching, as for the existing north gable annex.
+      redGableRoofMaterial,
+    );
+    entranceRoof.position.set(-0.3, 2.43, -0.23);
+    school.add(entranceRoof);
+    const entranceGableShape = new THREE.Shape();
+    entranceGableShape.moveTo(-1.43, 0);
+    entranceGableShape.lineTo(1.43, 0);
+    entranceGableShape.lineTo(0, 0.532);
+    entranceGableShape.closePath();
+    const entranceGable = new THREE.Mesh(
+      new THREE.ShapeGeometry(entranceGableShape),
+      darkTealMaterial,
+    );
+    entranceGable.position.set(-0.3, 2.43, 0.759);
+    school.add(entranceGable);
+    [-1, 1].forEach((side) => {
+      const fascia = new THREE.Mesh(
+        new THREE.BoxGeometry(Math.hypot(1.56, 0.58), 0.055, 0.065),
+        paleMaterial,
+      );
+      fascia.position.set(-0.3 + side * 0.78, 2.72, 0.77);
+      fascia.rotation.z = -side * Math.atan2(0.58, 1.56);
+      school.add(fascia);
+      const eave = new THREE.Mesh(
+        new THREE.BoxGeometry(0.055, 0.055, 1.97),
+        paleMaterial,
+      );
+      eave.position.set(-0.3 + side * 1.56, 2.43, -0.23);
+      school.add(eave);
+      [0.52, 1.02].forEach((offset) => {
+        const bracket = new THREE.Mesh(
+          new THREE.BoxGeometry(0.036, 0.27, 0.042),
+          paleMaterial,
+        );
+        bracket.position.set(-0.3 + side * offset, 2.43 + (1 - offset / 1.56) * 0.58 - 0.145, 0.78);
+        bracket.rotation.z = side * 0.48;
+        school.add(bracket);
+      });
     });
 
     const southWindow = new THREE.Mesh(
@@ -900,24 +964,30 @@ export function createAlunAlunEastSchoolsFactory({
         });
       }
       const panelCenterHeight = hasBase ? 0.46 : 0.35;
-      const middleRail = new THREE.Mesh(
-        roundedBox(width, 0.025, 0.025, 0.006),
-        greenFenceMaterial,
-      );
-      middleRail.position.set(north, panelCenterHeight, 1.323);
-      school.add(middleRail);
-      for (
-        let offset = -width * 0.5 + 0.08;
-        offset <= width * 0.5 - 0.08;
-        offset += 0.2
-      ) {
-        const meshPicket = new THREE.Mesh(
-          roundedBox(0.025, 0.3, 0.025, 0.006),
-          greenFenceMaterial,
-        );
-        meshPicket.position.set(north + offset, panelCenterHeight, 1.323);
-        school.add(meshPicket);
-      }
+      // The photographed fence has fine green diamond mesh, not vertical
+      // pickets or a large gold X. Clip every wire to the rail opening.
+      const halfWidth = width * 0.5 - 0.012;
+      const halfHeight = 0.15;
+      const slope = 1.25;
+      const spacing = 0.065;
+      const strandCount = Math.ceil((halfHeight + slope * halfWidth) / spacing);
+      [-1, 1].forEach((direction) => {
+        for (let strand = -strandCount; strand <= strandCount; strand += 1) {
+          const intercept = strand * spacing;
+          const startX = Math.max(-halfWidth, (-halfHeight - intercept) / slope);
+          const endX = Math.min(halfWidth, (halfHeight - intercept) / slope);
+          if (endX <= startX) continue;
+          const startY = direction * (slope * startX + intercept);
+          const endY = direction * (slope * endX + intercept);
+          const wire = new THREE.Mesh(
+            new THREE.BoxGeometry(Math.hypot(endX - startX, endY - startY), 0.003, 0.007),
+            greenFenceMaterial,
+          );
+          wire.position.set(north + (startX + endX) * 0.5, panelCenterHeight + (startY + endY) * 0.5, 1.323);
+          wire.rotation.z = Math.atan2(endY - startY, endX - startX);
+          school.add(wire);
+        }
+      });
       [hasBase ? 0.29 : 0.18, hasBase ? 0.63 : 0.52].forEach((height) => {
         const rail = new THREE.Mesh(
           roundedBox(width + 0.03, 0.04, 0.04, 0.009),
@@ -926,23 +996,30 @@ export function createAlunAlunEastSchoolsFactory({
         rail.position.set(north, height, 1.342);
         school.add(rail);
       });
-      const diagonalLength = Math.hypot(width, 0.3);
-      const diagonalAngle = Math.atan2(0.3, width);
-      [-1, 1].forEach((side) => {
-        const diagonal = new THREE.Mesh(
-          roundedBox(diagonalLength, 0.025, 0.025, 0.005),
+      const bayCount = Math.max(2, Math.round(width / 0.48));
+      const bayWidth = width / bayCount;
+      for (let bay = 0; bay <= bayCount; bay += 1) {
+        const divider = new THREE.Mesh(
+          new THREE.BoxGeometry(0.017, 0.34, 0.026),
           goldMaterial,
         );
-        diagonal.position.set(north, panelCenterHeight, 1.35);
-        diagonal.rotation.z = side * diagonalAngle;
-        school.add(diagonal);
-      });
-      const medallion = new THREE.Mesh(
-        new THREE.CircleGeometry(0.075, 12),
-        goldMaterial,
-      );
-      medallion.position.set(north, panelCenterHeight, 1.368);
-      school.add(medallion);
+        divider.position.set(north - width * 0.5 + bay * bayWidth, panelCenterHeight, 1.349);
+        school.add(divider);
+        if (bay === bayCount) continue;
+        // Small open diamond ornaments repeat in each narrow gold frame.
+        const centerX = north - width * 0.5 + (bay + 0.5) * bayWidth;
+        [-1, 1].forEach((side) => {
+          [-1, 1].forEach((rise) => {
+            const diamondSide = new THREE.Mesh(
+              new THREE.BoxGeometry(0.058, 0.008, 0.012),
+              goldMaterial,
+            );
+            diamondSide.position.set(centerX + side * 0.02, panelCenterHeight + rise * 0.02, 1.368);
+            diamondSide.rotation.z = -side * rise * Math.PI * 0.25;
+            school.add(diamondSide);
+          });
+        });
+      }
     };
 
     addFencePanel(-2.57, 1.52);
@@ -1790,17 +1867,19 @@ export function createAlunAlunEastSchoolsFactory({
       }
     });
     const beigeAwning = new THREE.Mesh(
-      roundedBox(0.54, 0.08, 4.18, 0.018),
+      roundedBox(0.3, 0.08, 4.02, 0.018),
       roofMaterial,
     );
-    beigeAwning.position.set(-1.58, 0.83, 0);
+    // Retain the wall-side edge, but pull the projecting lip inside the
+    // northeast junction boundary; the previous tip hung above asphalt.
+    beigeAwning.position.set(-1.46, 0.83, -0.08);
     beigeBlock.add(beigeAwning);
     for (let seamEast = -1.92; seamEast <= 1.92; seamEast += 0.24) {
       const awningSeam = new THREE.Mesh(
-        roundedBox(0.55, 0.018, 0.025, 0.006),
+        roundedBox(0.31, 0.018, 0.025, 0.006),
         silverMaterial,
       );
-      awningSeam.position.set(-1.59, 0.875, seamEast);
+      awningSeam.position.set(-1.47, 0.875, seamEast);
       beigeBlock.add(awningSeam);
     }
     [-1.32, -0.35, 0.7, 1.5].forEach((eastOffset, index) => {

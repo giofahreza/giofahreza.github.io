@@ -82,6 +82,9 @@ export function activateGeospatialWorld({
   if (retainedLesehanBlock) addCameraCollider(retainedLesehanBlock);
 
   stops.forEach((stop) => {
+    // resetNavigation also clears camera colliders. These retained models
+    // still render, so restore their camera occlusion as well as walking data.
+    addCameraCollider(stop.group);
     const hasDetailedNavigation = registerStopNavigation(stop);
     if (stop.kind === "alun") {
       (stop.group.userData.localObstacles ?? []).forEach(

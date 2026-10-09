@@ -1,7 +1,11 @@
 import * as THREE from "three";
+import { createAlAbrorSouthFactory } from "./al-abror-south.js";
 import { createAlunAlunCivicFactory } from "./civic.js";
 import { createAlunAlunEastSchoolsFactory } from "./east-schools.js";
+import { createAlunAlunLapasFactory } from "./lapas.js";
 import { createAlunAlunLesehanFactory } from "./lesehan.js";
+import { createAlunAlunPramukaFactory } from "./pramuka.js";
+import { createAlunAlunSuzukiCornerFactory } from "./suzuki-corner.js";
 import {
   ALUN_ALUN_INTERIOR_CHECKER_PATH_OUTLINES,
   ALUN_ALUN_INTERIOR_TACTILE_PAVER_DEFINITION,
@@ -30,7 +34,7 @@ import {
   ALUN_ALUN_ROAD_SURFACE_Y,
   createAlunAlunTrafficFactory,
 } from "./traffic.js";
-import { createAlunAlunWestRoadsideFactory } from "./west-roadside.js";
+import { BICAU_BOOTH_PLACEMENT, createAlunAlunWestRoadsideFactory } from "./west-roadside.js";
 import {
   createGableRoofGeometry,
   createHippedRoofGeometry,
@@ -43,6 +47,16 @@ import {
 } from "../../../rendering/materials.js";
 
 const freezeTrafficObstacle = (obstacle) => Object.freeze(obstacle);
+
+// Shared by the visible base and navigation so moving the monument cannot
+// leave an invisible blocker on the entrance path.
+export const GARUDA_MONUMENT_PLACEMENT = Object.freeze({
+  north: 12.7, east: 0.95, scale: 0.72, baseWidth: 0.9,
+});
+
+export const PARK_FOUNTAIN_PLACEMENT = Object.freeze({
+  north: -4.8, east: 4.7, radius: 1.24, topRadius: 1.12,
+});
 
 // Keep the park finish just below the top of the surveyed blue-white curb.
 // The surrounding carriageway is deliberately lower, so the curb has a real
@@ -801,6 +815,7 @@ export function createAlunAlunModelFactory({
 
   function addAlunAlunEntranceMessageBoard(group, north, east) {
     const board = new THREE.Group();
+    board.name = "Alun-Alun entrance message board";
     board.position.set(north, 0.06, east);
     board.rotation.y = Math.PI * 0.5;
     const faceMaterial = toonMaterial({ color: 0xe8e7df });
@@ -820,6 +835,7 @@ export function createAlunAlunModelFactory({
     face.position.set(0, 0.69, 0.015);
     board.add(face);
 
+    board.userData.staticPropObstacles = [];
     [-0.45, 0.45].forEach((offset) => {
       const post = new THREE.Mesh(
         new THREE.CylinderGeometry(0.022, 0.028, 0.55, 7),
@@ -827,6 +843,16 @@ export function createAlunAlunModelFactory({
       );
       post.position.set(offset, 0.31, -0.005);
       board.add(post);
+      // Only the grounded posts block walking: the elevated board leaves
+      // enough headroom for the rider to pass between them. Capture rotated
+      // geometry in park-local coordinates before material batching.
+      board.updateMatrixWorld(true);
+      const bounds = new THREE.Box3().setFromObject(post);
+      const center = bounds.getCenter(new THREE.Vector3());
+      const size = bounds.getSize(new THREE.Vector3());
+      board.userData.staticPropObstacles.push({
+        north: center.x, east: center.z, width: size.x, depth: size.z,
+      });
     });
 
     [
@@ -877,6 +903,17 @@ export function createAlunAlunModelFactory({
     hinge.position.set(0, 0.33, 0);
     hinge.rotation.z = Math.PI * 0.5;
     barrier.add(hinge);
+
+    // The fixed pedestal is solid even while the animated arm is raised.
+    // Derive its footprint from the actual base/stripe/hinge before adding
+    // the moving arm; a static arm-sized box would block the open passage.
+    const pedestalBounds = new THREE.Box3().setFromObject(barrier);
+    const pedestalSize = pedestalBounds.getSize(new THREE.Vector3());
+    const pedestalCenter = pedestalBounds.getCenter(new THREE.Vector3());
+    barrier.userData.staticPropObstacles = [{
+      north: pedestalCenter.x, east: pedestalCenter.z,
+      width: pedestalSize.x, depth: pedestalSize.z,
+    }];
 
     const armPivot = new THREE.Group();
     armPivot.position.set(0, 0.33, 0);
@@ -1024,7 +1061,10 @@ export function createAlunAlunModelFactory({
     monument.position.set(north, 0.06, east);
     const stone = toonMaterial({ color: 0xc5c5bc });
     const darkStone = toonMaterial({ color: 0x596360 });
-    const base = new THREE.Mesh(roundedBox(0.9, 0.18, 0.9, 0.08), darkStone);
+    const base = new THREE.Mesh(roundedBox(
+      GARUDA_MONUMENT_PLACEMENT.baseWidth, 0.18,
+      GARUDA_MONUMENT_PLACEMENT.baseWidth, 0.08,
+    ), darkStone);
     base.position.y = 0.09;
     monument.add(base);
     const plinth = new THREE.Mesh(roundedBox(0.6, 0.26, 0.6, 0.06), stone);
@@ -1089,7 +1129,11 @@ export function createAlunAlunModelFactory({
       transparent: true,
       opacity: 0.86,
     }));
-    const basin = new THREE.Mesh(new THREE.CylinderGeometry(1.12, 1.24, 0.18, 28), stone);
+    const basin = new THREE.Mesh(new THREE.CylinderGeometry(
+      PARK_FOUNTAIN_PLACEMENT.topRadius,
+      PARK_FOUNTAIN_PLACEMENT.radius,
+      0.18, 28,
+    ), stone);
     basin.position.y = 0.09;
     fountain.add(basin);
     const pool = new THREE.Mesh(new THREE.CircleGeometry(1.02, 32), water);
@@ -1215,6 +1259,26 @@ export function createAlunAlunModelFactory({
       MAP_METERS_PER_WORLD_UNIT,
     },
     world,
+  });
+  const { addAlunAlunLapas } = createAlunAlunLapasFactory({
+    helpers: {
+      getSitubondoSignMaterial,
+    },
+  });
+  const { addAlAbrorSouthCompound } = createAlAbrorSouthFactory({
+    helpers: {
+      getSitubondoSignMaterial,
+    },
+  });
+  const { addAlunAlunPramuka } = createAlunAlunPramukaFactory({
+    helpers: {
+      getSitubondoSignMaterial,
+    },
+  });
+  const { addAlunAlunSuzukiCorner } = createAlunAlunSuzukiCornerFactory({
+    helpers: {
+      getSitubondoSignMaterial,
+    },
   });
   const {
     addAlunAlunEastJunctionFrontage,
@@ -1451,8 +1515,10 @@ export function createAlunAlunModelFactory({
     addAlunAlunEntranceMessageBoard(group, 13.05, 10.05);
     addAlunAlunEntranceBarrier(group, 13.25, -2.62, 0.08);
 
-    const garudaMonument = addGarudaMonument(group, 12.7, 0.95, primaryMaterial, goldMaterial);
-    garudaMonument.scale.setScalar(0.72);
+    const garudaMonument = addGarudaMonument(group,
+      GARUDA_MONUMENT_PLACEMENT.north, GARUDA_MONUMENT_PLACEMENT.east,
+      primaryMaterial, goldMaterial);
+    garudaMonument.scale.setScalar(GARUDA_MONUMENT_PLACEMENT.scale);
 
     const flag = addIndonesianFlag(group, 12.7, -1.45, 1.85);
     animatedStopDetails.push({ object: flag, type: "parkFlag", phase: 1.1 });
@@ -1621,7 +1687,7 @@ export function createAlunAlunModelFactory({
       addAlunAlunLamp(group, north, east, index, goldMaterial, bulbMaterial),
     );
 
-    addAlunAlunFountain(group, -4.8, 4.7);
+    addAlunAlunFountain(group, PARK_FOUNTAIN_PLACEMENT.north, PARK_FOUNTAIN_PLACEMENT.east);
     [
       [0x4f8fa2, 0.2, 13.0, 12.0, 0.13],
       [0xc85e4f, 1.9, 12.4, 11.1, -0.11],
@@ -1688,7 +1754,11 @@ export function createAlunAlunModelFactory({
     });
     addAlunAlunKantorPerpustakaan(group);
     addAlunAlunBankBri(group);
+    addAlAbrorSouthCompound(group);
+    addAlunAlunLapas(group);
     addAlunAlunLesehanBlock(group);
+    addAlunAlunPramuka(group);
+    addAlunAlunSuzukiCorner(group);
     addAlunAlunWarungPojok(group);
     addAlunAlunSdAlAbror(group);
     addAlunAlunSdNegeri6Dawuhan(group);
@@ -1740,8 +1810,17 @@ export function createAlunAlunModelFactory({
       addAlunAlunMotorbike(group, color, phase, laneOffset, speed, queueOffset, variant, "cross"),
     );
 
+    const sidewalkFenceObstacles = [];
+    group.traverse((object) => {
+      sidewalkFenceObstacles.push(...(object.userData.sidewalkFenceObstacles ?? []));
+      sidewalkFenceObstacles.push(...(object.userData.staticPropObstacles ?? []));
+    });
     group.userData.localObstacles = [
-      { north: 12.7, east: -0.35, width: 0.8, depth: 0.8 },
+      ...sidewalkFenceObstacles,
+      { north: GARUDA_MONUMENT_PLACEMENT.north,
+        east: GARUDA_MONUMENT_PLACEMENT.east,
+        width: GARUDA_MONUMENT_PLACEMENT.baseWidth * GARUDA_MONUMENT_PLACEMENT.scale,
+        depth: GARUDA_MONUMENT_PLACEMENT.baseWidth * GARUDA_MONUMENT_PLACEMENT.scale },
       { north: 14.15, east: 0.2, width: 1.3, depth: 4.6 },
       { north: 11.8, east: 8.2, width: 1.0, depth: 0.8 },
       { north: 10.8, east: -7.75, width: 1.0, depth: 0.8 },
@@ -1753,11 +1832,10 @@ export function createAlunAlunModelFactory({
       { north: -8.4, east: -5.6, width: 1.5, depth: 1.5 },
       { north: -9.1, east: 7.6, width: 1.5, depth: 1.5 },
       { north: 11.0, east: -8.1, width: 1.7, depth: 1.5 },
-      { north: -4.8, east: 4.7, width: 2.4, depth: 2.4 },
       { north: 3.12, east: -22.97, width: 7.9, depth: 5.0, yaw: 0.199 },
       { north: 25.1, east: 0.42, width: 4.65, depth: 5.25 },
       { north: 24.54, east: -3.38, width: 8.1, depth: 2.42 },
-      { north: 23.55, east: -12.35, width: 1.08, depth: 1.42 },
+      { ...BICAU_BOOTH_PLACEMENT },
       // Signals, frontage around the open north arm, the relocated vendor,
       // medians, island and barrier share one collision definition with the
       // route-clearance validator.
@@ -1770,7 +1848,6 @@ export function createAlunAlunModelFactory({
       { north: -23.52, east: -7.97, width: 2.85, depth: 3.29 },
       { north: -26.0, east: -8.06, width: 3.06, depth: 3.59 },
       { north: -24.2, east: -9.43, width: 1.93, depth: 1.58 },
-      { north: -25.46, east: -10.52, width: 4.02, depth: 2.12 },
       { north: -23.54, east: -10.1, width: 1.42, depth: 1.29 },
       { north: -23.22, east: -6.4, width: 1.94, depth: 1.94 },
       { north: -22.54, east: -9.45, width: 0.7, depth: 1.76 },
@@ -1804,6 +1881,13 @@ export function createAlunAlunModelFactory({
     // lift so crossing the curb raises the rider by the same amount as the
     // visible road-to-ceramic step without inheriting the landmark's sag.
     group.userData.navigation = {
+      obstacles: [{
+        shape: "circle",
+        x: PARK_FOUNTAIN_PLACEMENT.north,
+        z: PARK_FOUNTAIN_PLACEMENT.east,
+        radius: PARK_FOUNTAIN_PLACEMENT.radius,
+        label: "fountain basin",
+      }],
       surfaces: [
         ...ALUN_ALUN_PARK_NAVIGATION_SURFACES,
         ...ALUN_ALUN_FRONTAGE_NAVIGATION_SURFACES,
